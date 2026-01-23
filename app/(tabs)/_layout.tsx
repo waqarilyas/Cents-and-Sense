@@ -136,7 +136,6 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen name="add-placeholder" options={{ href: null }} />
       </Tabs>
 
       {/* Floating Action Button - Above Tab Bar (only on main screens) */}
