@@ -1,5 +1,11 @@
-import { Tabs } from "expo-router";
-import { View, StyleSheet, TouchableOpacity, Animated, Platform } from "react-native";
+import { Tabs, usePathname } from "expo-router";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Platform,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,14 +21,11 @@ interface TabIconProps {
 }
 
 const TabIcon = ({ name, focused }: TabIconProps) => (
-  <View style={[
-    styles.iconContainer,
-    focused && styles.iconContainerActive,
-  ]}>
-    <Ionicons 
-      name={name} 
-      size={24} 
-      color={focused ? colors.primary : colors.textSecondary} 
+  <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+    <Ionicons
+      name={name}
+      size={24}
+      color={focused ? colors.primary : colors.textSecondary}
     />
   </View>
 );
@@ -55,11 +58,8 @@ const FloatingActionButton = ({ onPress }: { onPress: () => void }) => {
       onPress={onPress}
       style={styles.fabTouchable}
     >
-      <Animated.View 
-        style={[
-          styles.fab,
-          { transform: [{ scale: scaleAnim }] }
-        ]}
+      <Animated.View
+        style={[styles.fab, { transform: [{ scale: scaleAnim }] }]}
       >
         <Ionicons name="add" size={32} color="#FFFFFF" />
       </Animated.View>
@@ -71,9 +71,13 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, 12);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
+  const pathname = usePathname();
+
+  // Only show FAB on main screens (Home and History)
+  const showFab = pathname === "/" || pathname === "/history";
 
   const handleFabPress = () => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     setQuickAddVisible(true);
@@ -88,7 +92,7 @@ export default function TabLayout() {
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarShowLabel: false,
           tabBarStyle: {
-            position: 'absolute',
+            position: "absolute",
             bottom: bottomPadding,
             left: 20,
             right: 20,
@@ -113,7 +117,10 @@ export default function TabLayout() {
           options={{
             title: "Home",
             tabBarIcon: ({ focused }) => (
-              <TabIcon name={focused ? "home" : "home-outline"} focused={focused} />
+              <TabIcon
+                name={focused ? "home" : "home-outline"}
+                focused={focused}
+              />
             ),
           }}
         />
@@ -122,33 +129,68 @@ export default function TabLayout() {
           options={{
             title: "History",
             tabBarIcon: ({ focused }) => (
-              <TabIcon name={focused ? "time" : "time-outline"} focused={focused} />
+              <TabIcon
+                name={focused ? "time" : "time-outline"}
+                focused={focused}
+              />
             ),
           }}
         />
-        {/* Hidden screens - accessible via navigation from profile */}
-        <Tabs.Screen name="transactions" options={{ href: null }} />
-        <Tabs.Screen name="analysis" options={{ href: null }} />
-        <Tabs.Screen name="settings" options={{ href: null }} />
-        <Tabs.Screen name="accounts" options={{ href: null }} />
-        <Tabs.Screen name="budgets" options={{ href: null }} />
-        <Tabs.Screen name="goals" options={{ href: null }} />
-        <Tabs.Screen name="categories" options={{ href: null }} />
-        <Tabs.Screen name="subscriptions" options={{ href: null }} />
-        <Tabs.Screen name="profile" options={{ href: null }} />
-        <Tabs.Screen name="guide" options={{ href: null }} />
+        {/* Hidden screens - accessible via navigation, tab bar hidden */}
+        <Tabs.Screen
+          name="transactions"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="analysis"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="accounts"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="budgets"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="goals"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="categories"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="subscriptions"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
+        <Tabs.Screen
+          name="guide"
+          options={{ href: null, tabBarStyle: { display: "none" } }}
+        />
         <Tabs.Screen name="add-placeholder" options={{ href: null }} />
       </Tabs>
-      
-      {/* Floating Action Button - Above Tab Bar */}
-      <View style={[styles.fabContainer, { bottom: bottomPadding + 32 }]}>
-        <FloatingActionButton onPress={handleFabPress} />
-      </View>
+
+      {/* Floating Action Button - Above Tab Bar (only on main screens) */}
+      {showFab && (
+        <View style={[styles.fabContainer, { bottom: bottomPadding + 32 }]}>
+          <FloatingActionButton onPress={handleFabPress} />
+        </View>
+      )}
 
       {/* Quick Add Modal */}
-      <QuickAddModal 
-        visible={quickAddVisible} 
-        onClose={() => setQuickAddVisible(false)} 
+      <QuickAddModal
+        visible={quickAddVisible}
+        onClose={() => setQuickAddVisible(false)}
       />
     </View>
   );
@@ -159,31 +201,31 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
   },
   iconContainerActive: {
     backgroundColor: colors.surface,
   },
   fabContainer: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
     zIndex: 100,
   },
   fabTouchable: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   fab: {
     width: 60,
     height: 60,
     borderRadius: 30,
     backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,

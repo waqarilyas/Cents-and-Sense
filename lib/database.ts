@@ -1,13 +1,14 @@
 import * as SQLite from "expo-sqlite";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 6; // Increment this when schema changes
+const SCHEMA_VERSION = 7; // Increment this when schema changes
 
 export interface Account {
   id: string;
   name: string;
   type: "checking" | "savings" | "credit_card";
   balance: number;
+  currency: string;
   createdAt: number;
 }
 
@@ -24,6 +25,7 @@ export interface Transaction {
   accountId?: string;
   categoryId: string;
   amount: number;
+  currency: string;
   description: string;
   date: number;
   type: "income" | "expense";
@@ -35,6 +37,7 @@ export interface Budget {
   id: string;
   categoryId: string;
   budget_limit: number;
+  currency: string;
   period: "monthly" | "yearly";
   createdAt: number;
 }
@@ -44,6 +47,7 @@ export interface Goal {
   name: string;
   targetAmount: number;
   currentAmount: number;
+  currency: string;
   deadline: number;
   createdAt: number;
 }
@@ -52,6 +56,7 @@ export interface Subscription {
   id: string;
   name: string;
   amount: number;
+  currency: string;
   categoryId: string;
   frequency: "daily" | "weekly" | "monthly" | "yearly";
   startDate: number;
@@ -68,10 +73,10 @@ let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
   // If already initialized, return the db
   if (db) return db;
-  
+
   // If initialization is in progress, wait for it
   if (initPromise) return initPromise;
-  
+
   // Start initialization
   initPromise = (async () => {
     const database = await SQLite.openDatabaseAsync(DATABASE_NAME);
@@ -82,19 +87,25 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     // Check schema version and migrate if needed
     let needsMigration = false;
     try {
-      const result = await database.getFirstAsync<{ user_version: number }>("PRAGMA user_version;");
+      const result = await database.getFirstAsync<{ user_version: number }>(
+        "PRAGMA user_version;",
+      );
       const currentVersion = result?.user_version ?? 0;
       needsMigration = currentVersion < SCHEMA_VERSION;
-      
+
       // Also check if the transactions table has the correct schema
       if (!needsMigration) {
         try {
           // Check if transactions table exists and has accountId and subscriptionId
           const tableInfo = await database.getAllAsync<{ name: string }>(
-            "PRAGMA table_info(transactions);"
+            "PRAGMA table_info(transactions);",
           );
-          const hasAccountId = tableInfo.some((col) => col.name === "accountId");
-          const hasSubscriptionId = tableInfo.some((col) => col.name === "subscriptionId");
+          const hasAccountId = tableInfo.some(
+            (col) => col.name === "accountId",
+          );
+          const hasSubscriptionId = tableInfo.some(
+            (col) => col.name === "subscriptionId",
+          );
           if ((!hasAccountId || !hasSubscriptionId) && tableInfo.length > 0) {
             needsMigration = true;
           }
@@ -119,7 +130,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         DROP TABLE IF EXISTS accounts;
         DROP TABLE IF EXISTS goals;
       `);
-      
+
       // Set new version
       await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
     }
@@ -134,6 +145,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         name TEXT NOT NULL,
         type TEXT NOT NULL CHECK(type IN ('checking', 'savings', 'credit_card')),
         balance REAL NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'USD',
         createdAt INTEGER NOT NULL
       );
 
@@ -149,6 +161,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
         categoryId TEXT NOT NULL,
         frequency TEXT NOT NULL CHECK(frequency IN ('daily', 'weekly', 'monthly', 'yearly')),
         startDate INTEGER NOT NULL,
@@ -165,6 +178,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         accountId TEXT,
         categoryId TEXT NOT NULL,
         amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
         description TEXT,
         date INTEGER NOT NULL,
         type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
@@ -179,6 +193,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         id TEXT PRIMARY KEY,
         categoryId TEXT NOT NULL,
         budget_limit REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
         period TEXT NOT NULL CHECK(period IN ('monthly', 'yearly')),
         createdAt INTEGER NOT NULL,
         FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE CASCADE
@@ -189,6 +204,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         name TEXT NOT NULL,
         targetAmount REAL NOT NULL,
         currentAmount REAL NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'USD',
         deadline INTEGER NOT NULL,
         createdAt INTEGER NOT NULL
       );
@@ -205,7 +221,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
     db = database;
     return database;
   })();
-  
+
   return initPromise;
 }
 

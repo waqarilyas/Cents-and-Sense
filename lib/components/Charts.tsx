@@ -47,7 +47,8 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   const paths = sortedData.map((item) => {
     const percent = total > 0 ? (item.amount / total) * 100 : 0;
     const dashLength = (percent / 100) * circumference;
-    const dashOffset = circumference - (cumulativePercent / 100) * circumference;
+    const dashOffset =
+      circumference - (cumulativePercent / 100) * circumference;
     cumulativePercent += percent;
 
     return {
@@ -143,7 +144,8 @@ export const BarChart: React.FC<BarChartProps> = ({
   showValues = false,
 }) => {
   const maxValue = Math.max(...data.map((d) => d.value), 1);
-  const barWidth = (width - spacing.lg * 2 - spacing.sm * (data.length - 1)) / data.length;
+  const barWidth =
+    (width - spacing.lg * 2 - spacing.sm * (data.length - 1)) / data.length;
   const chartHeight = height - 24; // Leave space for labels
 
   return (
@@ -195,7 +197,7 @@ export const WeeklyTrendChart: React.FC<WeeklyTrendChartProps> = ({
 }) => {
   const maxValue = Math.max(
     ...data.map((d) => Math.max(d.income, d.expense)),
-    1
+    1,
   );
   const chartHeight = height - 32; // Leave space for labels and legend
   const barWidth = (width - spacing.lg * 2 - 16) / data.length;
@@ -205,11 +207,15 @@ export const WeeklyTrendChart: React.FC<WeeklyTrendChartProps> = ({
       {/* Legend */}
       <View style={styles.legendContainer}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: colors.income }]}
+          />
           <Text style={styles.legendText}>Income</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
+          <View
+            style={[styles.legendDot, { backgroundColor: colors.expense }]}
+          />
           <Text style={styles.legendText}>Expense</Text>
         </View>
       </View>
@@ -220,8 +226,13 @@ export const WeeklyTrendChart: React.FC<WeeklyTrendChartProps> = ({
           const incomeHeight = (item.income / maxValue) * chartHeight;
           const expenseHeight = (item.expense / maxValue) * chartHeight;
           return (
-            <View key={index} style={[styles.trendBarWrapper, { width: barWidth }]}>
-              <View style={[styles.trendBarBackground, { height: chartHeight }]}>
+            <View
+              key={index}
+              style={[styles.trendBarWrapper, { width: barWidth }]}
+            >
+              <View
+                style={[styles.trendBarBackground, { height: chartHeight }]}
+              >
                 <View style={styles.trendBarGroup}>
                   <View
                     style={[
@@ -265,7 +276,9 @@ export const CategorySpendingList: React.FC<CategorySpendingProps> = ({
   data,
   maxItems = 5,
 }) => {
-  const sortedData = [...data].sort((a, b) => b.amount - a.amount).slice(0, maxItems);
+  const sortedData = [...data]
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, maxItems);
   const total = data.reduce((sum, item) => sum + item.amount, 0);
 
   return (
@@ -275,14 +288,20 @@ export const CategorySpendingList: React.FC<CategorySpendingProps> = ({
         return (
           <View key={index} style={styles.categoryListItem}>
             <View style={styles.categoryListLeft}>
-              <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
+              <View
+                style={[styles.categoryDot, { backgroundColor: item.color }]}
+              />
               <Text style={styles.categoryName} numberOfLines={1}>
                 {item.name}
               </Text>
             </View>
             <View style={styles.categoryListRight}>
-              <Text style={styles.categoryAmount}>{formatCurrency(item.amount)}</Text>
-              <Text style={styles.categoryPercent}>{percentage.toFixed(0)}%</Text>
+              <Text style={styles.categoryAmount}>
+                {formatCurrency(item.amount)}
+              </Text>
+              <Text style={styles.categoryPercent}>
+                {percentage.toFixed(0)}%
+              </Text>
             </View>
           </View>
         );
@@ -316,7 +335,12 @@ export const BudgetProgressItem: React.FC<BudgetProgressProps> = ({
     <View style={styles.budgetProgressContainer}>
       <View style={styles.budgetProgressHeader}>
         <Text style={styles.budgetProgressName}>{name}</Text>
-        <Text style={[styles.budgetProgressAmount, isOverBudget && { color: colors.expense }]}>
+        <Text
+          style={[
+            styles.budgetProgressAmount,
+            isOverBudget && { color: colors.expense },
+          ]}
+        >
           {formatCurrency(spent)} / {formatCurrency(limit)}
         </Text>
       </View>

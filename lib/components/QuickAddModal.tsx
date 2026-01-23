@@ -20,6 +20,9 @@ import { useTransactions } from "../contexts/TransactionContext";
 import { useCategories } from "../contexts/CategoryContext";
 import { useAccounts } from "../contexts/AccountContext";
 import { useSubscriptions } from "../contexts/SubscriptionContext";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { CurrencyPicker, CurrencySelector } from "./CurrencyPicker";
+import { Currency, getCurrencySymbol } from "../currencies";
 import * as Haptics from "expo-haptics";
 import {
   matchCategoryByDescription,
@@ -41,42 +44,42 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   "Food & Dining": "restaurant",
   "Coffee & Cafe": "cafe",
-  "Groceries": "cart",
-  "Transportation": "car",
-  "Shopping": "bag-handle",
-  "Entertainment": "film",
+  Groceries: "cart",
+  Transportation: "car",
+  Shopping: "bag-handle",
+  Entertainment: "film",
   "Health & Fitness": "fitness",
   "Bills & Utilities": "flash",
-  "Housing": "home",
-  "Travel": "airplane",
-  "Education": "school",
+  Housing: "home",
+  Travel: "airplane",
+  Education: "school",
   "Personal Care": "happy",
-  "Pets": "paw",
+  Pets: "paw",
   "Kids & Family": "people",
-  "Insurance": "shield-checkmark",
+  Insurance: "shield-checkmark",
   "Gifts & Donations": "gift",
   "Alcohol & Bars": "beer",
-  "Subscriptions": "repeat",
+  Subscriptions: "repeat",
   "ATM & Cash": "cash",
   "Fees & Charges": "alert-circle",
-  "Taxes": "document-text",
+  Taxes: "document-text",
   "Other Expense": "ellipsis-horizontal",
-  "Salary": "briefcase",
-  "Freelance": "laptop",
+  Salary: "briefcase",
+  Freelance: "laptop",
   "Business Income": "storefront",
-  "Investment": "trending-up",
+  Investment: "trending-up",
   "Rental Income": "key",
-  "Refund": "arrow-undo",
+  Refund: "arrow-undo",
   "Gift Received": "gift",
-  "Government": "business",
+  Government: "business",
   "Other Income": "ellipsis-horizontal",
-  "Health": "fitness",
-  "Healthcare": "fitness",
-  "Utilities": "flash",
-  "Coffee": "cafe",
-  "Personal": "person",
-  "Gift": "gift",
-  "Other": "ellipsis-horizontal",
+  Health: "fitness",
+  Healthcare: "fitness",
+  Utilities: "flash",
+  Coffee: "cafe",
+  Personal: "person",
+  Gift: "gift",
+  Other: "ellipsis-horizontal",
 };
 
 interface QuickAddModalProps {
@@ -88,32 +91,34 @@ type Step = "amount" | "details" | "subscription";
 
 // Popular subscription icons
 const SUBSCRIPTION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  "Netflix": "tv",
-  "Spotify": "musical-notes",
+  Netflix: "tv",
+  Spotify: "musical-notes",
   "Apple Music": "musical-notes",
-  "YouTube": "play",
+  YouTube: "play",
   "Amazon Prime": "cube",
   "Disney+": "film",
   "HBO Max": "film",
-  "Hulu": "tv",
-  "iCloud": "cloud",
+  Hulu: "tv",
+  iCloud: "cloud",
   "Google One": "cloud",
-  "Dropbox": "folder",
+  Dropbox: "folder",
   "Microsoft 365": "document",
-  "Adobe": "color-palette",
-  "Gym": "fitness",
-  "Insurance": "shield-checkmark",
-  "Phone": "call",
-  "Internet": "wifi",
-  "Electricity": "flash",
-  "Water": "water",
-  "Gas": "flame",
-  "Rent": "home",
-  "Mortgage": "home",
-  "default": "repeat",
+  Adobe: "color-palette",
+  Gym: "fitness",
+  Insurance: "shield-checkmark",
+  Phone: "call",
+  Internet: "wifi",
+  Electricity: "flash",
+  Water: "water",
+  Gas: "flame",
+  Rent: "home",
+  Mortgage: "home",
+  default: "repeat",
 };
 
-const getSubscriptionIcon = (subName: string): keyof typeof Ionicons.glyphMap => {
+const getSubscriptionIcon = (
+  subName: string,
+): keyof typeof Ionicons.glyphMap => {
   for (const [key, icon] of Object.entries(SUBSCRIPTION_ICONS)) {
     if (subName.toLowerCase().includes(key.toLowerCase())) {
       return icon;
@@ -130,47 +135,71 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const router = useRouter();
   const { addTransaction, refreshTransactions } = useTransactions();
   const { expenseCategories, incomeCategories } = useCategories();
-  const { refreshAccounts } = useAccounts();
+  const { accounts, refreshAccounts } = useAccounts();
   const { addSubscription, refreshSubscriptions } = useSubscriptions();
+  const { defaultCurrency, defaultCurrencyCode } = useCurrency();
 
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("0");
   const [description, setDescription] = useState("");
-  const [transactionType, setTransactionType] = useState<"expense" | "income">("expense");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [transactionType, setTransactionType] = useState<"expense" | "income">(
+    "expense",
+  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [suggestedCategory, setSuggestedCategory] = useState<CategoryDefinition | null>(null);
+  const [suggestedCategory, setSuggestedCategory] =
+    useState<CategoryDefinition | null>(null);
   const [suggestions, setSuggestions] = useState<CategoryDefinition[]>([]);
-  
+
+  // Currency state
+  const [selectedCurrency, setSelectedCurrency] =
+    useState<string>(defaultCurrencyCode);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+
+  // Account state - default to first account if available
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    null,
+  );
+
   // Subscription-specific state
   const [subscriptionName, setSubscriptionName] = useState("");
-  const [subscriptionFrequency, setSubscriptionFrequency] = useState<Frequency>("monthly");
-  const [subscriptionCategoryId, setSubscriptionCategoryId] = useState<string | null>(null);
-  
+  const [subscriptionFrequency, setSubscriptionFrequency] =
+    useState<Frequency>("monthly");
+  const [subscriptionCategoryId, setSubscriptionCategoryId] = useState<
+    string | null
+  >(null);
+
   const slideAnim = useRef(new Animated.Value(0)).current;
   const successAnim = useRef(new Animated.Value(0)).current;
   const [showSuccess, setShowSuccess] = useState(false);
   const descriptionInputRef = useRef<TextInput>(null);
 
-  const categories = transactionType === "expense" ? expenseCategories : incomeCategories;
+  const categories =
+    transactionType === "expense" ? expenseCategories : incomeCategories;
 
   // Smart categorization effect
   useEffect(() => {
     if (description.length >= 2) {
       const match = matchCategoryByDescription(description, transactionType);
       setSuggestedCategory(match);
-      
+
       // Auto-select the suggested category
       if (match && !selectedCategoryId) {
         const dbCategory = categories.find(
-          c => c.name.toLowerCase() === match.name.toLowerCase()
+          (c) => c.name.toLowerCase() === match.name.toLowerCase(),
         );
         if (dbCategory) {
           setSelectedCategoryId(dbCategory.id);
         }
       }
-      
-      const allSuggestions = getCategorySuggestions(description, transactionType, 5);
+
+      const allSuggestions = getCategorySuggestions(
+        description,
+        transactionType,
+        5,
+      );
       setSuggestions(allSuggestions);
     } else {
       setSuggestedCategory(null);
@@ -198,15 +227,18 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       setSubscriptionName("");
       setSubscriptionFrequency("monthly");
       setSubscriptionCategoryId(null);
+      setSelectedCurrency(defaultCurrencyCode);
+      setShowCurrencyPicker(false);
       slideAnim.setValue(0);
       successAnim.setValue(0);
     }
-  }, [visible]);
+  }, [visible, defaultCurrencyCode]);
 
   const handleClose = useCallback(() => {
     setAmount("0");
     setDescription("");
     setSelectedCategoryId(null);
+    setSelectedAccountId(null);
     setStep("amount");
     setShowSuccess(false);
     setSuggestedCategory(null);
@@ -214,11 +246,13 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setSubscriptionName("");
     setSubscriptionFrequency("monthly");
     setSubscriptionCategoryId(null);
+    setSelectedCurrency(defaultCurrencyCode);
+    setShowCurrencyPicker(false);
     onClose();
-  }, [onClose]);
+  }, [onClose, defaultCurrencyCode]);
 
   const hapticFeedback = () => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
@@ -245,12 +279,12 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const handleContinue = useCallback(() => {
     const amountNum = parseFloat(amount);
     if (amountNum <= 0) {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
       return;
     }
-    
+
     hapticFeedback();
     Animated.spring(slideAnim, {
       toValue: 1,
@@ -306,26 +340,26 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const handleSaveSubscription = useCallback(async () => {
     const amountNum = parseFloat(amount);
     if (!subscriptionName.trim()) {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
       return;
     }
     if (amountNum <= 0) {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
       return;
     }
     if (!subscriptionCategoryId) {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       await addSubscription(
         subscriptionName.trim(),
@@ -334,13 +368,17 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         subscriptionFrequency,
         Date.now(),
         3,
-        undefined
+        undefined,
+        selectedCurrency,
       );
-      
-      if (Platform.OS !== 'web') {
+
+      // Refresh immediately after adding
+      refreshSubscriptions();
+
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
+
       setShowSuccess(true);
       Animated.sequence([
         Animated.timing(successAnim, {
@@ -350,25 +388,33 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         }),
         Animated.delay(600),
       ]).start(() => {
-        refreshSubscriptions();
         handleClose();
       });
-      
     } catch (error) {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } finally {
       setIsSubmitting(false);
     }
-  }, [amount, subscriptionName, subscriptionCategoryId, subscriptionFrequency, addSubscription, refreshSubscriptions, handleClose, successAnim]);
+  }, [
+    amount,
+    subscriptionName,
+    subscriptionCategoryId,
+    subscriptionFrequency,
+    addSubscription,
+    refreshSubscriptions,
+    handleClose,
+    successAnim,
+    selectedCurrency,
+  ]);
 
   const handleSave = useCallback(async () => {
     const amountNum = parseFloat(amount);
     if (amountNum <= 0 || !selectedCategoryId || isSubmitting) return;
 
     setIsSubmitting(true);
-    
+
     try {
       await addTransaction(
         selectedCategoryId,
@@ -376,13 +422,18 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         description.trim(),
         Date.now(),
         transactionType,
-        undefined
+        selectedAccountId || undefined,
+        selectedCurrency,
       );
-      
-      if (Platform.OS !== 'web') {
+
+      // Refresh immediately after adding
+      refreshAccounts();
+      refreshTransactions();
+
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
+
       setShowSuccess(true);
       Animated.sequence([
         Animated.timing(successAnim, {
@@ -392,20 +443,30 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         }),
         Animated.delay(600),
       ]).start(() => {
-        refreshAccounts();
-        refreshTransactions();
         handleClose();
       });
-      
     } catch (error) {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } finally {
       setIsSubmitting(false);
     }
-  }, [amount, description, selectedCategoryId, transactionType, addTransaction, refreshAccounts, refreshTransactions, handleClose, isSubmitting, successAnim]);
-  
+  }, [
+    amount,
+    description,
+    selectedCategoryId,
+    selectedAccountId,
+    transactionType,
+    addTransaction,
+    refreshAccounts,
+    refreshTransactions,
+    handleClose,
+    isSubmitting,
+    successAnim,
+    selectedCurrency,
+  ]);
+
   const getCategoryIcon = (name: string): keyof typeof Ionicons.glyphMap => {
     return CATEGORY_ICONS[name] || "ellipsis-horizontal";
   };
@@ -429,41 +490,57 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={[styles.container, { paddingTop: insets.top }]}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              onPress={step === "details" || step === "subscription" ? handleBack : handleClose} 
+            <TouchableOpacity
+              onPress={
+                step === "details" || step === "subscription"
+                  ? handleBack
+                  : handleClose
+              }
               style={styles.headerButton}
             >
-              <Ionicons 
-                name={step === "details" || step === "subscription" ? "arrow-back" : "close"} 
-                size={28} 
-                color={colors.textPrimary} 
+              <Ionicons
+                name={
+                  step === "details" || step === "subscription"
+                    ? "arrow-back"
+                    : "close"
+                }
+                size={28}
+                color={colors.textPrimary}
               />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>
-              {step === "amount" ? "Quick Add" : step === "details" ? "Add Details" : "Add Subscription"}
+              {step === "amount"
+                ? "Quick Add"
+                : step === "details"
+                  ? "Add Details"
+                  : "Add Subscription"}
             </Text>
             <View style={styles.headerButton} />
           </View>
 
           {/* Success Overlay */}
           {showSuccess && (
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.successOverlay,
                 {
                   opacity: successAnim,
-                  transform: [{ scale: successAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  })}]
-                }
+                  transform: [
+                    {
+                      scale: successAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                      }),
+                    },
+                  ],
+                },
               ]}
             >
               <View style={styles.successIcon}>
@@ -474,10 +551,10 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
           )}
 
           {/* Sliding Content */}
-          <Animated.View 
+          <Animated.View
             style={[
               styles.slidingContainer,
-              { transform: [{ translateX }], width: SCREEN_WIDTH * 3 }
+              { transform: [{ translateX }], width: SCREEN_WIDTH * 3 },
             ]}
           >
             {/* Step 1: Amount Entry */}
@@ -487,38 +564,56 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 <TouchableOpacity
                   style={[
                     styles.typeButton,
-                    transactionType === "expense" && styles.typeButtonExpenseActive,
+                    transactionType === "expense" &&
+                      styles.typeButtonExpenseActive,
                   ]}
-                  onPress={() => { hapticFeedback(); setTransactionType("expense"); }}
+                  onPress={() => {
+                    hapticFeedback();
+                    setTransactionType("expense");
+                  }}
                 >
                   <Ionicons
                     name="arrow-up"
                     size={18}
-                    color={transactionType === "expense" ? "#FFF" : colors.expense}
+                    color={
+                      transactionType === "expense" ? "#FFF" : colors.expense
+                    }
                   />
-                  <Text style={[
-                    styles.typeButtonText,
-                    transactionType === "expense" && styles.typeButtonTextActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      transactionType === "expense" &&
+                        styles.typeButtonTextActive,
+                    ]}
+                  >
                     Expense
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
                     styles.typeButton,
-                    transactionType === "income" && styles.typeButtonIncomeActive,
+                    transactionType === "income" &&
+                      styles.typeButtonIncomeActive,
                   ]}
-                  onPress={() => { hapticFeedback(); setTransactionType("income"); }}
+                  onPress={() => {
+                    hapticFeedback();
+                    setTransactionType("income");
+                  }}
                 >
                   <Ionicons
                     name="arrow-down"
                     size={18}
-                    color={transactionType === "income" ? "#FFF" : colors.income}
+                    color={
+                      transactionType === "income" ? "#FFF" : colors.income
+                    }
                   />
-                  <Text style={[
-                    styles.typeButtonText,
-                    transactionType === "income" && styles.typeButtonTextActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      transactionType === "income" &&
+                        styles.typeButtonTextActive,
+                    ]}
+                  >
                     Income
                   </Text>
                 </TouchableOpacity>
@@ -526,15 +621,34 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
               {/* Amount Display */}
               <View style={styles.amountDisplay}>
-                <Text 
+                <TouchableOpacity
+                  style={styles.currencyButton}
+                  onPress={() => setShowCurrencyPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.currencyButtonText}>
+                    {getCurrencySymbol(selectedCurrency)}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+                <Text
                   style={[
                     styles.amountText,
-                    { color: transactionType === "expense" ? colors.expense : colors.income }
+                    {
+                      color:
+                        transactionType === "expense"
+                          ? colors.expense
+                          : colors.income,
+                    },
                   ]}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
-                  ${amount}
+                  {amount}
                 </Text>
               </View>
 
@@ -546,11 +660,19 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       <TouchableOpacity
                         key={btn}
                         style={styles.numpadButton}
-                        onPress={() => btn === "⌫" ? handleBackspace() : handleNumberPress(btn)}
+                        onPress={() =>
+                          btn === "⌫"
+                            ? handleBackspace()
+                            : handleNumberPress(btn)
+                        }
                         activeOpacity={0.6}
                       >
                         {btn === "⌫" ? (
-                          <Ionicons name="backspace-outline" size={28} color={colors.textPrimary} />
+                          <Ionicons
+                            name="backspace-outline"
+                            size={28}
+                            color={colors.textPrimary}
+                          />
                         ) : (
                           <Text style={styles.numpadButtonText}>{btn}</Text>
                         )}
@@ -561,11 +683,21 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
               </View>
 
               {/* Continue Button */}
-              <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + spacing.lg }]}>
+              <View
+                style={[
+                  styles.buttonContainer,
+                  { paddingBottom: insets.bottom + spacing.lg },
+                ]}
+              >
                 <TouchableOpacity
                   style={[
                     styles.continueButton,
-                    { backgroundColor: transactionType === "expense" ? colors.expense : colors.income },
+                    {
+                      backgroundColor:
+                        transactionType === "expense"
+                          ? colors.expense
+                          : colors.income,
+                    },
                     parseFloat(amount) <= 0 && styles.continueButtonDisabled,
                   ]}
                   onPress={handleContinue}
@@ -582,27 +714,35 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
             <View style={styles.detailsStep}>
               {/* Amount Summary */}
               <View style={styles.amountSummaryCompact}>
-                <Text style={[
-                  styles.amountSummaryText,
-                  { color: transactionType === "expense" ? colors.expense : colors.income }
-                ]}>
+                <Text
+                  style={[
+                    styles.amountSummaryText,
+                    {
+                      color:
+                        transactionType === "expense"
+                          ? colors.expense
+                          : colors.income,
+                    },
+                  ]}
+                >
                   {transactionType === "expense" ? "-" : "+"}${amount}
                 </Text>
               </View>
 
               {/* Description Input */}
               <View style={styles.descriptionInputContainer}>
-                <Ionicons 
-                  name="create-outline" 
-                  size={22} 
-                  color={colors.textSecondary} 
+                <Ionicons
+                  name="create-outline"
+                  size={22}
+                  color={colors.textSecondary}
                 />
                 <TextInput
                   ref={descriptionInputRef}
                   style={styles.descriptionInput}
-                  placeholder={transactionType === "expense" 
-                    ? "What did you spend on? (optional)" 
-                    : "What's this income from? (optional)"
+                  placeholder={
+                    transactionType === "expense"
+                      ? "What did you spend on? (optional)"
+                      : "What's this income from? (optional)"
                   }
                   placeholderTextColor={colors.textMuted}
                   value={description}
@@ -612,24 +752,118 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 />
                 {description.length > 0 && (
                   <TouchableOpacity onPress={() => setDescription("")}>
-                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                    <Ionicons
+                      name="close-circle"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 )}
               </View>
+
+              {/* Account Selector (Optional) */}
+              {accounts.length > 0 && (
+                <View style={styles.accountSelectorContainer}>
+                  <Text style={styles.accountSelectorLabel}>
+                    Link to Account (optional)
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.accountChipsContainer}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.accountChip,
+                        !selectedAccountId && styles.accountChipSelected,
+                      ]}
+                      onPress={() => {
+                        hapticFeedback();
+                        setSelectedAccountId(null);
+                      }}
+                    >
+                      <Ionicons
+                        name="remove-circle-outline"
+                        size={16}
+                        color={
+                          !selectedAccountId
+                            ? colors.primary
+                            : colors.textSecondary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.accountChipText,
+                          !selectedAccountId && styles.accountChipTextSelected,
+                        ]}
+                      >
+                        None
+                      </Text>
+                    </TouchableOpacity>
+                    {accounts.map((account) => {
+                      const isSelected = selectedAccountId === account.id;
+                      const iconName =
+                        account.type === "checking"
+                          ? "business-outline"
+                          : account.type === "savings"
+                            ? "wallet-outline"
+                            : "card-outline";
+                      return (
+                        <TouchableOpacity
+                          key={account.id}
+                          style={[
+                            styles.accountChip,
+                            isSelected && styles.accountChipSelected,
+                          ]}
+                          onPress={() => {
+                            hapticFeedback();
+                            setSelectedAccountId(account.id);
+                          }}
+                        >
+                          <Ionicons
+                            name={iconName}
+                            size={16}
+                            color={
+                              isSelected ? colors.primary : colors.textSecondary
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.accountChipText,
+                              isSelected && styles.accountChipTextSelected,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {account.name}
+                          </Text>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={14}
+                              color={colors.primary}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
 
               {/* Smart Suggestion Banner */}
               {suggestedCategory && (
                 <View style={styles.smartMatchBanner}>
                   <Ionicons name="sparkles" size={14} color={colors.primary} />
                   <Text style={styles.smartMatchText}>
-                    Smart match: {suggestedCategory.emoji} {suggestedCategory.name}
+                    Smart match: {suggestedCategory.emoji}{" "}
+                    {suggestedCategory.name}
                   </Text>
                 </View>
               )}
 
               {/* Category Grid */}
               <Text style={styles.categoryLabel}>Select Category</Text>
-              <ScrollView 
+              <ScrollView
                 style={styles.categoryScroll}
                 contentContainerStyle={styles.categoryGrid}
                 showsVerticalScrollIndicator={false}
@@ -640,7 +874,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   <View style={styles.suggestionsRow}>
                     {suggestions.slice(0, 4).map((cat) => {
                       const dbCategory = categories.find(
-                        c => c.name.toLowerCase() === cat.name.toLowerCase()
+                        (c) => c.name.toLowerCase() === cat.name.toLowerCase(),
                       );
                       if (!dbCategory) return null;
                       const isSelected = selectedCategoryId === dbCategory.id;
@@ -650,22 +884,34 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           style={[
                             styles.suggestionChip,
                             { borderColor: cat.color },
-                            isSelected && { backgroundColor: cat.color + '20' }
+                            isSelected && { backgroundColor: cat.color + "20" },
                           ]}
                           onPress={() => {
                             hapticFeedback();
                             setSelectedCategoryId(dbCategory.id);
                           }}
                         >
-                          <Text style={styles.suggestionEmoji}>{cat.emoji}</Text>
-                          <Text style={[
-                            styles.suggestionChipText,
-                            isSelected && { color: cat.color, fontWeight: '600' }
-                          ]} numberOfLines={1}>
+                          <Text style={styles.suggestionEmoji}>
+                            {cat.emoji}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.suggestionChipText,
+                              isSelected && {
+                                color: cat.color,
+                                fontWeight: "600",
+                              },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {cat.name}
                           </Text>
                           {isSelected && (
-                            <Ionicons name="checkmark-circle" size={16} color={cat.color} />
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={16}
+                              color={cat.color}
+                            />
                           )}
                         </TouchableOpacity>
                       );
@@ -680,10 +926,21 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                     onPress={handleMakeRecurring}
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.categoryIcon, styles.subscriptionIcon]}>
-                      <Ionicons name="repeat" size={24} color={colors.primary} />
+                    <View
+                      style={[styles.categoryIcon, styles.subscriptionIcon]}
+                    >
+                      <Ionicons
+                        name="repeat"
+                        size={24}
+                        color={colors.primary}
+                      />
                     </View>
-                    <Text style={[styles.categoryItemName, { color: colors.primary }]}>
+                    <Text
+                      style={[
+                        styles.categoryItemName,
+                        { color: colors.primary },
+                      ]}
+                    >
                       Subscription
                     </Text>
                   </TouchableOpacity>
@@ -692,15 +949,17 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 {/* All Categories */}
                 {categories.map((category) => {
                   const isSelected = selectedCategoryId === category.id;
-                  const isMatched = suggestedCategory && 
-                    category.name.toLowerCase() === suggestedCategory.name.toLowerCase();
+                  const isMatched =
+                    suggestedCategory &&
+                    category.name.toLowerCase() ===
+                      suggestedCategory.name.toLowerCase();
                   return (
                     <TouchableOpacity
                       key={category.id}
                       style={[
                         styles.categoryItem,
                         isSelected && styles.categoryItemSelected,
-                        isSelected && { borderColor: category.color }
+                        isSelected && { borderColor: category.color },
                       ]}
                       onPress={() => {
                         hapticFeedback();
@@ -708,43 +967,70 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       }}
                       activeOpacity={0.7}
                     >
-                      <View style={[
-                        styles.categoryIcon, 
-                        { backgroundColor: category.color + '15' },
-                        isSelected && { backgroundColor: category.color + '30' }
-                      ]}>
-                        <Ionicons 
-                          name={getCategoryIcon(category.name)} 
-                          size={24} 
-                          color={category.color} 
+                      <View
+                        style={[
+                          styles.categoryIcon,
+                          { backgroundColor: category.color + "15" },
+                          isSelected && {
+                            backgroundColor: category.color + "30",
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={getCategoryIcon(category.name)}
+                          size={24}
+                          color={category.color}
                         />
                         {isMatched && !isSelected && (
-                          <View style={[styles.matchDot, { backgroundColor: colors.primary }]} />
+                          <View
+                            style={[
+                              styles.matchDot,
+                              { backgroundColor: colors.primary },
+                            ]}
+                          />
                         )}
                       </View>
-                      <Text style={[
-                        styles.categoryItemName,
-                        isSelected && { fontWeight: '600' }
-                      ]} numberOfLines={1}>
+                      <Text
+                        style={[
+                          styles.categoryItemName,
+                          isSelected && { fontWeight: "600" },
+                        ]}
+                        numberOfLines={1}
+                      >
                         {category.name}
                       </Text>
                       {isSelected && (
-                        <Ionicons name="checkmark-circle" size={18} color={category.color} />
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={18}
+                          color={category.color}
+                        />
                       )}
                     </TouchableOpacity>
                   );
                 })}
-                
+
                 <View style={{ height: 120 }} />
               </ScrollView>
 
               {/* Save Button */}
-              <View style={[styles.saveButtonContainer, { paddingBottom: insets.bottom + spacing.md }]}>
+              <View
+                style={[
+                  styles.saveButtonContainer,
+                  { paddingBottom: insets.bottom + spacing.md },
+                ]}
+              >
                 <TouchableOpacity
                   style={[
                     styles.saveButton,
-                    { backgroundColor: transactionType === "expense" ? colors.expense : colors.income },
-                    (!selectedCategoryId || isSubmitting) && styles.saveButtonDisabled,
+                    {
+                      backgroundColor:
+                        transactionType === "expense"
+                          ? colors.expense
+                          : colors.income,
+                    },
+                    (!selectedCategoryId || isSubmitting) &&
+                      styles.saveButtonDisabled,
                   ]}
                   onPress={handleSave}
                   disabled={!selectedCategoryId || isSubmitting}
@@ -764,14 +1050,21 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
               <View style={styles.amountSummaryCompact}>
                 <View style={styles.subscriptionHeader}>
                   <Ionicons name="repeat" size={24} color={colors.primary} />
-                  <Text style={[styles.amountSummaryText, { color: colors.expense }]}>
+                  <Text
+                    style={[
+                      styles.amountSummaryText,
+                      { color: colors.expense },
+                    ]}
+                  >
                     -${amount}
                   </Text>
                 </View>
-                <Text style={styles.subscriptionSubtitle}>per {subscriptionFrequency}</Text>
+                <Text style={styles.subscriptionSubtitle}>
+                  per {subscriptionFrequency}
+                </Text>
               </View>
 
-              <ScrollView 
+              <ScrollView
                 style={styles.subscriptionContent}
                 contentContainerStyle={styles.subscriptionScrollContent}
                 showsVerticalScrollIndicator={false}
@@ -781,10 +1074,10 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Subscription Name</Text>
                   <View style={styles.subscriptionInputContainer}>
-                    <Ionicons 
-                      name={getSubscriptionIcon(subscriptionName)} 
-                      size={22} 
-                      color={colors.primary} 
+                    <Ionicons
+                      name={getSubscriptionIcon(subscriptionName)}
+                      size={22}
+                      color={colors.primary}
                     />
                     <TextInput
                       style={styles.subscriptionInput}
@@ -796,7 +1089,11 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                     />
                     {subscriptionName.length > 0 && (
                       <TouchableOpacity onPress={() => setSubscriptionName("")}>
-                        <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                        <Ionicons
+                          name="close-circle"
+                          size={20}
+                          color={colors.textSecondary}
+                        />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -811,14 +1108,21 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                         key={option.value}
                         style={[
                           styles.frequencyButton,
-                          subscriptionFrequency === option.value && styles.frequencyButtonActive,
+                          subscriptionFrequency === option.value &&
+                            styles.frequencyButtonActive,
                         ]}
-                        onPress={() => { hapticFeedback(); setSubscriptionFrequency(option.value); }}
+                        onPress={() => {
+                          hapticFeedback();
+                          setSubscriptionFrequency(option.value);
+                        }}
                       >
-                        <Text style={[
-                          styles.frequencyButtonText,
-                          subscriptionFrequency === option.value && styles.frequencyButtonTextActive,
-                        ]}>
+                        <Text
+                          style={[
+                            styles.frequencyButtonText,
+                            subscriptionFrequency === option.value &&
+                              styles.frequencyButtonTextActive,
+                          ]}
+                        >
                           {option.label}
                         </Text>
                       </TouchableOpacity>
@@ -829,8 +1133,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 {/* Category Selection */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Category</Text>
-                  <ScrollView 
-                    horizontal 
+                  <ScrollView
+                    horizontal
                     showsHorizontalScrollIndicator={false}
                     style={styles.horizontalCategoryScroll}
                   >
@@ -839,15 +1143,31 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                         key={cat.id}
                         style={[
                           styles.categoryChip,
-                          subscriptionCategoryId === cat.id && { backgroundColor: cat.color + '30', borderColor: cat.color },
+                          subscriptionCategoryId === cat.id && {
+                            backgroundColor: cat.color + "30",
+                            borderColor: cat.color,
+                          },
                         ]}
-                        onPress={() => { hapticFeedback(); setSubscriptionCategoryId(cat.id); }}
+                        onPress={() => {
+                          hapticFeedback();
+                          setSubscriptionCategoryId(cat.id);
+                        }}
                       >
-                        <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
-                        <Text style={[
-                          styles.categoryChipText,
-                          subscriptionCategoryId === cat.id && { color: cat.color, fontWeight: '600' },
-                        ]}>
+                        <View
+                          style={[
+                            styles.categoryDot,
+                            { backgroundColor: cat.color },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.categoryChipText,
+                            subscriptionCategoryId === cat.id && {
+                              color: cat.color,
+                              fontWeight: "600",
+                            },
+                          ]}
+                        >
                           {cat.name}
                         </Text>
                       </TouchableOpacity>
@@ -857,14 +1177,23 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
                 {/* Yearly estimate */}
                 <View style={styles.estimateCard}>
-                  <Ionicons name="calculator-outline" size={20} color={colors.textSecondary} />
+                  <Ionicons
+                    name="calculator-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
                   <View style={styles.estimateContent}>
                     <Text style={styles.estimateLabel}>Yearly estimate</Text>
                     <Text style={styles.estimateValue}>
-                      ${(parseFloat(amount) * (
-                        subscriptionFrequency === "weekly" ? 52 :
-                        subscriptionFrequency === "monthly" ? 12 : 1
-                      )).toFixed(2)}
+                      $
+                      {(
+                        parseFloat(amount) *
+                        (subscriptionFrequency === "weekly"
+                          ? 52
+                          : subscriptionFrequency === "monthly"
+                            ? 12
+                            : 1)
+                      ).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -873,15 +1202,27 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
               </ScrollView>
 
               {/* Save Subscription Button */}
-              <View style={[styles.saveButtonContainer, { paddingBottom: insets.bottom + spacing.md }]}>
+              <View
+                style={[
+                  styles.saveButtonContainer,
+                  { paddingBottom: insets.bottom + spacing.md },
+                ]}
+              >
                 <TouchableOpacity
                   style={[
                     styles.saveButton,
                     { backgroundColor: colors.primary },
-                    (!subscriptionName.trim() || !subscriptionCategoryId || isSubmitting) && styles.saveButtonDisabled,
+                    (!subscriptionName.trim() ||
+                      !subscriptionCategoryId ||
+                      isSubmitting) &&
+                      styles.saveButtonDisabled,
                   ]}
                   onPress={handleSaveSubscription}
-                  disabled={!subscriptionName.trim() || !subscriptionCategoryId || isSubmitting}
+                  disabled={
+                    !subscriptionName.trim() ||
+                    !subscriptionCategoryId ||
+                    isSubmitting
+                  }
                   activeOpacity={0.8}
                 >
                   <Ionicons name="repeat" size={22} color="#FFF" />
@@ -894,6 +1235,17 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Currency Picker Modal */}
+      <CurrencyPicker
+        visible={showCurrencyPicker}
+        onClose={() => setShowCurrencyPicker(false)}
+        onSelect={(currency) => {
+          setSelectedCurrency(currency.code);
+          setShowCurrencyPicker(false);
+        }}
+        selectedCode={selectedCurrency}
+      />
     </Modal>
   );
 };
@@ -906,9 +1258,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -917,19 +1269,19 @@ const styles = StyleSheet.create({
   headerButton: {
     width: 44,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.85)",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 100,
   },
   successIcon: {
@@ -937,31 +1289,31 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: colors.income,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: spacing.lg,
   },
   successText: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   slidingContainer: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     width: SCREEN_WIDTH * 3,
   },
   amountStep: {
     width: SCREEN_WIDTH,
     paddingHorizontal: spacing.lg,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   detailsStep: {
     width: SCREEN_WIDTH,
     flex: 1,
   },
   typeToggle: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 4,
@@ -969,9 +1321,9 @@ const styles = StyleSheet.create({
   },
   typeButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.md,
     borderRadius: 10,
     gap: spacing.xs,
@@ -984,28 +1336,44 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   typeButtonTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   amountDisplay: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  currencyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    gap: 4,
+  },
+  currencyButtonText: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
   amountText: {
     fontSize: 56,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   numpad: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   numpadRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: spacing.lg,
     marginBottom: spacing.md,
   },
@@ -1014,21 +1382,21 @@ const styles = StyleSheet.create({
     height: BUTTON_SIZE,
     borderRadius: BUTTON_SIZE / 2,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   numpadButtonText: {
     fontSize: 28,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.textPrimary,
   },
   buttonContainer: {
     paddingTop: spacing.md,
   },
   continueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.md,
     borderRadius: 16,
     gap: spacing.sm,
@@ -1038,22 +1406,22 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   // Details Step
   amountSummaryCompact: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
   },
   amountSummaryText: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   descriptionInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
@@ -1068,25 +1436,65 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     paddingVertical: spacing.xs,
   },
+  accountSelectorContainer: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  accountSelectorLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  accountChipsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  accountChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  accountChipSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + "10",
+  },
+  accountChipText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    maxWidth: 120,
+  },
+  accountChipTextSelected: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
   smartMatchBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.xs,
     paddingVertical: spacing.sm,
     marginHorizontal: spacing.md,
     marginTop: spacing.sm,
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.primary + "10",
     borderRadius: 8,
   },
   smartMatchText: {
     fontSize: 13,
     color: colors.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   categoryLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
@@ -1099,14 +1507,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   suggestionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
   suggestionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 20,
@@ -1122,8 +1530,8 @@ const styles = StyleSheet.create({
     maxWidth: 80,
   },
   categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
     marginBottom: spacing.xs,
@@ -1135,21 +1543,21 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   subscriptionItem: {
-    backgroundColor: colors.primary + '08',
+    backgroundColor: colors.primary + "08",
     borderWidth: 1,
-    borderColor: colors.primary + '30',
-    borderStyle: 'dashed',
+    borderColor: colors.primary + "30",
+    borderStyle: "dashed",
     marginBottom: spacing.md,
   },
   categoryIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   subscriptionIcon: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primary + "15",
   },
   categoryItemName: {
     flex: 1,
@@ -1157,7 +1565,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   matchDot: {
-    position: 'absolute',
+    position: "absolute",
     top: -2,
     right: -2,
     width: 8,
@@ -1172,9 +1580,9 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.md,
     borderRadius: 16,
     gap: spacing.sm,
@@ -1184,8 +1592,8 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   // Subscription Step Styles
   subscriptionStep: {
@@ -1193,8 +1601,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subscriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   subscriptionSubtitle: {
@@ -1214,13 +1622,13 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
   subscriptionInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -1234,7 +1642,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   frequencyRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   frequencyButton: {
@@ -1242,33 +1650,33 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 12,
     backgroundColor: colors.surface,
-    alignItems: 'center',
+    alignItems: "center",
   },
   frequencyButtonActive: {
     backgroundColor: colors.primary,
   },
   frequencyButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   frequencyButtonTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   horizontalCategoryScroll: {
     marginHorizontal: -spacing.md,
     paddingHorizontal: spacing.md,
   },
   categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 20,
     backgroundColor: colors.surface,
     marginRight: spacing.sm,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     gap: spacing.xs,
   },
   categoryDot: {
@@ -1281,8 +1689,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   estimateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     padding: spacing.md,
     borderRadius: 12,
@@ -1297,7 +1705,7 @@ const styles = StyleSheet.create({
   },
   estimateValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
     marginTop: 2,
   },

@@ -18,6 +18,7 @@ interface TransactionContextType {
     date: number,
     type: "income" | "expense",
     accountId?: string,
+    currency?: string,
   ) => Promise<void>;
   updateTransaction: (
     id: string,
@@ -27,6 +28,7 @@ interface TransactionContextType {
     date: number,
     type: "income" | "expense",
     accountId?: string,
+    currency?: string,
   ) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   getTransaction: (id: string) => Transaction | undefined;
@@ -81,18 +83,23 @@ export function TransactionProvider({
     accountId: string,
     amount: number,
     type: "income" | "expense",
-    operation: "add" | "remove"
+    operation: "add" | "remove",
   ) => {
     const db = await getDatabase();
     // For income: add increases balance, remove decreases
     // For expense: add decreases balance, remove increases
-    const balanceChange = type === "income" 
-      ? (operation === "add" ? amount : -amount)
-      : (operation === "add" ? -amount : amount);
-    
+    const balanceChange =
+      type === "income"
+        ? operation === "add"
+          ? amount
+          : -amount
+        : operation === "add"
+          ? -amount
+          : amount;
+
     await db.runAsync(
       "UPDATE accounts SET balance = balance + ? WHERE id = ?",
-      [balanceChange, accountId]
+      [balanceChange, accountId],
     );
   };
 
@@ -104,21 +111,32 @@ export function TransactionProvider({
       date: number,
       type: "income" | "expense",
       accountId?: string,
+      currency: string = "USD",
     ) => {
       try {
         setError(null);
         const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const db = await getDatabase();
         await db.runAsync(
-          "INSERT INTO transactions (id, accountId, categoryId, amount, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          [id, accountId || null, categoryId, amount, description, date, type, Date.now()],
+          "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            id,
+            accountId || null,
+            categoryId,
+            amount,
+            currency,
+            description,
+            date,
+            type,
+            Date.now(),
+          ],
         );
-        
+
         // Update account balance if accountId is provided
         if (accountId) {
           await updateAccountBalance(accountId, amount, type, "add");
         }
-        
+
         await loadTransactions();
       } catch (err) {
         const message =
@@ -139,30 +157,45 @@ export function TransactionProvider({
       date: number,
       type: "income" | "expense",
       accountId?: string,
+      currency: string = "USD",
     ) => {
       try {
         setError(null);
         const db = await getDatabase();
-        
+
         // Get the old transaction to revert its balance impact
-        const oldTx = transactions.find(t => t.id === id);
-        
+        const oldTx = transactions.find((t) => t.id === id);
+
         // Revert old transaction's balance impact
         if (oldTx?.accountId) {
-          await updateAccountBalance(oldTx.accountId, oldTx.amount, oldTx.type, "remove");
+          await updateAccountBalance(
+            oldTx.accountId,
+            oldTx.amount,
+            oldTx.type,
+            "remove",
+          );
         }
-        
+
         // Update the transaction
         await db.runAsync(
-          "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, description = ?, date = ?, type = ? WHERE id = ?",
-          [accountId || null, categoryId, amount, description, date, type, id],
+          "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, currency = ?, description = ?, date = ?, type = ? WHERE id = ?",
+          [
+            accountId || null,
+            categoryId,
+            amount,
+            currency,
+            description,
+            date,
+            type,
+            id,
+          ],
         );
-        
+
         // Apply new transaction's balance impact
         if (accountId) {
           await updateAccountBalance(accountId, amount, type, "add");
         }
-        
+
         await loadTransactions();
       } catch (err) {
         const message =
@@ -179,17 +212,22 @@ export function TransactionProvider({
       try {
         setError(null);
         const db = await getDatabase();
-        
+
         // Get the transaction to revert its balance impact
-        const tx = transactions.find(t => t.id === id);
-        
+        const tx = transactions.find((t) => t.id === id);
+
         await db.runAsync("DELETE FROM transactions WHERE id = ?", [id]);
-        
+
         // Revert the transaction's balance impact
         if (tx?.accountId) {
-          await updateAccountBalance(tx.accountId, tx.amount, tx.type, "remove");
+          await updateAccountBalance(
+            tx.accountId,
+            tx.amount,
+            tx.type,
+            "remove",
+          );
         }
-        
+
         await loadTransactions();
       } catch (err) {
         const message =

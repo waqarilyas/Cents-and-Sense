@@ -15,31 +15,32 @@ import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
-import { 
-  Card, 
-  LoadingState, 
-  Button, 
-  Input, 
-  Select, 
+import {
+  Card,
+  LoadingState,
+  Button,
+  Input,
+  Select,
   BottomSheet,
   ProgressBar,
 } from "../../lib/components";
 import { Budget } from "../../lib/database";
 
-type Period = Budget['period'];
+type Period = Budget["period"];
 
 export default function BudgetsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { budgets, loading, addBudget, updateBudget, deleteBudget } = useBudgets();
+  const { budgets, loading, addBudget, updateBudget, deleteBudget } =
+    useBudgets();
   const { categories, expenseCategories } = useCategories();
   const { transactions } = useTransactions();
-  
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Form state
   const [categoryId, setCategoryId] = useState("");
   const [budgetLimit, setBudgetLimit] = useState("");
@@ -56,9 +57,11 @@ export default function BudgetsScreen() {
         const tDate = new Date(t.date);
         const matchesCategory = t.categoryId === budget.categoryId;
         const matchesType = t.type === "expense";
-        const matchesPeriod = budget.period === "monthly"
-          ? tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear
-          : tDate.getFullYear() === currentYear;
+        const matchesPeriod =
+          budget.period === "monthly"
+            ? tDate.getMonth() === currentMonth &&
+              tDate.getFullYear() === currentYear
+            : tDate.getFullYear() === currentYear;
         return matchesCategory && matchesType && matchesPeriod;
       })
       .reduce((sum, t) => sum + t.amount, 0);
@@ -66,7 +69,7 @@ export default function BudgetsScreen() {
     const percentage = Math.min((spent / budget.budget_limit) * 100, 100);
     const remaining = Math.max(budget.budget_limit - spent, 0);
     const isOver = spent > budget.budget_limit;
-    
+
     return { spent, percentage, remaining, isOver };
   };
 
@@ -88,9 +91,12 @@ export default function BudgetsScreen() {
     }
 
     // Check if budget already exists for this category
-    const existingBudget = budgets.find(b => b.categoryId === categoryId);
+    const existingBudget = budgets.find((b) => b.categoryId === categoryId);
     if (existingBudget) {
-      Alert.alert("Error", "A budget already exists for this category. Edit or delete it first.");
+      Alert.alert(
+        "Error",
+        "A budget already exists for this category. Edit or delete it first.",
+      );
       return;
     }
 
@@ -128,10 +134,10 @@ export default function BudgetsScreen() {
   };
 
   const handleDeleteBudget = (budget: Budget) => {
-    const category = categories.find(c => c.id === budget.categoryId);
+    const category = categories.find((c) => c.id === budget.categoryId);
     Alert.alert(
       "Delete Budget",
-      `Are you sure you want to delete the budget for "${category?.name || 'Unknown'}"?`,
+      `Are you sure you want to delete the budget for "${category?.name || "Unknown"}"?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -145,7 +151,7 @@ export default function BudgetsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -159,7 +165,7 @@ export default function BudgetsScreen() {
 
   // Categories that don't have a budget yet
   const availableCategories = expenseCategories.filter(
-    c => !budgets.find(b => b.categoryId === c.id)
+    (c) => !budgets.find((b) => b.categoryId === c.id),
   );
 
   if (loading) {
@@ -174,17 +180,21 @@ export default function BudgetsScreen() {
 
   const totalBudgeted = budgets.reduce((sum, b) => sum + b.budget_limit, 0);
   const totalSpent = budgetsWithProgress.reduce((sum, b) => sum + b.spent, 0);
-  const overallPercentage = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
+  const overallPercentage =
+    totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Budgets</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
         >
@@ -197,13 +207,24 @@ export default function BudgetsScreen() {
         <View style={styles.summaryHeader}>
           <View>
             <Text style={styles.summaryLabel}>Monthly Budget</Text>
-            <Text style={styles.summaryAmount}>{formatCurrency(totalBudgeted)}</Text>
+            <Text style={styles.summaryAmount}>
+              {formatCurrency(totalBudgeted)}
+            </Text>
           </View>
           <View style={styles.summaryStats}>
-            <Text style={[
-              styles.summaryPercentage,
-              { color: overallPercentage > 100 ? colors.error : overallPercentage > 80 ? colors.warning : colors.primary }
-            ]}>
+            <Text
+              style={[
+                styles.summaryPercentage,
+                {
+                  color:
+                    overallPercentage > 100
+                      ? colors.error
+                      : overallPercentage > 80
+                        ? colors.warning
+                        : colors.primary,
+                },
+              ]}
+            >
               {overallPercentage.toFixed(0)}%
             </Text>
             <Text style={styles.summaryUsed}>used</Text>
@@ -211,17 +232,31 @@ export default function BudgetsScreen() {
         </View>
         <ProgressBar
           progress={Math.min(overallPercentage, 100)}
-          color={overallPercentage > 100 ? colors.error : overallPercentage > 80 ? colors.warning : colors.primary}
+          color={
+            overallPercentage > 100
+              ? colors.error
+              : overallPercentage > 80
+                ? colors.warning
+                : colors.primary
+          }
           height={8}
         />
         <View style={styles.summaryFooter}>
           <Text style={styles.summaryFooterText}>
-            {formatCurrency(totalSpent)} spent of {formatCurrency(totalBudgeted)}
+            {formatCurrency(totalSpent)} spent of{" "}
+            {formatCurrency(totalBudgeted)}
           </Text>
-          <Text style={[
-            styles.summaryRemaining,
-            { color: totalBudgeted - totalSpent >= 0 ? colors.income : colors.error }
-          ]}>
+          <Text
+            style={[
+              styles.summaryRemaining,
+              {
+                color:
+                  totalBudgeted - totalSpent >= 0
+                    ? colors.income
+                    : colors.error,
+              },
+            ]}
+          >
             {formatCurrency(Math.max(totalBudgeted - totalSpent, 0))} remaining
           </Text>
         </View>
@@ -233,7 +268,11 @@ export default function BudgetsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(false)} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => setRefreshing(false)}
+            colors={[colors.primary]}
+          />
         }
       >
         {budgetsWithProgress.length > 0 ? (
@@ -244,33 +283,52 @@ export default function BudgetsScreen() {
               onLongPress={() => handleDeleteBudget(budget)}
               delayLongPress={500}
             >
-              <Card style={[
-                styles.budgetCard,
-                budget.isOver && styles.budgetCardOver
-              ]}>
+              <Card
+                style={[
+                  styles.budgetCard,
+                  budget.isOver && styles.budgetCardOver,
+                ]}
+              >
                 <View style={styles.budgetHeader}>
-                  <View style={[
-                    styles.budgetIcon,
-                    { backgroundColor: (budget.category?.color || colors.primary) + '20' }
-                  ]}>
-                    <View style={[
-                      styles.budgetDot,
-                      { backgroundColor: budget.category?.color || colors.primary }
-                    ]} />
+                  <View
+                    style={[
+                      styles.budgetIcon,
+                      {
+                        backgroundColor:
+                          (budget.category?.color || colors.primary) + "20",
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.budgetDot,
+                        {
+                          backgroundColor:
+                            budget.category?.color || colors.primary,
+                        },
+                      ]}
+                    />
                   </View>
                   <View style={styles.budgetInfo}>
                     <Text style={styles.budgetName}>
-                      {budget.category?.name || 'Unknown Category'}
+                      {budget.category?.name || "Unknown Category"}
                     </Text>
                     <Text style={styles.budgetPeriod}>
-                      {budget.period === 'monthly' ? 'Monthly' : 'Yearly'} Budget
+                      {budget.period === "monthly" ? "Monthly" : "Yearly"}{" "}
+                      Budget
                     </Text>
                   </View>
                   <View style={styles.budgetAmounts}>
-                    <Text style={[
-                      styles.budgetSpent,
-                      { color: budget.isOver ? colors.error : colors.textPrimary }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.budgetSpent,
+                        {
+                          color: budget.isOver
+                            ? colors.error
+                            : colors.textPrimary,
+                        },
+                      ]}
+                    >
                       {formatCurrency(budget.spent)}
                     </Text>
                     <Text style={styles.budgetLimit}>
@@ -280,18 +338,29 @@ export default function BudgetsScreen() {
                 </View>
                 <ProgressBar
                   progress={budget.percentage}
-                  color={budget.isOver ? colors.error : budget.percentage > 80 ? colors.warning : colors.primary}
+                  color={
+                    budget.isOver
+                      ? colors.error
+                      : budget.percentage > 80
+                        ? colors.warning
+                        : colors.primary
+                  }
                   height={6}
                 />
                 <View style={styles.budgetFooter}>
-                  <Text style={[
-                    styles.budgetRemaining,
-                    { color: budget.isOver ? colors.error : colors.textSecondary }
-                  ]}>
-                    {budget.isOver 
+                  <Text
+                    style={[
+                      styles.budgetRemaining,
+                      {
+                        color: budget.isOver
+                          ? colors.error
+                          : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {budget.isOver
                       ? `Over budget by ${formatCurrency(budget.spent - budget.budget_limit)}`
-                      : `${formatCurrency(budget.remaining)} remaining`
-                    }
+                      : `${formatCurrency(budget.remaining)} remaining`}
                   </Text>
                   <Text style={styles.budgetPercentage}>
                     {budget.percentage.toFixed(0)}%
@@ -303,11 +372,16 @@ export default function BudgetsScreen() {
         ) : (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="pie-chart-outline" size={32} color={colors.primary} />
+              <Ionicons
+                name="pie-chart-outline"
+                size={32}
+                color={colors.primary}
+              />
             </View>
             <Text style={styles.emptyTitle}>No budgets yet</Text>
             <Text style={styles.emptyDescription}>
-              Create budgets to track and limit your spending in different categories
+              Create budgets to track and limit your spending in different
+              categories
             </Text>
             <Button
               title="Create Budget"
@@ -339,12 +413,16 @@ export default function BudgetsScreen() {
         <Select
           label="Category"
           value={categoryId}
-          options={availableCategories.map(c => ({
+          options={availableCategories.map((c) => ({
             label: c.name,
             value: c.id,
           }))}
           onSelect={setCategoryId}
-          placeholder={availableCategories.length > 0 ? "Select a category" : "All categories have budgets"}
+          placeholder={
+            availableCategories.length > 0
+              ? "Select a category"
+              : "All categories have budgets"
+          }
         />
 
         <Input
@@ -359,18 +437,34 @@ export default function BudgetsScreen() {
           <Text style={styles.periodLabel}>Period</Text>
           <View style={styles.periodOptions}>
             <TouchableOpacity
-              style={[styles.periodOption, period === 'monthly' && styles.periodOptionActive]}
-              onPress={() => setPeriod('monthly')}
+              style={[
+                styles.periodOption,
+                period === "monthly" && styles.periodOptionActive,
+              ]}
+              onPress={() => setPeriod("monthly")}
             >
-              <Text style={[styles.periodOptionText, period === 'monthly' && styles.periodOptionTextActive]}>
+              <Text
+                style={[
+                  styles.periodOptionText,
+                  period === "monthly" && styles.periodOptionTextActive,
+                ]}
+              >
                 Monthly
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.periodOption, period === 'yearly' && styles.periodOptionActive]}
-              onPress={() => setPeriod('yearly')}
+              style={[
+                styles.periodOption,
+                period === "yearly" && styles.periodOptionActive,
+              ]}
+              onPress={() => setPeriod("yearly")}
             >
-              <Text style={[styles.periodOptionText, period === 'yearly' && styles.periodOptionTextActive]}>
+              <Text
+                style={[
+                  styles.periodOptionText,
+                  period === "yearly" && styles.periodOptionTextActive,
+                ]}
+              >
                 Yearly
               </Text>
             </TouchableOpacity>
@@ -399,7 +493,7 @@ export default function BudgetsScreen() {
         <View style={styles.editCategoryInfo}>
           <Text style={styles.editCategoryLabel}>Category</Text>
           <Text style={styles.editCategoryName}>
-            {categories.find(c => c.id === categoryId)?.name || 'Unknown'}
+            {categories.find((c) => c.id === categoryId)?.name || "Unknown"}
           </Text>
         </View>
 
@@ -415,18 +509,34 @@ export default function BudgetsScreen() {
           <Text style={styles.periodLabel}>Period</Text>
           <View style={styles.periodOptions}>
             <TouchableOpacity
-              style={[styles.periodOption, period === 'monthly' && styles.periodOptionActive]}
-              onPress={() => setPeriod('monthly')}
+              style={[
+                styles.periodOption,
+                period === "monthly" && styles.periodOptionActive,
+              ]}
+              onPress={() => setPeriod("monthly")}
             >
-              <Text style={[styles.periodOptionText, period === 'monthly' && styles.periodOptionTextActive]}>
+              <Text
+                style={[
+                  styles.periodOptionText,
+                  period === "monthly" && styles.periodOptionTextActive,
+                ]}
+              >
                 Monthly
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.periodOption, period === 'yearly' && styles.periodOptionActive]}
-              onPress={() => setPeriod('yearly')}
+              style={[
+                styles.periodOption,
+                period === "yearly" && styles.periodOptionActive,
+              ]}
+              onPress={() => setPeriod("yearly")}
             >
-              <Text style={[styles.periodOptionText, period === 'yearly' && styles.periodOptionTextActive]}>
+              <Text
+                style={[
+                  styles.periodOptionText,
+                  period === "yearly" && styles.periodOptionTextActive,
+                ]}
+              >
                 Yearly
               </Text>
             </TouchableOpacity>
@@ -464,9 +574,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
@@ -476,11 +586,11 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   addButton: {
@@ -491,7 +601,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   summaryCard: {
@@ -499,9 +609,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: spacing.md,
   },
   summaryLabel: {
@@ -510,24 +620,24 @@ const styles = StyleSheet.create({
   },
   summaryAmount: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
     marginTop: 4,
   },
   summaryStats: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   summaryPercentage: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   summaryUsed: {
     fontSize: 12,
     color: colors.textSecondary,
   },
   summaryFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: spacing.md,
   },
   summaryFooterText: {
@@ -536,7 +646,7 @@ const styles = StyleSheet.create({
   },
   summaryRemaining: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   scrollView: {
     flex: 1,
@@ -553,16 +663,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorLight,
   },
   budgetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   budgetIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   budgetDot: {
     width: 18,
@@ -575,7 +685,7 @@ const styles = StyleSheet.create({
   },
   budgetName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   budgetPeriod: {
@@ -584,11 +694,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   budgetAmounts: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   budgetSpent: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   budgetLimit: {
     fontSize: 12,
@@ -596,8 +706,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   budgetFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: spacing.sm,
   },
   budgetRemaining: {
@@ -605,12 +715,12 @@ const styles = StyleSheet.create({
   },
   budgetPercentage: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xxxl,
   },
   emptyIconContainer: {
@@ -618,26 +728,26 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.lg,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: spacing.xl,
   },
   hintContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: spacing.lg,
   },
@@ -650,12 +760,12 @@ const styles = StyleSheet.create({
   },
   periodLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   periodOptions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
   periodOption: {
@@ -663,9 +773,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   periodOptionActive: {
     backgroundColor: colors.primaryLight,
@@ -673,7 +783,7 @@ const styles = StyleSheet.create({
   },
   periodOptionText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   periodOptionTextActive: {
@@ -692,11 +802,11 @@ const styles = StyleSheet.create({
   },
   editCategoryName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   editActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: spacing.lg,
   },
 });

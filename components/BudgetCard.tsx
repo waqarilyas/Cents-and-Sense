@@ -3,6 +3,7 @@
 import { View } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 import { Budget, Category } from "../lib/database";
+import { formatCurrency } from "../lib/theme";
 
 interface BudgetCardProps {
   budget: Budget;
@@ -58,10 +59,10 @@ export function BudgetCard({
                 color: isOver ? "#d32f2f" : "#2e7d32",
               }}
             >
-              ${spent.toFixed(2)}
+              {formatCurrency(spent, budget.currency)}
             </Text>
             <Text variant="labelSmall" style={{ color: "#999" }}>
-              of ${budget.budget_limit.toFixed(2)}
+              of {formatCurrency(budget.budget_limit, budget.currency)}
             </Text>
           </View>
         </View>
@@ -99,8 +100,8 @@ export function BudgetCard({
             }}
           >
             {isOver
-              ? `Over by $${(spent - budget.budget_limit).toFixed(2)}`
-              : `$${remaining.toFixed(2)} remaining`}
+              ? `Over by ${formatCurrency(spent - budget.budget_limit, budget.currency)}`
+              : `${formatCurrency(remaining, budget.currency)} remaining`}
           </Text>
         </View>
       </Card.Content>

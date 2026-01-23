@@ -1,4 +1,10 @@
-import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -25,7 +31,7 @@ interface MenuItem {
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  
+
   const { accounts } = useAccounts();
   const { goals } = useGoals();
   const { budgets } = useBudgets();
@@ -36,7 +42,9 @@ export default function SettingsScreen() {
 
   // Calculate some stats for display
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const activeGoals = goals.filter(g => g.currentAmount < g.targetAmount).length;
+  const activeGoals = goals.filter(
+    (g) => g.currentAmount < g.targetAmount,
+  ).length;
   const activeBudgets = budgets.length;
 
   const menuSections: { title: string; items: MenuItem[] }[] = [
@@ -94,14 +102,16 @@ export default function SettingsScreen() {
           icon: "cash-outline",
           label: "Currency",
           subtitle: "USD ($)",
-          onPress: () => Alert.alert("Currency", "Currency settings coming soon!"),
+          onPress: () =>
+            Alert.alert("Currency", "Currency settings coming soon!"),
           showArrow: true,
         },
         {
           icon: "moon-outline",
           label: "Appearance",
           subtitle: "Light Mode",
-          onPress: () => Alert.alert("Coming Soon", "Dark mode will be available soon!"),
+          onPress: () =>
+            Alert.alert("Coming Soon", "Dark mode will be available soon!"),
           showArrow: true,
         },
       ],
@@ -113,28 +123,31 @@ export default function SettingsScreen() {
           icon: "cloud-upload-outline",
           label: "Backup Data",
           subtitle: "Export your data",
-          onPress: () => Alert.alert("Backup", "Data backup feature coming soon!"),
+          onPress: () =>
+            Alert.alert("Backup", "Data backup feature coming soon!"),
           showArrow: true,
         },
         {
           icon: "cloud-download-outline",
           label: "Restore Data",
           subtitle: "Import from backup",
-          onPress: () => Alert.alert("Restore", "Data restore feature coming soon!"),
+          onPress: () =>
+            Alert.alert("Restore", "Data restore feature coming soon!"),
           showArrow: true,
         },
         {
           icon: "trash-outline",
           label: "Clear All Data",
           subtitle: "Delete all transactions and accounts",
-          onPress: () => Alert.alert(
-            "Clear All Data", 
-            "This will permanently delete all your data. This action cannot be undone.",
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "Delete", style: "destructive", onPress: () => {} }
-            ]
-          ),
+          onPress: () =>
+            Alert.alert(
+              "Clear All Data",
+              "This will permanently delete all your data. This action cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: () => {} },
+              ],
+            ),
           color: "#F44336",
           showArrow: true,
         },
@@ -146,19 +159,22 @@ export default function SettingsScreen() {
         {
           icon: "help-circle-outline",
           label: "Help & FAQ",
-          onPress: () => Alert.alert("Help", "Visit our website for help and FAQs."),
+          onPress: () =>
+            Alert.alert("Help", "Visit our website for help and FAQs."),
           showArrow: true,
         },
         {
           icon: "mail-outline",
           label: "Contact Support",
-          onPress: () => Alert.alert("Contact", "Email us at support@budgettracker.app"),
+          onPress: () =>
+            Alert.alert("Contact", "Email us at support@budgettracker.app"),
           showArrow: true,
         },
         {
           icon: "star-outline",
           label: "Rate App",
-          onPress: () => Alert.alert("Thank You!", "We appreciate your feedback!"),
+          onPress: () =>
+            Alert.alert("Thank You!", "We appreciate your feedback!"),
           showArrow: true,
         },
       ],
@@ -175,7 +191,8 @@ export default function SettingsScreen() {
         {
           icon: "shield-checkmark-outline",
           label: "Privacy Policy",
-          onPress: () => Alert.alert("Privacy", "Your data stays on your device."),
+          onPress: () =>
+            Alert.alert("Privacy", "Your data stays on your device."),
           showArrow: true,
         },
       ],
@@ -186,10 +203,16 @@ export default function SettingsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={26} color={colors.primary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -198,15 +221,17 @@ export default function SettingsScreen() {
         <Card style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#E8F5E9' }]}>
+              <View style={[styles.statIcon, { backgroundColor: "#E8F5E9" }]}>
                 <Ionicons name="wallet" size={20} color="#4CAF50" />
               </View>
-              <Text style={styles.statValue}>${totalBalance.toLocaleString()}</Text>
+              <Text style={styles.statValue}>
+                ${totalBalance.toLocaleString()}
+              </Text>
               <Text style={styles.statLabel}>Total Balance</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#E3F2FD' }]}>
+              <View style={[styles.statIcon, { backgroundColor: "#E3F2FD" }]}>
                 <Ionicons name="swap-vertical" size={20} color="#2196F3" />
               </View>
               <Text style={styles.statValue}>{transactions.length}</Text>
@@ -214,7 +239,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#FFF3E0' }]}>
+              <View style={[styles.statIcon, { backgroundColor: "#FFF3E0" }]}>
                 <Ionicons name="flag" size={20} color="#FF9800" />
               </View>
               <Text style={styles.statValue}>{activeGoals}</Text>
@@ -233,30 +258,37 @@ export default function SettingsScreen() {
                   key={itemIndex}
                   style={[
                     styles.menuItem,
-                    itemIndex < section.items.length - 1 && styles.menuItemBorder,
+                    itemIndex < section.items.length - 1 &&
+                      styles.menuItemBorder,
                   ]}
                   onPress={item.onPress}
                   activeOpacity={0.7}
                 >
-                  <View style={[
-                    styles.menuIconContainer,
-                    item.color && { backgroundColor: `${item.color}15` }
-                  ]}>
-                    <Ionicons 
-                      name={item.icon} 
-                      size={22} 
-                      color={item.color || colors.primary} 
+                  <View
+                    style={[
+                      styles.menuIconContainer,
+                      item.color && { backgroundColor: `${item.color}15` },
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={22}
+                      color={item.color || colors.primary}
                     />
                   </View>
                   <View style={styles.menuItemContent}>
-                    <Text style={[
-                      styles.menuItemLabel,
-                      item.color === "#F44336" && { color: "#F44336" }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.menuItemLabel,
+                        item.color === "#F44336" && { color: "#F44336" },
+                      ]}
+                    >
                       {item.label}
                     </Text>
                     {item.subtitle && (
-                      <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                      <Text style={styles.menuItemSubtitle}>
+                        {item.subtitle}
+                      </Text>
                     )}
                   </View>
                   {item.badge !== undefined && (
@@ -265,10 +297,10 @@ export default function SettingsScreen() {
                     </View>
                   )}
                   {item.showArrow && (
-                    <Ionicons 
-                      name="chevron-forward" 
-                      size={20} 
-                      color={colors.textSecondary} 
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={colors.textSecondary}
                     />
                   )}
                 </TouchableOpacity>
@@ -295,6 +327,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceSecondary,
   },
   headerTitle: {
     fontSize: 28,
@@ -312,25 +355,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   statIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: spacing.xs,
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
     marginTop: spacing.xs,
   },
@@ -349,20 +392,20 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     marginLeft: spacing.xs,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   menuCard: {
     padding: 0,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
   },
@@ -375,8 +418,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 10,
     backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: spacing.md,
   },
   menuItemContent: {
@@ -384,7 +427,7 @@ const styles = StyleSheet.create({
   },
   menuItemLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.textPrimary,
   },
   menuItemSubtitle: {
@@ -401,7 +444,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });

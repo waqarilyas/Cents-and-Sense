@@ -13,11 +13,20 @@ import { Text } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Swipeable, GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  Swipeable,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
-import { colors, spacing, borderRadius, formatCurrency, formatShortDate } from "../../lib/theme";
+import {
+  colors,
+  spacing,
+  borderRadius,
+  formatCurrency,
+  formatShortDate,
+} from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
 
@@ -29,7 +38,7 @@ export default function HistoryScreen() {
   const { transactions, loading, deleteTransaction } = useTransactions();
   const { categories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
-  
+
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -51,24 +60,24 @@ export default function HistoryScreen() {
 
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
-    
+
     // Apply type filter
     if (filter !== "all") {
-      filtered = filtered.filter(t => t.type === filter);
+      filtered = filtered.filter((t) => t.type === filter);
     }
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(t => {
-        const category = categories.find(c => c.id === t.categoryId);
+      filtered = filtered.filter((t) => {
+        const category = categories.find((c) => c.id === t.categoryId);
         return (
           t.description?.toLowerCase().includes(query) ||
           category?.name.toLowerCase().includes(query)
         );
       });
     }
-    
+
     // Sort by date (newest first)
     return filtered.sort((a, b) => b.date - a.date);
   }, [transactions, filter, searchQuery, categories]);
@@ -76,56 +85,52 @@ export default function HistoryScreen() {
   // Group by date
   const groupedTransactions = useMemo(() => {
     const groups: Record<string, typeof transactions> = {};
-    
-    filteredTransactions.forEach(t => {
+
+    filteredTransactions.forEach((t) => {
       const date = new Date(t.date);
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      
+
       let dateKey: string;
       if (date.toDateString() === today.toDateString()) {
         dateKey = "Today";
       } else if (date.toDateString() === yesterday.toDateString()) {
         dateKey = "Yesterday";
       } else {
-        dateKey = date.toLocaleDateString("en-US", { 
-          weekday: 'long',
-          month: "short", 
-          day: "numeric" 
+        dateKey = date.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
         });
       }
-      
+
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
       groups[dateKey].push(t);
     });
-    
+
     return groups;
   }, [filteredTransactions]);
 
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>,
-    transactionId: string
+    transactionId: string,
   ) => {
     return (
       <TouchableOpacity
         style={styles.deleteAction}
         onPress={() => {
-          Alert.alert(
-            "Delete Transaction",
-            "Are you sure?",
-            [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => handleDeleteTransaction(transactionId),
-              },
-            ]
-          );
+          Alert.alert("Delete Transaction", "Are you sure?", [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: () => handleDeleteTransaction(transactionId),
+            },
+          ]);
         }}
       >
         <Ionicons name="trash-outline" size={24} color="#FFF" />
@@ -143,11 +148,15 @@ export default function HistoryScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>History</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push("/(tabs)/profile")}
           >
-            <Ionicons name="person-circle-outline" size={32} color={colors.primary} />
+            <Ionicons
+              name="person-circle-outline"
+              size={32}
+              color={colors.primary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -164,7 +173,11 @@ export default function HistoryScreen() {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.textSecondary}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -181,11 +194,17 @@ export default function HistoryScreen() {
               ]}
               onPress={() => setFilter(type)}
             >
-              <Text style={[
-                styles.filterChipText,
-                filter === type && styles.filterChipTextActive,
-              ]}>
-                {type === "all" ? "All" : type === "income" ? "Income" : "Expenses"}
+              <Text
+                style={[
+                  styles.filterChipText,
+                  filter === type && styles.filterChipTextActive,
+                ]}
+              >
+                {type === "all"
+                  ? "All"
+                  : type === "income"
+                    ? "Income"
+                    : "Expenses"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -197,7 +216,11 @@ export default function HistoryScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+            />
           }
         >
           {Object.keys(groupedTransactions).length > 0 ? (
@@ -205,12 +228,16 @@ export default function HistoryScreen() {
               <View key={date} style={styles.dateSection}>
                 <Text style={styles.dateTitle}>{date}</Text>
                 {items.map((transaction) => {
-                  const category = categories.find(c => c.id === transaction.categoryId);
-                  const account = accounts.find(a => a.id === transaction.accountId);
+                  const category = categories.find(
+                    (c) => c.id === transaction.categoryId,
+                  );
+                  const account = accounts.find(
+                    (a) => a.id === transaction.accountId,
+                  );
                   return (
                     <Swipeable
                       key={transaction.id}
-                      renderRightActions={(progress, dragX) => 
+                      renderRightActions={(progress, dragX) =>
                         renderRightActions(progress, dragX, transaction.id)
                       }
                       friction={2}
@@ -218,33 +245,57 @@ export default function HistoryScreen() {
                     >
                       <Card style={styles.transactionCard}>
                         <View style={styles.transactionRow}>
-                          <View style={[styles.transactionIcon, { 
-                            backgroundColor: category?.color 
-                              ? `${category.color}15` 
-                              : transaction.type === 'income' 
-                                ? `${colors.income}15` 
-                                : `${colors.expense}15` 
-                          }]}>
-                            <Ionicons 
-                              name={category ? getCategoryIcon(category.name) : 'ellipsis-horizontal'} 
-                              size={20} 
-                              color={category?.color || (transaction.type === 'income' ? colors.income : colors.expense)} 
+                          <View
+                            style={[
+                              styles.transactionIcon,
+                              {
+                                backgroundColor: category?.color
+                                  ? `${category.color}15`
+                                  : transaction.type === "income"
+                                    ? `${colors.income}15`
+                                    : `${colors.expense}15`,
+                              },
+                            ]}
+                          >
+                            <Ionicons
+                              name={
+                                category
+                                  ? getCategoryIcon(category.name)
+                                  : "ellipsis-horizontal"
+                              }
+                              size={20}
+                              color={
+                                category?.color ||
+                                (transaction.type === "income"
+                                  ? colors.income
+                                  : colors.expense)
+                              }
                             />
                           </View>
                           <View style={styles.transactionInfo}>
                             <Text style={styles.transactionTitle}>
-                              {transaction.description || category?.name || 'Transaction'}
+                              {transaction.description ||
+                                category?.name ||
+                                "Transaction"}
                             </Text>
                             <Text style={styles.transactionSubtitle}>
-                              {category?.name || 'Uncategorized'}
-                              {account ? ` • ${account.name}` : ''}
+                              {category?.name || "Uncategorized"}
+                              {account ? ` • ${account.name}` : ""}
                             </Text>
                           </View>
-                          <Text style={[
-                            styles.transactionAmount,
-                            { color: transaction.type === 'income' ? colors.income : colors.expense }
-                          ]}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          <Text
+                            style={[
+                              styles.transactionAmount,
+                              {
+                                color:
+                                  transaction.type === "income"
+                                    ? colors.income
+                                    : colors.expense,
+                              },
+                            ]}
+                          >
+                            {transaction.type === "income" ? "+" : "-"}
+                            {formatCurrency(transaction.amount)}
                           </Text>
                         </View>
                       </Card>
@@ -255,18 +306,24 @@ export default function HistoryScreen() {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={64} color={colors.textMuted} />
+              <Ionicons
+                name="receipt-outline"
+                size={64}
+                color={colors.textMuted}
+              />
               <Text style={styles.emptyTitle}>
-                {searchQuery ? "No matching transactions" : "No transactions yet"}
+                {searchQuery
+                  ? "No matching transactions"
+                  : "No transactions yet"}
               </Text>
               <Text style={styles.emptyDescription}>
-                {searchQuery 
-                  ? "Try a different search term" 
+                {searchQuery
+                  ? "Try a different search term"
                   : "Tap the + button to add your first expense"}
               </Text>
             </View>
           )}
-          
+
           {/* Bottom spacing for tab bar */}
           <View style={{ height: 120 }} />
         </ScrollView>
@@ -281,15 +338,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   profileButton: {
@@ -300,8 +357,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
@@ -316,7 +373,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   filterContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
     gap: spacing.sm,
@@ -335,11 +392,11 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   scrollView: {
     flex: 1,
@@ -352,7 +409,7 @@ const styles = StyleSheet.create({
   },
   dateTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
@@ -361,15 +418,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   transactionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   transactionIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   transactionInfo: {
     flex: 1,
@@ -377,7 +434,7 @@ const styles = StyleSheet.create({
   },
   transactionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   transactionSubtitle: {
@@ -387,24 +444,24 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   deleteAction: {
     backgroundColor: colors.expense,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     width: 80,
     marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xxxl,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginTop: spacing.lg,
   },
@@ -412,6 +469,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

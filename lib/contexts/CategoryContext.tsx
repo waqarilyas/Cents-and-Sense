@@ -13,7 +13,11 @@ interface CategoryContextType {
   incomeCategories: Category[];
   loading: boolean;
   error: string | null;
-  addCategory: (name: string, type: "income" | "expense", color: string) => Promise<void>;
+  addCategory: (
+    name: string,
+    type: "income" | "expense",
+    color: string,
+  ) => Promise<void>;
   updateCategory: (id: string, name: string, color: string) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   getCategory: (id: string) => Category | undefined;
@@ -21,7 +25,9 @@ interface CategoryContextType {
   refreshCategories: () => Promise<void>;
 }
 
-const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
+const CategoryContext = createContext<CategoryContextType | undefined>(
+  undefined,
+);
 
 // Default categories to seed the database - Expanded premium set
 const DEFAULT_CATEGORIES = [
@@ -72,7 +78,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         const id = `cat_${cat.name.toLowerCase().replace(/\s+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         await db.runAsync(
           "INSERT OR IGNORE INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-          [id, cat.name, cat.type, cat.color, Date.now()]
+          [id, cat.name, cat.type, cat.color, Date.now()],
         );
       }
     } catch (err) {
@@ -86,21 +92,21 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const db = await getDatabase();
       let result = await db.getAllAsync<Category>(
-        "SELECT * FROM categories ORDER BY name ASC"
+        "SELECT * FROM categories ORDER BY name ASC",
       );
-      
+
       // If no categories exist, seed defaults
       if (!result || result.length === 0) {
         await seedDefaultCategories();
         result = await db.getAllAsync<Category>(
-          "SELECT * FROM categories ORDER BY name ASC"
+          "SELECT * FROM categories ORDER BY name ASC",
         );
       }
-      
+
       setCategories(result || []);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load categories"
+        err instanceof Error ? err.message : "Failed to load categories",
       );
       console.error("Error loading categories:", err);
     } finally {
@@ -120,16 +126,17 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-          [id, name, type, color, Date.now()]
+          [id, name, type, color, Date.now()],
         );
         await loadCategories();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to add category";
+        const message =
+          err instanceof Error ? err.message : "Failed to add category";
         setError(message);
         throw err;
       }
     },
-    [loadCategories]
+    [loadCategories],
   );
 
   const updateCategory = useCallback(
@@ -139,16 +146,17 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         const db = await getDatabase();
         await db.runAsync(
           "UPDATE categories SET name = ?, color = ? WHERE id = ?",
-          [name, color, id]
+          [name, color, id],
         );
         await loadCategories();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to update category";
+        const message =
+          err instanceof Error ? err.message : "Failed to update category";
         setError(message);
         throw err;
       }
     },
-    [loadCategories]
+    [loadCategories],
   );
 
   const deleteCategory = useCallback(
@@ -159,26 +167,27 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         await db.runAsync("DELETE FROM categories WHERE id = ?", [id]);
         await loadCategories();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to delete category";
+        const message =
+          err instanceof Error ? err.message : "Failed to delete category";
         setError(message);
         throw err;
       }
     },
-    [loadCategories]
+    [loadCategories],
   );
 
   const getCategory = useCallback(
     (id: string) => {
       return categories.find((c) => c.id === id);
     },
-    [categories]
+    [categories],
   );
 
   const getCategoriesByType = useCallback(
     (type: "income" | "expense") => {
       return categories.filter((c) => c.type === type);
     },
-    [categories]
+    [categories],
   );
 
   const expenseCategories = categories.filter((c) => c.type === "expense");

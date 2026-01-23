@@ -5,68 +5,195 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
-import { colors, spacing, borderRadius, formatCurrency, formatShortDate } from "../../lib/theme";
+import { useSettings } from "../../lib/contexts/SettingsContext";
+import { useGoals } from "../../lib/contexts/GoalContext";
+import {
+  colors,
+  spacing,
+  borderRadius,
+  formatCurrency,
+  formatShortDate,
+} from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { getTotalBalance, loading: accountsLoading, refreshAccounts } = useAccounts();
-  const { transactions, loading: transactionsLoading, getMonthlyStats, refreshTransactions } = useTransactions();
+  const {
+    getTotalBalance,
+    loading: accountsLoading,
+    refreshAccounts,
+  } = useAccounts();
+  const {
+    transactions,
+    loading: transactionsLoading,
+    getMonthlyStats,
+    refreshTransactions,
+  } = useTransactions();
   const { budgets } = useBudgets();
   const { getCategory } = useCategories();
-  const { getUpcomingSubscriptions, processDueSubscriptions, refreshSubscriptions } = useSubscriptions();
+  const {
+    getUpcomingSubscriptions,
+    processDueSubscriptions,
+    refreshSubscriptions,
+    pendingSubscriptions,
+    approvePendingSubscription,
+    skipPendingSubscription,
+    approveAllPending,
+  } = useSubscriptions();
+  const { settings } = useSettings();
+  const { goals } = useGoals();
   const [refreshing, setRefreshing] = useState(false);
 
   const monthlyStats = getMonthlyStats();
   const upcomingSubscriptions = getUpcomingSubscriptions(7);
 
-  // Process due subscriptions on mount
+  // Process due subscriptions on mount based on settings
   useEffect(() => {
-    processDueSubscriptions();
-  }, []);
+    processDueSubscriptions(settings.subscriptionProcessingMode);
+  }, [settings.subscriptionProcessingMode]);
 
   useFocusEffect(
     useCallback(() => {
       refreshAccounts();
       refreshTransactions();
       refreshSubscriptions();
-    }, [refreshAccounts, refreshTransactions, refreshSubscriptions])
+      // Check for due subscriptions when screen focuses
+      processDueSubscriptions(settings.subscriptionProcessingMode);
+    }, [
+      refreshAccounts,
+      refreshTransactions,
+      refreshSubscriptions,
+      settings.subscriptionProcessingMode,
+    ]),
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refreshAccounts(), refreshTransactions(), refreshSubscriptions()]);
-    await processDueSubscriptions();
+    await Promise.all([
+      refreshAccounts(),
+      refreshTransactions(),
+      refreshSubscriptions(),
+    ]);
+    await processDueSubscriptions(settings.subscriptionProcessingMode);
     setRefreshing(false);
-  }, [refreshAccounts, refreshTransactions, refreshSubscriptions, processDueSubscriptions]);
+  }, [
+    refreshAccounts,
+    refreshTransactions,
+    refreshSubscriptions,
+    processDueSubscriptions,
+    settings.subscriptionProcessingMode,
+  ]);
+
+  // Handle approving a pending subscription
+  const handleApprovePending = useCallback(
+    async (subscriptionId: string, subscriptionName: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Alert.alert(
+        "Add Subscription Expense",
+        `Add ${subscriptionName} to your expenses?`,
+        [
+          {
+            text: "Skip This Time",
+            style: "destructive",
+            onPress: async () => {
+              await skipPendingSubscription(subscriptionId);
+              refreshTransactions();
+            },
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Add Expense",
+            onPress: async () => {
+              await approvePendingSubscription(subscriptionId);
+              refreshTransactions();
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
+            },
+          },
+        ],
+      );
+    },
+    [approvePendingSubscription, skipPendingSubscription, refreshTransactions],
+  );
+
+  // Handle approving all pending subscriptions
+  const handleApproveAllPending = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const totalAmount = pendingSubscriptions.reduce(
+      (sum, p) => sum + p.subscription.amount,
+      0,
+    );
+    Alert.alert(
+      "Add All Subscription Expenses",
+      `Add ${pendingSubscriptions.length} subscriptions (${formatCurrency(totalAmount)}) to your expenses?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Add All",
+          onPress: async () => {
+            const count = await approveAllPending();
+            refreshTransactions();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert("Done", `Added ${count} subscription expenses`);
+          },
+        },
+      ],
+    );
+  }, [pendingSubscriptions, approveAllPending, refreshTransactions]);
 
   // Get insight message
   const getInsight = useMemo(() => {
     const savings = monthlyStats.income - monthlyStats.expense;
-    const savingsRate = monthlyStats.income > 0 ? (savings / monthlyStats.income) * 100 : 0;
-    
+    const savingsRate =
+      monthlyStats.income > 0 ? (savings / monthlyStats.income) * 100 : 0;
+
     if (transactions.length === 0) {
-      return { icon: "sparkles", message: "Start tracking your expenses!", color: colors.primary };
+      return {
+        icon: "sparkles",
+        message: "Start tracking your expenses!",
+        color: colors.primary,
+      };
     }
-    
+
     if (savingsRate >= 20) {
-      return { icon: "trending-up", message: `Great! You're saving ${savingsRate.toFixed(0)}% this month`, color: colors.income };
+      return {
+        icon: "trending-up",
+        message: `Great! You're saving ${savingsRate.toFixed(0)}% this month`,
+        color: colors.income,
+      };
     } else if (savingsRate >= 0) {
-      return { icon: "checkmark-circle", message: `You've saved ${formatCurrency(savings)} this month`, color: colors.income };
+      return {
+        icon: "checkmark-circle",
+        message: `You've saved ${formatCurrency(savings)} this month`,
+        color: colors.income,
+      };
     } else {
-      return { icon: "warning", message: `You've overspent by ${formatCurrency(Math.abs(savings))}`, color: colors.expense };
+      return {
+        icon: "warning",
+        message: `You've overspent by ${formatCurrency(Math.abs(savings))}`,
+        color: colors.expense,
+      };
     }
   }, [monthlyStats, transactions]);
 
@@ -74,17 +201,22 @@ export default function HomeScreen() {
   const budgetAlert = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    
+
     for (const budget of budgets) {
       const spent = transactions
-        .filter(t => t.categoryId === budget.categoryId && t.type === 'expense' && t.date >= monthStart)
+        .filter(
+          (t) =>
+            t.categoryId === budget.categoryId &&
+            t.type === "expense" &&
+            t.date >= monthStart,
+        )
         .reduce((sum, t) => sum + t.amount, 0);
-      
+
       const percentage = (spent / budget.budget_limit) * 100;
       if (percentage >= 90) {
         const category = getCategory(budget.categoryId);
         return {
-          name: category?.name || 'Budget',
+          name: category?.name || "Budget",
           percentage: Math.min(percentage, 100),
           isOver: percentage > 100,
         };
@@ -97,11 +229,34 @@ export default function HomeScreen() {
     return [...transactions].sort((a, b) => b.date - a.date).slice(0, 5);
   }, [transactions]);
 
+  const unlinkedBalance = useMemo(() => {
+    return transactions
+      .filter((t) => !t.accountId)
+      .reduce(
+        (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
+        0,
+      );
+  }, [transactions]);
+
+  // Active goals summary
+  const activeGoals = useMemo(() => {
+    return goals
+      .filter((g) => g.currentAmount < g.targetAmount)
+      .sort((a, b) => {
+        // Sort by closest to completion first
+        const aProgress = a.currentAmount / a.targetAmount;
+        const bProgress = b.currentAmount / b.targetAmount;
+        return bProgress - aProgress;
+      })
+      .slice(0, 3);
+  }, [goals]);
+
   if (accountsLoading || transactionsLoading) {
     return <LoadingState />;
   }
 
-  const totalBalance = getTotalBalance();
+  const accountBalance = getTotalBalance();
+  const totalBalance = accountBalance + unlinkedBalance;
 
   // Get time-based greeting
   const getGreeting = () => {
@@ -112,7 +267,9 @@ export default function HomeScreen() {
   };
 
   // Get month name
-  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
+  const currentMonth = new Date().toLocaleDateString("en-US", {
+    month: "long",
+  });
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -121,7 +278,11 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+          />
         }
       >
         {/* Premium Header with Greeting */}
@@ -130,7 +291,7 @@ export default function HomeScreen() {
             <Text style={styles.headerGreeting}>{getGreeting()} 👋</Text>
             <Text style={styles.headerTitle}>Your Finances</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push("/(tabs)/profile")}
           >
@@ -143,12 +304,28 @@ export default function HomeScreen() {
         {/* Balance Card */}
         <Card style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>{formatCurrency(totalBalance)}</Text>
-          
+          <Text style={styles.balanceAmount}>
+            {formatCurrency(totalBalance)}
+          </Text>
+          <View style={styles.balanceBreakdown}>
+            <Text style={styles.balanceBreakdownText}>
+              Accounts: {formatCurrency(accountBalance)}
+            </Text>
+            <Text style={styles.balanceBreakdownSeparator}>•</Text>
+            <Text style={styles.balanceBreakdownText}>
+              Unlinked: {formatCurrency(unlinkedBalance)}
+            </Text>
+          </View>
+
           {/* Income/Expense Row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <View
+                style={[
+                  styles.statIcon,
+                  { backgroundColor: "rgba(255,255,255,0.2)" },
+                ]}
+              >
                 <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
               </View>
               <View>
@@ -160,7 +337,12 @@ export default function HomeScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <View
+                style={[
+                  styles.statIcon,
+                  { backgroundColor: "rgba(255,255,255,0.2)" },
+                ]}
+              >
                 <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
               </View>
               <View>
@@ -173,86 +355,205 @@ export default function HomeScreen() {
           </View>
         </Card>
 
-        {/* Quick Access Shortcuts */}
+        {/* Quick Access Shortcuts - Row 1 */}
         <View style={styles.quickAccessRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.quickAccessItem}
             onPress={() => router.push("/(tabs)/accounts")}
           >
-            <View style={[styles.quickAccessIcon, { backgroundColor: colors.accent + '15' }]}>
+            <View
+              style={[
+                styles.quickAccessIcon,
+                { backgroundColor: colors.accent + "15" },
+              ]}
+            >
               <Ionicons name="wallet-outline" size={22} color={colors.accent} />
             </View>
             <Text style={styles.quickAccessLabel}>Accounts</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.quickAccessItem}
             onPress={() => router.push("/(tabs)/budgets")}
           >
-            <View style={[styles.quickAccessIcon, { backgroundColor: colors.warning + '15' }]}>
-              <Ionicons name="pie-chart-outline" size={22} color={colors.warning} />
+            <View
+              style={[
+                styles.quickAccessIcon,
+                { backgroundColor: colors.warning + "15" },
+              ]}
+            >
+              <Ionicons
+                name="pie-chart-outline"
+                size={22}
+                color={colors.warning}
+              />
             </View>
             <Text style={styles.quickAccessLabel}>Budgets</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
+            style={styles.quickAccessItem}
+            onPress={() => router.push("/(tabs)/goals")}
+          >
+            <View
+              style={[
+                styles.quickAccessIcon,
+                { backgroundColor: colors.success + "15" },
+              ]}
+            >
+              <Ionicons name="flag-outline" size={22} color={colors.success} />
+            </View>
+            <Text style={styles.quickAccessLabel}>Goals</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.quickAccessItem}
             onPress={() => router.push("/(tabs)/subscriptions")}
           >
-            <View style={[styles.quickAccessIcon, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name="repeat-outline" size={22} color={colors.primary} />
+            <View
+              style={[
+                styles.quickAccessIcon,
+                { backgroundColor: colors.primary + "15" },
+              ]}
+            >
+              <Ionicons
+                name="repeat-outline"
+                size={22}
+                color={colors.primary}
+              />
             </View>
             <Text style={styles.quickAccessLabel}>Subscriptions</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.quickAccessItem}
             onPress={() => router.push("/(tabs)/analysis")}
           >
-            <View style={[styles.quickAccessIcon, { backgroundColor: colors.income + '15' }]}>
-              <Ionicons name="stats-chart-outline" size={22} color={colors.income} />
+            <View
+              style={[
+                styles.quickAccessIcon,
+                { backgroundColor: colors.income + "15" },
+              ]}
+            >
+              <Ionicons
+                name="stats-chart-outline"
+                size={22}
+                color={colors.income}
+              />
             </View>
             <Text style={styles.quickAccessLabel}>Analytics</Text>
           </TouchableOpacity>
         </View>
 
         {/* Insight Card */}
-        <View style={[styles.insightCard, { borderLeftColor: getInsight.color }]}>
-          <Ionicons name={getInsight.icon as any} size={24} color={getInsight.color} />
+        <View
+          style={[styles.insightCard, { borderLeftColor: getInsight.color }]}
+        >
+          <Ionicons
+            name={getInsight.icon as any}
+            size={24}
+            color={getInsight.color}
+          />
           <Text style={styles.insightText}>{getInsight.message}</Text>
         </View>
 
         {/* Budget Alert */}
         {budgetAlert && (
-          <TouchableOpacity 
-            style={[styles.alertCard, budgetAlert.isOver && styles.alertCardDanger]}
+          <TouchableOpacity
+            style={[
+              styles.alertCard,
+              budgetAlert.isOver && styles.alertCardDanger,
+            ]}
             onPress={() => router.push("/(tabs)/budgets")}
           >
-            <Ionicons 
-              name={budgetAlert.isOver ? "alert-circle" : "warning"} 
-              size={24} 
-              color={budgetAlert.isOver ? colors.expense : "#F59E0B"} 
+            <Ionicons
+              name={budgetAlert.isOver ? "alert-circle" : "warning"}
+              size={24}
+              color={budgetAlert.isOver ? colors.expense : "#F59E0B"}
             />
             <View style={styles.alertContent}>
               <Text style={styles.alertTitle}>
-                {budgetAlert.isOver ? `Over budget!` : `${budgetAlert.name} budget at ${budgetAlert.percentage.toFixed(0)}%`}
+                {budgetAlert.isOver
+                  ? `Over budget!`
+                  : `${budgetAlert.name} budget at ${budgetAlert.percentage.toFixed(0)}%`}
               </Text>
               <View style={styles.alertProgressBg}>
-                <View 
+                <View
                   style={[
-                    styles.alertProgress, 
-                    { 
+                    styles.alertProgress,
+                    {
                       width: `${Math.min(budgetAlert.percentage, 100)}%`,
-                      backgroundColor: budgetAlert.isOver ? colors.expense : "#F59E0B"
-                    }
-                  ]} 
+                      backgroundColor: budgetAlert.isOver
+                        ? colors.expense
+                        : "#F59E0B",
+                    },
+                  ]}
                 />
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
+        )}
+
+        {/* Pending Subscriptions - Need User Approval */}
+        {pendingSubscriptions.length > 0 && (
+          <View style={styles.pendingSection}>
+            <View style={styles.pendingHeader}>
+              <View style={styles.pendingTitleRow}>
+                <View style={styles.pendingIconBadge}>
+                  <Ionicons name="time" size={18} color="#FFF" />
+                </View>
+                <Text style={styles.pendingTitle}>
+                  {pendingSubscriptions.length} Subscription
+                  {pendingSubscriptions.length > 1 ? "s" : ""} Due
+                </Text>
+              </View>
+              {pendingSubscriptions.length > 1 && (
+                <TouchableOpacity
+                  style={styles.approveAllButton}
+                  onPress={handleApproveAllPending}
+                >
+                  <Text style={styles.approveAllText}>Add All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {pendingSubscriptions.map((pending) => (
+              <TouchableOpacity
+                key={pending.subscription.id}
+                style={styles.pendingItem}
+                onPress={() =>
+                  handleApprovePending(
+                    pending.subscription.id,
+                    pending.subscription.name,
+                  )
+                }
+              >
+                <View style={styles.pendingItemIcon}>
+                  <Ionicons name="repeat" size={18} color={colors.warning} />
+                </View>
+                <View style={styles.pendingItemContent}>
+                  <Text style={styles.pendingItemName}>
+                    {pending.subscription.name}
+                  </Text>
+                  <Text style={styles.pendingItemDate}>
+                    Due {formatShortDate(pending.dueDate)}
+                  </Text>
+                </View>
+                <Text style={styles.pendingItemAmount}>
+                  {formatCurrency(
+                    pending.subscription.amount,
+                    pending.subscription.currency,
+                  )}
+                </Text>
+                <Ionicons name="add-circle" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
 
         {/* Upcoming Subscriptions */}
         {upcomingSubscriptions.length > 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.subscriptionAlert}
             onPress={() => router.push("/(tabs)/subscriptions")}
           >
@@ -261,15 +562,78 @@ export default function HomeScreen() {
             </View>
             <View style={styles.subscriptionContent}>
               <Text style={styles.subscriptionTitle}>
-                {upcomingSubscriptions.length} subscription{upcomingSubscriptions.length > 1 ? 's' : ''} due this week
+                {upcomingSubscriptions.length} subscription
+                {upcomingSubscriptions.length > 1 ? "s" : ""} due this week
               </Text>
               <Text style={styles.subscriptionSubtitle}>
-                {upcomingSubscriptions.slice(0, 2).map(s => s.name).join(', ')}
-                {upcomingSubscriptions.length > 2 ? ` +${upcomingSubscriptions.length - 2} more` : ''}
+                {upcomingSubscriptions
+                  .slice(0, 2)
+                  .map((s) => s.name)
+                  .join(", ")}
+                {upcomingSubscriptions.length > 2
+                  ? ` +${upcomingSubscriptions.length - 2} more`
+                  : ""}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
+        )}
+
+        {/* Goals Progress */}
+        {activeGoals.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Goals Progress</Text>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/goals")}>
+                <Text style={styles.sectionAction}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            {activeGoals.map((goal) => {
+              const progress = Math.min(
+                (goal.currentAmount / goal.targetAmount) * 100,
+                100,
+              );
+              const remaining = goal.targetAmount - goal.currentAmount;
+              return (
+                <TouchableOpacity
+                  key={goal.id}
+                  style={styles.goalItem}
+                  onPress={() => router.push("/(tabs)/goals")}
+                >
+                  <View style={styles.goalHeader}>
+                    <View style={styles.goalInfo}>
+                      <View style={styles.goalIconContainer}>
+                        <Ionicons
+                          name="flag"
+                          size={18}
+                          color={colors.success}
+                        />
+                      </View>
+                      <Text style={styles.goalName}>{goal.name}</Text>
+                    </View>
+                    <Text style={styles.goalProgress}>
+                      {progress.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.goalProgressBar}>
+                    <View
+                      style={[
+                        styles.goalProgressFill,
+                        { width: `${progress}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.goalRemaining}>
+                    {formatCurrency(remaining)} remaining
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
 
         {/* Recent Transactions */}
@@ -280,44 +644,66 @@ export default function HomeScreen() {
               <Text style={styles.sectionAction}>See All</Text>
             </TouchableOpacity>
           </View>
-          
+
           {recentTransactions.length > 0 ? (
             recentTransactions.map((transaction) => {
               const category = getCategory(transaction.categoryId);
-              const categoryIcon = category ? getCategoryIcon(category.name) : 'ellipsis-horizontal';
-              const categoryColor = category?.color || (transaction.type === 'income' ? colors.income : colors.expense);
+              const categoryIcon = category
+                ? getCategoryIcon(category.name)
+                : "ellipsis-horizontal";
+              const categoryColor =
+                category?.color ||
+                (transaction.type === "income"
+                  ? colors.income
+                  : colors.expense);
               return (
                 <View key={transaction.id} style={styles.transactionItem}>
-                  <View style={[
-                    styles.transactionIcon,
-                    { backgroundColor: categoryColor + '15' }
-                  ]}>
-                    <Ionicons 
-                      name={categoryIcon} 
-                      size={20} 
-                      color={categoryColor} 
+                  <View
+                    style={[
+                      styles.transactionIcon,
+                      { backgroundColor: categoryColor + "15" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={categoryIcon}
+                      size={20}
+                      color={categoryColor}
                     />
                   </View>
                   <View style={styles.transactionInfo}>
                     <Text style={styles.transactionTitle}>
-                      {transaction.description || category?.name || 'Transaction'}
+                      {transaction.description ||
+                        category?.name ||
+                        "Transaction"}
                     </Text>
                     <Text style={styles.transactionDate}>
                       {formatShortDate(transaction.date)}
                     </Text>
                   </View>
-                  <Text style={[
-                    styles.transactionAmount,
-                    { color: transaction.type === 'income' ? colors.income : colors.expense }
-                  ]}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  <Text
+                    style={[
+                      styles.transactionAmount,
+                      {
+                        color:
+                          transaction.type === "income"
+                            ? colors.income
+                            : colors.expense,
+                      },
+                    ]}
+                  >
+                    {transaction.type === "income" ? "+" : "-"}
+                    {formatCurrency(transaction.amount, transaction.currency)}
                   </Text>
                 </View>
               );
             })
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
+              <Ionicons
+                name="receipt-outline"
+                size={48}
+                color={colors.textMuted}
+              />
               <Text style={styles.emptyTitle}>No transactions yet</Text>
               <Text style={styles.emptyDescription}>
                 Tap the + button below to add your first expense
@@ -345,9 +731,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: spacing.md,
   },
   headerGreeting: {
@@ -357,7 +743,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   profileButton: {
@@ -368,8 +754,8 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
     borderColor: colors.primary,
   },
@@ -380,76 +766,91 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     marginBottom: spacing.xs,
   },
   balanceAmount: {
     fontSize: 40,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: spacing.lg,
   },
+  balanceBreakdown: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  balanceBreakdownText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: "500",
+  },
+  balanceBreakdownSeparator: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+  },
   statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   statItem: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   statIcon: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
+    color: "rgba(255,255,255,0.7)",
   },
   statValue: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statValueLight: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   statDivider: {
     width: 1,
     height: 36,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
     marginHorizontal: spacing.md,
   },
   quickAccessRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: spacing.md,
   },
   quickAccessItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   quickAccessIcon: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: spacing.xs,
   },
   quickAccessLabel: {
     fontSize: 11,
     color: colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   insightCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     padding: spacing.md,
     borderRadius: borderRadius.md,
@@ -461,41 +862,119 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   alertCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.lg,
     gap: spacing.md,
   },
   alertCardDanger: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: "#FEE2E2",
   },
   alertContent: {
     flex: 1,
   },
   alertTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   alertProgressBg: {
     height: 4,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
     borderRadius: 2,
   },
   alertProgress: {
     height: 4,
     borderRadius: 2,
   },
+  pendingSection: {
+    backgroundColor: "#FEF3C7",
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+  },
+  pendingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  pendingTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  pendingIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F59E0B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#92400E",
+  },
+  approveAllButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+  },
+  approveAllText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#FFF",
+  },
+  pendingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  pendingItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FEF3C7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingItemContent: {
+    flex: 1,
+  },
+  pendingItemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  pendingItemDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  pendingItemAmount: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.expense,
+    marginRight: spacing.xs,
+  },
   subscriptionAlert: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.primaryLight,
     padding: spacing.md,
     borderRadius: borderRadius.md,
@@ -507,15 +986,15 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   subscriptionContent: {
     flex: 1,
   },
   subscriptionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   subscriptionSubtitle: {
@@ -527,24 +1006,24 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   sectionAction: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.primary,
   },
   transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -553,8 +1032,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   transactionInfo: {
     flex: 1,
@@ -562,7 +1041,7 @@ const styles = StyleSheet.create({
   },
   transactionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   transactionDate: {
@@ -572,15 +1051,15 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xxxl,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginTop: spacing.md,
   },
@@ -588,7 +1067,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: spacing.xl,
+  },
+  goalItem: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  goalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  goalInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  goalIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: colors.success + "15",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
+  },
+  goalName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  goalProgress: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.success,
+  },
+  goalProgressBar: {
+    height: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  goalProgressFill: {
+    height: "100%",
+    backgroundColor: colors.success,
+    borderRadius: 3,
+  },
+  goalRemaining: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });

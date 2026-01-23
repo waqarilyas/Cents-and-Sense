@@ -10,6 +10,8 @@ import { TransactionProvider } from "../lib/contexts/TransactionContext";
 import { BudgetProvider } from "../lib/contexts/BudgetContext";
 import { GoalProvider } from "../lib/contexts/GoalContext";
 import { SubscriptionProvider } from "../lib/contexts/SubscriptionContext";
+import { CurrencyProvider } from "../lib/contexts/CurrencyContext";
+import { SettingsProvider } from "../lib/contexts/SettingsContext";
 import { colors } from "../lib/theme";
 
 // Custom Paper theme
@@ -45,12 +47,14 @@ export default function RootLayout() {
   if (!dbReady) {
     return (
       <SafeAreaProvider>
-        <View style={{ 
-          flex: 1, 
-          justifyContent: "center", 
-          alignItems: "center",
-          backgroundColor: colors.background 
-        }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: colors.background,
+          }}
+        >
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaProvider>
@@ -61,19 +65,23 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor={colors.primary} />
       <PaperProvider theme={theme}>
-        <AccountProvider>
-          <CategoryProvider>
-            <TransactionProvider>
-              <BudgetProvider>
-                <GoalProvider>
-                  <SubscriptionProvider>
-                    <Slot />
-                  </SubscriptionProvider>
-                </GoalProvider>
-              </BudgetProvider>
-            </TransactionProvider>
-          </CategoryProvider>
-        </AccountProvider>
+        <SettingsProvider>
+          <CurrencyProvider>
+            <AccountProvider>
+              <CategoryProvider>
+                <TransactionProvider>
+                  <BudgetProvider>
+                    <GoalProvider>
+                      <SubscriptionProvider>
+                        <Slot />
+                      </SubscriptionProvider>
+                    </GoalProvider>
+                  </BudgetProvider>
+                </TransactionProvider>
+              </CategoryProvider>
+            </AccountProvider>
+          </CurrencyProvider>
+        </SettingsProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

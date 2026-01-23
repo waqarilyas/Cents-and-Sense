@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Transaction } from "../lib/database";
 import { useCategories } from "../lib/contexts/CategoryContext";
 import { getCategoryIcon } from "../lib/smartCategories";
-import { colors, spacing, borderRadius } from "../lib/theme";
+import { colors, spacing, borderRadius, formatCurrency } from "../lib/theme";
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -29,18 +29,26 @@ export function TransactionCard({
   });
 
   const isIncome = transaction.type === "income";
-  const icon = category ? getCategoryIcon(category.name) : "ellipsis-horizontal";
-  const categoryColor = category?.color || (isIncome ? colors.income : colors.expense);
+  const icon = category
+    ? getCategoryIcon(category.name)
+    : "ellipsis-horizontal";
+  const categoryColor =
+    category?.color || (isIncome ? colors.income : colors.expense);
 
   return (
     <Card style={styles.card}>
       <Card.Content>
         <View style={styles.content}>
           {/* Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: categoryColor + '15' }]}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: categoryColor + "15" },
+            ]}
+          >
             <Ionicons name={icon} size={24} color={categoryColor} />
           </View>
-          
+
           {/* Details */}
           <View style={styles.details}>
             <Text style={styles.title} numberOfLines={1}>
@@ -50,18 +58,28 @@ export function TransactionCard({
               {category?.name} • {formattedDate}
             </Text>
           </View>
-          
+
           {/* Amount */}
           <View style={styles.amountContainer}>
-            <Text style={[styles.amount, { color: isIncome ? colors.income : colors.expense }]}>
-              {isIncome ? "+" : "-"}${transaction.amount.toFixed(2)}
+            <Text
+              style={[
+                styles.amount,
+                { color: isIncome ? colors.income : colors.expense },
+              ]}
+            >
+              {isIncome ? "+" : "-"}
+              {formatCurrency(transaction.amount, transaction.currency)}
             </Text>
           </View>
         </View>
       </Card.Content>
       <Card.Actions style={styles.actions}>
-        <Button onPress={onEdit} textColor={colors.primary}>Edit</Button>
-        <Button onPress={onDelete} textColor={colors.expense}>Delete</Button>
+        <Button onPress={onEdit} textColor={colors.primary}>
+          Edit
+        </Button>
+        <Button onPress={onDelete} textColor={colors.expense}>
+          Delete
+        </Button>
       </Card.Actions>
     </Card>
   );

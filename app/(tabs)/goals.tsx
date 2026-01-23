@@ -12,12 +12,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useGoals } from "../../lib/contexts/GoalContext";
-import { colors, spacing, borderRadius, formatCurrency, formatDate } from "../../lib/theme";
-import { 
-  Card, 
-  LoadingState, 
-  Button, 
-  Input, 
+import {
+  colors,
+  spacing,
+  borderRadius,
+  formatCurrency,
+  formatDate,
+} from "../../lib/theme";
+import {
+  Card,
+  LoadingState,
+  Button,
+  Input,
   BottomSheet,
   ProgressBar,
 } from "../../lib/components";
@@ -26,14 +32,21 @@ import { Goal } from "../../lib/database";
 export default function GoalsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { goals, loading, addGoal, updateGoal, updateGoalProgress, deleteGoal } = useGoals();
-  
+  const {
+    goals,
+    loading,
+    addGoal,
+    updateGoal,
+    updateGoalProgress,
+    deleteGoal,
+  } = useGoals();
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Form state
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
@@ -43,8 +56,13 @@ export default function GoalsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getGoalProgress = (goal: Goal) => {
-    const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
-    const daysLeft = Math.ceil((goal.deadline - Date.now()) / (1000 * 60 * 60 * 24));
+    const progress = Math.min(
+      (goal.currentAmount / goal.targetAmount) * 100,
+      100,
+    );
+    const daysLeft = Math.ceil(
+      (goal.deadline - Date.now()) / (1000 * 60 * 60 * 24),
+    );
     const isCompleted = goal.currentAmount >= goal.targetAmount;
     const isOverdue = daysLeft < 0 && !isCompleted;
     const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
@@ -82,7 +100,7 @@ export default function GoalsScreen() {
       await addGoal(
         goalName.trim(),
         parseFloat(targetAmount),
-        getDefaultDeadline()
+        getDefaultDeadline(),
       );
       setShowAddModal(false);
       resetForm();
@@ -112,7 +130,7 @@ export default function GoalsScreen() {
         goalName.trim(),
         parseFloat(targetAmount),
         parseFloat(currentAmount) || 0,
-        editingGoal.deadline
+        editingGoal.deadline,
       );
       setShowEditModal(false);
       resetForm();
@@ -137,12 +155,18 @@ export default function GoalsScreen() {
       await updateGoalProgress(editingGoal.id, newAmount);
       setShowContributeModal(false);
       resetForm();
-      
-      const { isCompleted } = getGoalProgress({ ...editingGoal, currentAmount: newAmount });
+
+      const { isCompleted } = getGoalProgress({
+        ...editingGoal,
+        currentAmount: newAmount,
+      });
       if (isCompleted) {
         Alert.alert("🎉 Congratulations!", "You've reached your goal!");
       } else {
-        Alert.alert("Success", `${formatCurrency(parseFloat(contribution))} added to your goal!`);
+        Alert.alert(
+          "Success",
+          `${formatCurrency(parseFloat(contribution))} added to your goal!`,
+        );
       }
     } catch (error) {
       Alert.alert("Error", "Failed to add contribution. Please try again.");
@@ -168,7 +192,7 @@ export default function GoalsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -197,17 +221,20 @@ export default function GoalsScreen() {
 
   const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
   const totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);
-  const completedGoals = goalsWithProgress.filter(g => g.isCompleted).length;
+  const completedGoals = goalsWithProgress.filter((g) => g.isCompleted).length;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Goals</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
         >
@@ -227,27 +254,50 @@ export default function GoalsScreen() {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <View style={[styles.summaryIconContainer, { backgroundColor: colors.successLight }]}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+            <View
+              style={[
+                styles.summaryIconContainer,
+                { backgroundColor: colors.successLight },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={colors.success}
+              />
             </View>
-            <Text style={[styles.summaryValue, { color: colors.success }]}>{completedGoals}</Text>
+            <Text style={[styles.summaryValue, { color: colors.success }]}>
+              {completedGoals}
+            </Text>
             <Text style={styles.summaryLabel}>Completed</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <View style={[styles.summaryIconContainer, { backgroundColor: colors.incomeLight }]}>
+            <View
+              style={[
+                styles.summaryIconContainer,
+                { backgroundColor: colors.incomeLight },
+              ]}
+            >
               <Ionicons name="wallet" size={20} color={colors.income} />
             </View>
             <Text style={[styles.summaryValue, { color: colors.primary }]}>
-              {totalTarget > 0 ? ((totalSaved / totalTarget) * 100).toFixed(0) : 0}%
+              {totalTarget > 0
+                ? ((totalSaved / totalTarget) * 100).toFixed(0)
+                : 0}
+              %
             </Text>
             <Text style={styles.summaryLabel}>Progress</Text>
           </View>
         </View>
         <View style={styles.summaryAmount}>
           <Text style={styles.summaryAmountLabel}>Total Saved</Text>
-          <Text style={styles.summaryAmountValue}>{formatCurrency(totalSaved)}</Text>
-          <Text style={styles.summaryAmountTarget}>of {formatCurrency(totalTarget)} target</Text>
+          <Text style={styles.summaryAmountValue}>
+            {formatCurrency(totalSaved)}
+          </Text>
+          <Text style={styles.summaryAmountTarget}>
+            of {formatCurrency(totalTarget)} target
+          </Text>
         </View>
       </Card>
 
@@ -257,7 +307,11 @@ export default function GoalsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(false)} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => setRefreshing(false)}
+            colors={[colors.primary]}
+          />
         }
       >
         {goalsWithProgress.length > 0 ? (
@@ -268,34 +322,47 @@ export default function GoalsScreen() {
               onLongPress={() => openEditModal(goal)}
               delayLongPress={500}
             >
-              <Card style={[
-                styles.goalCard,
-                goal.isCompleted && styles.goalCardCompleted,
-                goal.isOverdue && styles.goalCardOverdue,
-              ]}>
+              <Card
+                style={[
+                  styles.goalCard,
+                  goal.isCompleted && styles.goalCardCompleted,
+                  goal.isOverdue && styles.goalCardOverdue,
+                ]}
+              >
                 <View style={styles.goalHeader}>
-                  <View style={[
-                    styles.goalIcon,
-                    { backgroundColor: goal.isCompleted ? colors.success + '20' : colors.primaryLight }
-                  ]}>
-                    <Ionicons 
-                      name={goal.isCompleted ? 'checkmark-circle' : 'flag'} 
-                      size={24} 
-                      color={goal.isCompleted ? colors.success : colors.primary} 
+                  <View
+                    style={[
+                      styles.goalIcon,
+                      {
+                        backgroundColor: goal.isCompleted
+                          ? colors.success + "20"
+                          : colors.primaryLight,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={goal.isCompleted ? "checkmark-circle" : "flag"}
+                      size={24}
+                      color={goal.isCompleted ? colors.success : colors.primary}
                     />
                   </View>
                   <View style={styles.goalInfo}>
                     <Text style={styles.goalName}>{goal.name}</Text>
-                    <Text style={[
-                      styles.goalDeadline,
-                      { color: goal.isOverdue ? colors.error : colors.textSecondary }
-                    ]}>
-                      {goal.isCompleted 
-                        ? 'Goal reached!' 
-                        : goal.isOverdue 
-                          ? 'Overdue!'
-                          : `${goal.daysLeft} days left`
-                      }
+                    <Text
+                      style={[
+                        styles.goalDeadline,
+                        {
+                          color: goal.isOverdue
+                            ? colors.error
+                            : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      {goal.isCompleted
+                        ? "Goal reached!"
+                        : goal.isOverdue
+                          ? "Overdue!"
+                          : `${goal.daysLeft} days left`}
                     </Text>
                   </View>
                   {!goal.isCompleted && (
@@ -309,24 +376,35 @@ export default function GoalsScreen() {
                 </View>
 
                 <View style={styles.goalAmounts}>
-                  <Text style={styles.goalSaved}>{formatCurrency(goal.currentAmount)}</Text>
-                  <Text style={styles.goalTarget}>of {formatCurrency(goal.targetAmount)}</Text>
+                  <Text style={styles.goalSaved}>
+                    {formatCurrency(goal.currentAmount)}
+                  </Text>
+                  <Text style={styles.goalTarget}>
+                    of {formatCurrency(goal.targetAmount)}
+                  </Text>
                 </View>
 
                 <ProgressBar
                   progress={goal.progress}
-                  color={goal.isCompleted ? colors.success : goal.isOverdue ? colors.warning : colors.primary}
+                  color={
+                    goal.isCompleted
+                      ? colors.success
+                      : goal.isOverdue
+                        ? colors.warning
+                        : colors.primary
+                  }
                   height={8}
                 />
 
                 <View style={styles.goalFooter}>
                   <Text style={styles.goalRemaining}>
-                    {goal.isCompleted 
-                      ? 'Congratulations!'
-                      : `${formatCurrency(goal.remaining)} to go`
-                    }
+                    {goal.isCompleted
+                      ? "Congratulations!"
+                      : `${formatCurrency(goal.remaining)} to go`}
                   </Text>
-                  <Text style={styles.goalPercentage}>{goal.progress.toFixed(0)}%</Text>
+                  <Text style={styles.goalPercentage}>
+                    {goal.progress.toFixed(0)}%
+                  </Text>
                 </View>
               </Card>
             </TouchableOpacity>
@@ -351,7 +429,9 @@ export default function GoalsScreen() {
         {goalsWithProgress.length > 0 && (
           <View style={styles.hintContainer}>
             <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-            <Text style={styles.hint}>Tap to contribute • Long press to edit</Text>
+            <Text style={styles.hint}>
+              Tap to contribute • Long press to edit
+            </Text>
           </View>
         )}
 
@@ -472,7 +552,9 @@ export default function GoalsScreen() {
                 </Text>
               </View>
               <ProgressBar
-                progress={(editingGoal.currentAmount / editingGoal.targetAmount) * 100}
+                progress={
+                  (editingGoal.currentAmount / editingGoal.targetAmount) * 100
+                }
                 color={colors.primary}
                 height={6}
               />
@@ -490,7 +572,10 @@ export default function GoalsScreen() {
               <View style={styles.previewContribution}>
                 <Text style={styles.previewLabel}>After contribution:</Text>
                 <Text style={styles.previewValue}>
-                  {formatCurrency(editingGoal.currentAmount + parseFloat(contribution))} / {formatCurrency(editingGoal.targetAmount)}
+                  {formatCurrency(
+                    editingGoal.currentAmount + parseFloat(contribution),
+                  )}{" "}
+                  / {formatCurrency(editingGoal.targetAmount)}
                 </Text>
               </View>
             )}
@@ -516,9 +601,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
@@ -528,11 +613,11 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   addButton: {
@@ -543,7 +628,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   summaryCard: {
@@ -551,28 +636,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: spacing.lg,
     paddingBottom: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   summaryItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   summaryIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.xs,
   },
   summaryValue: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   summaryLabel: {
@@ -585,7 +670,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   summaryAmount: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   summaryAmountLabel: {
     fontSize: 12,
@@ -593,7 +678,7 @@ const styles = StyleSheet.create({
   },
   summaryAmountValue: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.primary,
     marginVertical: 4,
   },
@@ -620,16 +705,16 @@ const styles = StyleSheet.create({
     borderColor: colors.warning,
   },
   goalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   goalIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   goalInfo: {
     flex: 1,
@@ -637,7 +722,7 @@ const styles = StyleSheet.create({
   },
   goalName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   goalDeadline: {
@@ -652,17 +737,17 @@ const styles = StyleSheet.create({
   },
   contributeButtonText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.primary,
   },
   goalAmounts: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     marginBottom: spacing.sm,
   },
   goalSaved: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   goalTarget: {
@@ -671,8 +756,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   goalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: spacing.sm,
   },
   goalRemaining: {
@@ -681,12 +766,12 @@ const styles = StyleSheet.create({
   },
   goalPercentage: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.primary,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xxxl,
   },
   emptyIconContainer: {
@@ -694,26 +779,26 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.lg,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: spacing.xl,
   },
   hintContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: spacing.lg,
   },
@@ -730,7 +815,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   editActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: spacing.lg,
   },
   contributeInfo: {
@@ -741,18 +826,18 @@ const styles = StyleSheet.create({
   },
   contributeGoalName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
   contributeProgress: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     marginBottom: spacing.sm,
   },
   contributeCurrent: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.primary,
   },
   contributeTarget: {
@@ -765,7 +850,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
   },
   previewLabel: {
     fontSize: 12,
@@ -773,7 +858,7 @@ const styles = StyleSheet.create({
   },
   previewValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.primary,
     marginTop: 4,
   },

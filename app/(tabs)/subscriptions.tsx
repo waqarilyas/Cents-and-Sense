@@ -23,29 +23,29 @@ import { Platform } from "react-native";
 
 // Popular subscription icons
 const SUBSCRIPTION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  "Netflix": "tv",
-  "Spotify": "musical-notes",
+  Netflix: "tv",
+  Spotify: "musical-notes",
   "Apple Music": "musical-notes",
-  "YouTube": "play",
+  YouTube: "play",
   "Amazon Prime": "cube",
   "Disney+": "film",
   "HBO Max": "film",
-  "Hulu": "tv",
-  "iCloud": "cloud",
+  Hulu: "tv",
+  iCloud: "cloud",
   "Google One": "cloud",
-  "Dropbox": "folder",
+  Dropbox: "folder",
   "Microsoft 365": "document",
-  "Adobe": "color-palette",
-  "Gym": "fitness",
-  "Insurance": "shield-checkmark",
-  "Phone": "call",
-  "Internet": "wifi",
-  "Electricity": "flash",
-  "Water": "water",
-  "Gas": "flame",
-  "Rent": "home",
-  "Mortgage": "home",
-  "default": "repeat",
+  Adobe: "color-palette",
+  Gym: "fitness",
+  Insurance: "shield-checkmark",
+  Phone: "call",
+  Internet: "wifi",
+  Electricity: "flash",
+  Water: "water",
+  Gas: "flame",
+  Rent: "home",
+  Mortgage: "home",
+  default: "repeat",
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -58,10 +58,10 @@ const FREQUENCY_LABELS: Record<string, string> = {
 export default function SubscriptionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { 
-    subscriptions, 
+  const {
+    subscriptions,
     activeSubscriptions,
-    loading, 
+    loading,
     refreshSubscriptions,
     addSubscription,
     deleteSubscription,
@@ -70,16 +70,18 @@ export default function SubscriptionsScreen() {
     getUpcomingSubscriptions,
   } = useSubscriptions();
   const { expenseCategories, getCategory } = useCategories();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
+  const [frequency, setFrequency] = useState<
+    "daily" | "weekly" | "monthly" | "yearly"
+  >("monthly");
   const [notes, setNotes] = useState("");
 
   const monthlyTotal = getMonthlyTotal();
@@ -88,7 +90,7 @@ export default function SubscriptionsScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshSubscriptions();
-    }, [refreshSubscriptions])
+    }, [refreshSubscriptions]),
   );
 
   const onRefresh = useCallback(async () => {
@@ -98,12 +100,14 @@ export default function SubscriptionsScreen() {
   }, [refreshSubscriptions]);
 
   const hapticFeedback = () => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
-  const getSubscriptionIcon = (subName: string): keyof typeof Ionicons.glyphMap => {
+  const getSubscriptionIcon = (
+    subName: string,
+  ): keyof typeof Ionicons.glyphMap => {
     for (const [key, icon] of Object.entries(SUBSCRIPTION_ICONS)) {
       if (subName.toLowerCase().includes(key.toLowerCase())) {
         return icon;
@@ -115,8 +119,10 @@ export default function SubscriptionsScreen() {
   const formatDueDate = (timestamp: number): string => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const diffDays = Math.ceil(
+      (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
     if (diffDays < 0) return "Overdue";
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Tomorrow";
@@ -163,13 +169,13 @@ export default function SubscriptionsScreen() {
         frequency,
         Date.now(),
         3,
-        notes.trim() || undefined
+        notes.trim() || undefined,
       );
-      
-      if (Platform.OS !== 'web') {
+
+      if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
+
       setModalVisible(false);
       resetForm();
     } catch (error) {
@@ -191,7 +197,7 @@ export default function SubscriptionsScreen() {
             hapticFeedback();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -208,17 +214,17 @@ export default function SubscriptionsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
-          onPress={() => { hapticFeedback(); router.back(); }}
+          onPress={() => {
+            hapticFeedback();
+            router.back();
+          }}
         >
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Subscriptions</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={openAddModal}
-        >
+        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
           <Ionicons name="add" size={28} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -228,7 +234,11 @@ export default function SubscriptionsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+          />
         }
       >
         {/* Summary Card */}
@@ -236,12 +246,16 @@ export default function SubscriptionsScreen() {
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Monthly Cost</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(monthlyTotal)}</Text>
+              <Text style={styles.summaryValue}>
+                {formatCurrency(monthlyTotal)}
+              </Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Active</Text>
-              <Text style={styles.summaryValue}>{activeSubscriptions.length}</Text>
+              <Text style={styles.summaryValue}>
+                {activeSubscriptions.length}
+              </Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
@@ -260,18 +274,27 @@ export default function SubscriptionsScreen() {
               return (
                 <Card key={sub.id} style={styles.subscriptionCard}>
                   <View style={styles.subscriptionRow}>
-                    <View style={[styles.subscriptionIcon, { backgroundColor: colors.warning + '20' }]}>
-                      <Ionicons 
-                        name={getSubscriptionIcon(sub.name)} 
-                        size={24} 
-                        color={colors.warning} 
+                    <View
+                      style={[
+                        styles.subscriptionIcon,
+                        { backgroundColor: colors.warning + "20" },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getSubscriptionIcon(sub.name)}
+                        size={24}
+                        color={colors.warning}
                       />
                     </View>
                     <View style={styles.subscriptionInfo}>
                       <Text style={styles.subscriptionName}>{sub.name}</Text>
-                      <Text style={styles.subscriptionDue}>{formatDueDate(sub.nextDueDate)}</Text>
+                      <Text style={styles.subscriptionDue}>
+                        {formatDueDate(sub.nextDueDate)}
+                      </Text>
                     </View>
-                    <Text style={styles.subscriptionAmount}>{formatCurrency(sub.amount)}</Text>
+                    <Text style={styles.subscriptionAmount}>
+                      {formatCurrency(sub.amount, sub.currency)}
+                    </Text>
                   </View>
                 </Card>
               );
@@ -282,15 +305,22 @@ export default function SubscriptionsScreen() {
         {/* All Subscriptions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>All Subscriptions</Text>
-          
+
           {subscriptions.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="repeat-outline" size={64} color={colors.textMuted} />
+              <Ionicons
+                name="repeat-outline"
+                size={64}
+                color={colors.textMuted}
+              />
               <Text style={styles.emptyTitle}>No Subscriptions</Text>
               <Text style={styles.emptyDescription}>
                 Add your recurring expenses like Netflix, Spotify, or rent
               </Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={openAddModal}
+              >
                 <Ionicons name="add" size={20} color="#FFF" />
                 <Text style={styles.emptyButtonText}>Add Subscription</Text>
               </TouchableOpacity>
@@ -299,39 +329,72 @@ export default function SubscriptionsScreen() {
             subscriptions.map((sub) => {
               const category = getCategory(sub.categoryId);
               return (
-                <Card key={sub.id} style={[styles.subscriptionCard, !sub.isActive && styles.subscriptionInactive]}>
+                <Card
+                  key={sub.id}
+                  style={[
+                    styles.subscriptionCard,
+                    !sub.isActive && styles.subscriptionInactive,
+                  ]}
+                >
                   <TouchableOpacity
                     style={styles.subscriptionRow}
                     onLongPress={() => handleDelete(sub.id, sub.name)}
                     delayLongPress={500}
                   >
-                    <View style={[
-                      styles.subscriptionIcon, 
-                      { backgroundColor: (sub.isActive ? category?.color || colors.primary : colors.textMuted) + '20' }
-                    ]}>
-                      <Ionicons 
-                        name={getSubscriptionIcon(sub.name)} 
-                        size={24} 
-                        color={sub.isActive ? category?.color || colors.primary : colors.textMuted} 
+                    <View
+                      style={[
+                        styles.subscriptionIcon,
+                        {
+                          backgroundColor:
+                            (sub.isActive
+                              ? category?.color || colors.primary
+                              : colors.textMuted) + "20",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getSubscriptionIcon(sub.name)}
+                        size={24}
+                        color={
+                          sub.isActive
+                            ? category?.color || colors.primary
+                            : colors.textMuted
+                        }
                       />
                     </View>
                     <View style={styles.subscriptionInfo}>
-                      <Text style={[styles.subscriptionName, !sub.isActive && styles.textInactive]}>
+                      <Text
+                        style={[
+                          styles.subscriptionName,
+                          !sub.isActive && styles.textInactive,
+                        ]}
+                      >
                         {sub.name}
                       </Text>
                       <Text style={styles.subscriptionMeta}>
-                        {FREQUENCY_LABELS[sub.frequency]} • {formatDueDate(sub.nextDueDate)}
+                        {FREQUENCY_LABELS[sub.frequency]} •{" "}
+                        {formatDueDate(sub.nextDueDate)}
                       </Text>
                     </View>
                     <View style={styles.subscriptionRight}>
-                      <Text style={[styles.subscriptionAmount, !sub.isActive && styles.textInactive]}>
-                        {formatCurrency(sub.amount)}
+                      <Text
+                        style={[
+                          styles.subscriptionAmount,
+                          !sub.isActive && styles.textInactive,
+                        ]}
+                      >
+                        {formatCurrency(sub.amount, sub.currency)}
                       </Text>
                       <Switch
                         value={sub.isActive}
                         onValueChange={() => handleToggle(sub.id)}
-                        trackColor={{ false: colors.border, true: colors.primaryLight }}
-                        thumbColor={sub.isActive ? colors.primary : colors.textMuted}
+                        trackColor={{
+                          false: colors.border,
+                          true: colors.primaryLight,
+                        }}
+                        thumbColor={
+                          sub.isActive ? colors.primary : colors.textMuted
+                        }
                       />
                     </View>
                   </TouchableOpacity>
@@ -399,12 +462,17 @@ export default function SubscriptionsScreen() {
                       styles.frequencyButton,
                       frequency === freq && styles.frequencyButtonActive,
                     ]}
-                    onPress={() => { hapticFeedback(); setFrequency(freq); }}
+                    onPress={() => {
+                      hapticFeedback();
+                      setFrequency(freq);
+                    }}
                   >
-                    <Text style={[
-                      styles.frequencyButtonText,
-                      frequency === freq && styles.frequencyButtonTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.frequencyButtonText,
+                        frequency === freq && styles.frequencyButtonTextActive,
+                      ]}
+                    >
                       {FREQUENCY_LABELS[freq]}
                     </Text>
                   </TouchableOpacity>
@@ -415,8 +483,8 @@ export default function SubscriptionsScreen() {
             {/* Category Selection */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Category</Text>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.categoryScroll}
               >
@@ -425,15 +493,28 @@ export default function SubscriptionsScreen() {
                     key={cat.id}
                     style={[
                       styles.categoryChip,
-                      categoryId === cat.id && { backgroundColor: cat.color + '30', borderColor: cat.color },
+                      categoryId === cat.id && {
+                        backgroundColor: cat.color + "30",
+                        borderColor: cat.color,
+                      },
                     ]}
-                    onPress={() => { hapticFeedback(); setCategoryId(cat.id); }}
+                    onPress={() => {
+                      hapticFeedback();
+                      setCategoryId(cat.id);
+                    }}
                   >
-                    <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
-                    <Text style={[
-                      styles.categoryChipText,
-                      categoryId === cat.id && { color: cat.color },
-                    ]}>
+                    <View
+                      style={[
+                        styles.categoryDot,
+                        { backgroundColor: cat.color },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        categoryId === cat.id && { color: cat.color },
+                      ]}
+                    >
                       {cat.name}
                     </Text>
                   </TouchableOpacity>
@@ -467,9 +548,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
@@ -478,7 +559,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   addButton: {
@@ -495,34 +576,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   summaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   summaryLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     marginBottom: spacing.xs,
   },
   summaryValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   summaryDivider: {
     width: 1,
     height: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   section: {
     marginBottom: spacing.lg,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
@@ -533,15 +614,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   subscriptionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   subscriptionIcon: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   subscriptionInfo: {
     flex: 1,
@@ -549,13 +630,13 @@ const styles = StyleSheet.create({
   },
   subscriptionName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   subscriptionDue: {
     fontSize: 13,
     color: colors.warning,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 2,
   },
   subscriptionMeta: {
@@ -564,24 +645,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   subscriptionRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     gap: spacing.xs,
   },
   subscriptionAmount: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.expense,
   },
   textInactive: {
     color: colors.textMuted,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xxxl,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginTop: spacing.lg,
   },
@@ -589,12 +670,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: spacing.xl,
   },
   emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
@@ -604,17 +685,17 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   modalContainer: {
     flex: 1,
     backgroundColor: colors.background,
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
@@ -622,12 +703,12 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   saveButton: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.primary,
   },
   modalContent: {
@@ -639,7 +720,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
@@ -655,10 +736,10 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   frequencyRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   frequencyButton: {
@@ -666,7 +747,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 10,
     backgroundColor: colors.surface,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -676,7 +757,7 @@ const styles = StyleSheet.create({
   },
   frequencyButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   frequencyButtonTextActive: {
@@ -687,8 +768,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 20,
@@ -705,7 +786,7 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.textPrimary,
   },
 });

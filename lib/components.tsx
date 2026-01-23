@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -11,8 +11,8 @@ import {
   ViewStyle,
   TextStyle,
   StyleProp,
-} from 'react-native';
-import { colors, spacing, borderRadius, typography, shadows } from './theme';
+} from "react-native";
+import { colors, spacing, borderRadius, typography, shadows } from "./theme";
 
 // ========================================
 // CARD COMPONENT
@@ -25,7 +25,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, style, onPress }) => {
   const cardStyle: StyleProp<ViewStyle> = [styles.card, style];
-  
+
   if (onPress) {
     return (
       <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.7}>
@@ -33,7 +33,7 @@ export const Card: React.FC<CardProps> = ({ children, style, onPress }) => {
       </TouchableOpacity>
     );
   }
-  
+
   return <View style={cardStyle}>{children}</View>;
 };
 
@@ -43,8 +43,8 @@ export const Card: React.FC<CardProps> = ({ children, style, onPress }) => {
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
   disabled?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
@@ -55,8 +55,8 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   disabled = false,
   loading = false,
   icon,
@@ -86,9 +86,9 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator 
-          color={variant === 'primary' ? colors.textInverse : colors.primary} 
-          size="small" 
+        <ActivityIndicator
+          color={variant === "primary" ? colors.textInverse : colors.primary}
+          size="small"
         />
       ) : (
         <View style={styles.buttonContent}>
@@ -108,7 +108,7 @@ interface InputProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
+  keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
   multiline?: boolean;
   error?: string;
   secureTextEntry?: boolean;
@@ -120,7 +120,7 @@ export const Input: React.FC<InputProps> = ({
   value,
   onChangeText,
   placeholder,
-  keyboardType = 'default',
+  keyboardType = "default",
   multiline = false,
   error,
   secureTextEntry,
@@ -154,13 +154,13 @@ export const Input: React.FC<InputProps> = ({
 interface IconBadgeProps {
   icon: string;
   color?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 export const IconBadge: React.FC<IconBadgeProps> = ({
   icon,
   color = colors.primary,
-  size = 'md',
+  size = "md",
 }) => {
   const sizes = {
     sm: { container: 36, icon: 18 },
@@ -176,7 +176,7 @@ export const IconBadge: React.FC<IconBadgeProps> = ({
           width: sizes[size].container,
           height: sizes[size].container,
           borderRadius: sizes[size].container / 2,
-          backgroundColor: color + '20', // 20% opacity
+          backgroundColor: color + "20", // 20% opacity
         },
       ]}
     >
@@ -192,7 +192,7 @@ interface StatCardProps {
   label: string;
   value: string;
   icon?: string;
-  trend?: 'up' | 'down' | 'neutral';
+  trend?: "up" | "down" | "neutral";
   color?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -213,11 +213,20 @@ export const StatCard: React.FC<StatCardProps> = ({
       </View>
       <Text style={[styles.statCardValue, { color }]}>{value}</Text>
       {trend && (
-        <Text style={[
-          styles.statCardTrend,
-          { color: trend === 'up' ? colors.success : trend === 'down' ? colors.error : colors.textSecondary }
-        ]}>
-          {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'} vs last period
+        <Text
+          style={[
+            styles.statCardTrend,
+            {
+              color:
+                trend === "up"
+                  ? colors.success
+                  : trend === "down"
+                    ? colors.error
+                    : colors.textSecondary,
+            },
+          ]}
+        >
+          {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"} vs last period
         </Text>
       )}
     </Card>
@@ -281,7 +290,10 @@ interface SectionHeaderProps {
   action?: { label: string; onPress: () => void };
 }
 
-export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, action }) => {
+export const SectionHeader: React.FC<SectionHeaderProps> = ({
+  title,
+  action,
+}) => {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionHeaderTitle}>{title}</Text>
@@ -329,7 +341,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         />
       </View>
       {showLabel && (
-        <Text style={styles.progressBarLabel}>{clampedProgress.toFixed(0)}%</Text>
+        <Text style={styles.progressBarLabel}>
+          {clampedProgress.toFixed(0)}%
+        </Text>
       )}
     </View>
   );
@@ -359,7 +373,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       onRequestClose={onClose}
     >
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.bottomSheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.bottomSheet}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={styles.bottomSheetHandle} />
           <View style={styles.bottomSheetHeader}>
             <Text style={styles.bottomSheetTitle}>{title}</Text>
@@ -375,7 +392,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 };
 
 // ========================================
-// SELECT/PICKER COMPONENT  
+// SELECT/PICKER COMPONENT
 // ========================================
 interface SelectOption {
   label: string;
@@ -396,7 +413,7 @@ export const Select: React.FC<SelectProps> = ({
   value,
   options,
   onSelect,
-  placeholder = 'Select...',
+  placeholder = "Select...",
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const selectedOption = options.find((o) => o.value === value);
@@ -408,16 +425,20 @@ export const Select: React.FC<SelectProps> = ({
         style={styles.selectTrigger}
         onPress={() => setIsOpen(true)}
       >
-        <Text style={[
-          styles.selectTriggerText,
-          !selectedOption && { color: colors.textMuted }
-        ]}>
+        <Text
+          style={[
+            styles.selectTriggerText,
+            !selectedOption && { color: colors.textMuted },
+          ]}
+        >
           {selectedOption ? (
             <>
               {selectedOption.icon && `${selectedOption.icon} `}
               {selectedOption.label}
             </>
-          ) : placeholder}
+          ) : (
+            placeholder
+          )}
         </Text>
         <Text style={styles.selectArrow}>▼</Text>
       </TouchableOpacity>
@@ -425,7 +446,7 @@ export const Select: React.FC<SelectProps> = ({
       <BottomSheet
         visible={isOpen}
         onClose={() => setIsOpen(false)}
-        title={label || 'Select Option'}
+        title={label || "Select Option"}
       >
         {options.map((option) => (
           <TouchableOpacity
@@ -439,11 +460,15 @@ export const Select: React.FC<SelectProps> = ({
               setIsOpen(false);
             }}
           >
-            {option.icon && <Text style={styles.selectOptionIcon}>{option.icon}</Text>}
-            <Text style={[
-              styles.selectOptionText,
-              option.value === value && styles.selectOptionTextSelected,
-            ]}>
+            {option.icon && (
+              <Text style={styles.selectOptionIcon}>{option.icon}</Text>
+            )}
+            <Text
+              style={[
+                styles.selectOptionText,
+                option.value === value && styles.selectOptionTextSelected,
+              ]}
+            >
               {option.label}
             </Text>
             {option.value === value && (
@@ -512,9 +537,9 @@ const styles = StyleSheet.create({
 
   // Button
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: borderRadius.md,
   },
   button_primary: {
@@ -524,12 +549,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   button_outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1.5,
     borderColor: colors.primary,
   },
   button_ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   button_danger: {
     backgroundColor: colors.error,
@@ -547,20 +572,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   buttonFullWidth: {
-    width: '100%',
+    width: "100%",
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   buttonIcon: {
     marginRight: spacing.sm,
   },
   buttonText: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   buttonText_primary: {
     color: colors.textInverse,
@@ -607,7 +632,7 @@ const styles = StyleSheet.create({
   },
   inputMultiline: {
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   inputError: {
     borderColor: colors.error,
@@ -620,8 +645,8 @@ const styles = StyleSheet.create({
 
   // Icon Badge
   iconBadge: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // Stat Card
@@ -629,8 +654,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   statCardIcon: {
@@ -651,8 +676,8 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: spacing.xxxl,
   },
   emptyStateIcon: {
@@ -662,20 +687,20 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     ...typography.h4,
     color: colors.textPrimary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.sm,
   },
   emptyStateDescription: {
     ...typography.body,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
   },
 
   // Loading State
   loadingState: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.background,
   },
   loadingText: {
@@ -686,9 +711,9 @@ const styles = StyleSheet.create({
 
   // Section Header
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   sectionHeaderTitle: {
@@ -703,7 +728,7 @@ const styles = StyleSheet.create({
   // Progress Bar
   progressBarContainer: {
     borderRadius: borderRadius.full,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressBarFill: {
     borderRadius: borderRadius.full,
@@ -712,33 +737,33 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: spacing.xs,
-    textAlign: 'right',
+    textAlign: "right",
   },
 
   // Bottom Sheet
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   bottomSheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   bottomSheetHandle: {
     width: 40,
     height: 4,
     backgroundColor: colors.border,
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: spacing.md,
   },
   bottomSheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -752,8 +777,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: colors.surfaceSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   bottomSheetCloseText: {
     fontSize: 16,
@@ -765,9 +790,9 @@ const styles = StyleSheet.create({
 
   // Select
   selectTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.surfaceSecondary,
     borderRadius: borderRadius.md,
     padding: spacing.md,
@@ -784,8 +809,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   selectOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
@@ -804,18 +829,18 @@ const styles = StyleSheet.create({
   },
   selectOptionTextSelected: {
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   selectCheckmark: {
     fontSize: 18,
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   // List Item
   listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.md,

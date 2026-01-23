@@ -9,20 +9,29 @@ import {
   Animated,
 } from "react-native";
 import { Text } from "react-native-paper";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Swipeable, GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  Swipeable,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
-import { colors, spacing, borderRadius, formatCurrency, formatShortDate } from "../../lib/theme";
-import { 
-  Card, 
-  LoadingState, 
-  Button, 
-  Input, 
-  Select, 
+import {
+  colors,
+  spacing,
+  borderRadius,
+  formatCurrency,
+  formatShortDate,
+} from "../../lib/theme";
+import {
+  Card,
+  LoadingState,
+  Button,
+  Input,
+  Select,
   BottomSheet,
 } from "../../lib/components";
 import { Transaction } from "../../lib/database";
@@ -31,22 +40,32 @@ type TransactionType = "income" | "expense";
 
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
-  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction, getMonthlyStats } = useTransactions();
+  const router = useRouter();
+  const {
+    transactions,
+    loading,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    getMonthlyStats,
+  } = useTransactions();
   const { categories, expenseCategories, incomeCategories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
-  
+
   const [activeTab, setActiveTab] = useState<TransactionType>("expense");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Form state
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [accountId, setAccountId] = useState("");
-  const [transactionType, setTransactionType] = useState<TransactionType>("expense");
+  const [transactionType, setTransactionType] =
+    useState<TransactionType>("expense");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const monthlyStats = getMonthlyStats();
@@ -84,7 +103,7 @@ export default function TransactionsScreen() {
         description,
         Date.now(),
         transactionType,
-        accountId || undefined
+        accountId || undefined,
       );
       await refreshAccounts(); // Refresh accounts to show updated balance
       setShowAddModal(false);
@@ -117,7 +136,7 @@ export default function TransactionsScreen() {
         description,
         editingTransaction.date,
         transactionType,
-        accountId || undefined
+        accountId || undefined,
       );
       await refreshAccounts(); // Refresh accounts to show updated balance
       setShowEditModal(false);
@@ -152,7 +171,7 @@ export default function TransactionsScreen() {
   const getMonthGroups = () => {
     const grouped: Record<string, typeof transactions> = {};
     const filteredTx = transactions.filter((t) => t.type === activeTab);
-    
+
     filteredTx.forEach((t) => {
       const date = new Date(t.date);
       const monthKey = date.toLocaleDateString("en-US", {
@@ -164,18 +183,19 @@ export default function TransactionsScreen() {
       }
       grouped[monthKey].push(t);
     });
-    
+
     // Sort transactions within each month by date
-    Object.keys(grouped).forEach(key => {
+    Object.keys(grouped).forEach((key) => {
       grouped[key].sort((a, b) => b.date - a.date);
     });
-    
+
     return grouped;
   };
 
   const getCategoryOptions = () => {
-    const cats = transactionType === "expense" ? expenseCategories : incomeCategories;
-    return cats.map(c => ({
+    const cats =
+      transactionType === "expense" ? expenseCategories : incomeCategories;
+    return cats.map((c) => ({
       label: c.name,
       value: c.id,
     }));
@@ -184,7 +204,7 @@ export default function TransactionsScreen() {
   const getAccountOptions = () => {
     return [
       { label: "No account (Cash)", value: "" },
-      ...accounts.map(a => ({
+      ...accounts.map((a) => ({
         label: `${a.name} (${formatCurrency(a.balance)})`,
         value: a.id,
       })),
@@ -194,14 +214,14 @@ export default function TransactionsScreen() {
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>,
-    transactionId: string
+    transactionId: string,
   ) => {
     const trans = dragX.interpolate({
       inputRange: [-100, 0],
       outputRange: [0, 100],
-      extrapolate: 'clamp',
+      extrapolate: "clamp",
     });
-    
+
     return (
       <TouchableOpacity
         style={styles.deleteAction}
@@ -216,7 +236,7 @@ export default function TransactionsScreen() {
                 style: "destructive",
                 onPress: () => handleDeleteTransaction(transactionId),
               },
-            ]
+            ],
           );
         }}
       >
@@ -236,362 +256,470 @@ export default function TransactionsScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Transactions</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setShowAddModal(true)}
-        >
-          <Text style={styles.addButtonText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats Cards */}
-      <View style={styles.statsContainer}>
-        <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <View style={styles.statLabelRow}>
-            <Ionicons name="wallet-outline" size={16} color={colors.textSecondary} />
-            <Text style={styles.statLabel}>This Month</Text>
-          </View>
-          <Text style={[styles.statValue, { color: totalBalance >= 0 ? colors.income : colors.expense }]}>
-            {formatCurrency(totalBalance)}
-          </Text>
-        </Card>
-        <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
-          <View style={styles.statLabelRow}>
-            <Ionicons 
-              name={activeTab === 'income' ? 'trending-up-outline' : 'trending-down-outline'} 
-              size={16} 
-              color={colors.textSecondary} 
-            />
-            <Text style={styles.statLabel}>
-              {activeTab === 'income' ? 'Income' : 'Expenses'}
-            </Text>
-          </View>
-          <Text style={[styles.statValue, { color: activeTab === 'income' ? colors.income : colors.expense }]}>
-            {activeTab === 'income' ? '+' : '-'}{formatCurrency(activeTab === 'income' ? monthlyStats.income : monthlyStats.expense)}
-          </Text>
-        </Card>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "expense" && styles.tabActive]}
-          onPress={() => setActiveTab("expense")}
-        >
-          <Text style={[styles.tabText, activeTab === "expense" && styles.tabTextActive]}>
-            Expenses
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "income" && styles.tabActive]}
-          onPress={() => setActiveTab("income")}
-        >
-          <Text style={[styles.tabText, activeTab === "income" && styles.tabTextActive]}>
-            Income
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Swipe Hint */}
-      {Object.keys(monthGroups).length > 0 && (
-        <View style={styles.swipeHint}>
-          <Ionicons name="arrow-back" size={12} color={colors.textMuted} />
-          <Text style={styles.swipeHintText}>Swipe left to delete • Tap to edit</Text>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={26} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Transactions</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowAddModal(true)}
+          >
+            <Text style={styles.addButtonText}>+ Add</Text>
+          </TouchableOpacity>
         </View>
-      )}
 
-      {/* Transaction List */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
-        }
-      >
-        {Object.keys(monthGroups).length > 0 ? (
-          Object.entries(monthGroups).map(([month, items]) => (
-            <View key={month} style={styles.monthSection}>
-              <Text style={styles.monthTitle}>{month}</Text>
-              {items.map((transaction) => {
-                const category = categories.find(c => c.id === transaction.categoryId);
-                const account = accounts.find(a => a.id === transaction.accountId);
-                return (
-                  <Swipeable
-                    key={transaction.id}
-                    renderRightActions={(progress, dragX) => 
-                      renderRightActions(progress, dragX, transaction.id)
-                    }
-                    friction={2}
-                    rightThreshold={40}
-                  >
-                    <TouchableOpacity
-                      onPress={() => openEditModal(transaction)}
-                      activeOpacity={0.7}
-                    >
-                      <Card style={styles.transactionCard}>
-                        <View style={styles.transactionRow}>
-                          <View style={[styles.transactionIcon, { 
-                            backgroundColor: transaction.type === 'income' 
-                              ? `${colors.income}15` 
-                              : `${colors.expense}15` 
-                          }]}>
-                            <Ionicons 
-                              name={transaction.type === 'income' ? 'arrow-down' : 'arrow-up'} 
-                              size={20} 
-                              color={transaction.type === 'income' ? colors.income : colors.expense} 
-                            />
-                          </View>
-                          <View style={styles.transactionInfo}>
-                            <Text style={styles.transactionTitle}>
-                              {transaction.description || category?.name || 'Transaction'}
-                            </Text>
-                            <Text style={styles.transactionSubtitle}>
-                              {formatShortDate(transaction.date)} • {category?.name || 'Uncategorized'}
-                              {account ? ` • ${account.name}` : ''}
-                            </Text>
-                          </View>
-                          <Text style={[
-                            styles.transactionAmount,
-                            { color: transaction.type === 'income' ? colors.income : colors.expense }
-                          ]}>
-                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                          </Text>
-                        </View>
-                      </Card>
-                    </TouchableOpacity>
-                  </Swipeable>
-                );
-              })}
-            </View>
-          ))
-        ) : (
-          <Card style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <Ionicons 
-                name={activeTab === 'expense' ? 'arrow-up-outline' : 'arrow-down-outline'} 
-                size={28} 
-                color={colors.primary} 
+        {/* Stats Cards */}
+        <View style={styles.statsContainer}>
+          <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.statLabelRow}>
+              <Ionicons
+                name="wallet-outline"
+                size={16}
+                color={colors.textSecondary}
               />
+              <Text style={styles.statLabel}>This Month</Text>
             </View>
-            <Text style={styles.emptyTitle}>No {activeTab} transactions</Text>
-            <Text style={styles.emptyDescription}>
-              Start tracking your {activeTab} by adding your first transaction
+            <Text
+              style={[
+                styles.statValue,
+                { color: totalBalance >= 0 ? colors.income : colors.expense },
+              ]}
+            >
+              {formatCurrency(totalBalance)}
             </Text>
-            <TouchableOpacity 
-              style={styles.emptyButton}
+          </Card>
+          <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.statLabelRow}>
+              <Ionicons
+                name={
+                  activeTab === "income"
+                    ? "trending-up-outline"
+                    : "trending-down-outline"
+                }
+                size={16}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.statLabel}>
+                {activeTab === "income" ? "Income" : "Expenses"}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.statValue,
+                {
+                  color:
+                    activeTab === "income" ? colors.income : colors.expense,
+                },
+              ]}
+            >
+              {activeTab === "income" ? "+" : "-"}
+              {formatCurrency(
+                activeTab === "income"
+                  ? monthlyStats.income
+                  : monthlyStats.expense,
+              )}
+            </Text>
+          </Card>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "expense" && styles.tabActive]}
+            onPress={() => setActiveTab("expense")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "expense" && styles.tabTextActive,
+              ]}
+            >
+              Expenses
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "income" && styles.tabActive]}
+            onPress={() => setActiveTab("income")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "income" && styles.tabTextActive,
+              ]}
+            >
+              Income
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Swipe Hint */}
+        {Object.keys(monthGroups).length > 0 && (
+          <View style={styles.swipeHint}>
+            <Ionicons name="arrow-back" size={12} color={colors.textMuted} />
+            <Text style={styles.swipeHintText}>
+              Swipe left to delete • Tap to edit
+            </Text>
+          </View>
+        )}
+
+        {/* Transaction List */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+            />
+          }
+        >
+          {Object.keys(monthGroups).length > 0 ? (
+            Object.entries(monthGroups).map(([month, items]) => (
+              <View key={month} style={styles.monthSection}>
+                <Text style={styles.monthTitle}>{month}</Text>
+                {items.map((transaction) => {
+                  const category = categories.find(
+                    (c) => c.id === transaction.categoryId,
+                  );
+                  const account = accounts.find(
+                    (a) => a.id === transaction.accountId,
+                  );
+                  return (
+                    <Swipeable
+                      key={transaction.id}
+                      renderRightActions={(progress, dragX) =>
+                        renderRightActions(progress, dragX, transaction.id)
+                      }
+                      friction={2}
+                      rightThreshold={40}
+                    >
+                      <TouchableOpacity
+                        onPress={() => openEditModal(transaction)}
+                        activeOpacity={0.7}
+                      >
+                        <Card style={styles.transactionCard}>
+                          <View style={styles.transactionRow}>
+                            <View
+                              style={[
+                                styles.transactionIcon,
+                                {
+                                  backgroundColor:
+                                    transaction.type === "income"
+                                      ? `${colors.income}15`
+                                      : `${colors.expense}15`,
+                                },
+                              ]}
+                            >
+                              <Ionicons
+                                name={
+                                  transaction.type === "income"
+                                    ? "arrow-down"
+                                    : "arrow-up"
+                                }
+                                size={20}
+                                color={
+                                  transaction.type === "income"
+                                    ? colors.income
+                                    : colors.expense
+                                }
+                              />
+                            </View>
+                            <View style={styles.transactionInfo}>
+                              <Text style={styles.transactionTitle}>
+                                {transaction.description ||
+                                  category?.name ||
+                                  "Transaction"}
+                              </Text>
+                              <Text style={styles.transactionSubtitle}>
+                                {formatShortDate(transaction.date)} •{" "}
+                                {category?.name || "Uncategorized"}
+                                {account ? ` • ${account.name}` : ""}
+                              </Text>
+                            </View>
+                            <Text
+                              style={[
+                                styles.transactionAmount,
+                                {
+                                  color:
+                                    transaction.type === "income"
+                                      ? colors.income
+                                      : colors.expense,
+                                },
+                              ]}
+                            >
+                              {transaction.type === "income" ? "+" : "-"}
+                              {formatCurrency(
+                                transaction.amount,
+                                transaction.currency,
+                              )}
+                            </Text>
+                          </View>
+                        </Card>
+                      </TouchableOpacity>
+                    </Swipeable>
+                  );
+                })}
+              </View>
+            ))
+          ) : (
+            <Card style={styles.emptyCard}>
+              <View style={styles.emptyIcon}>
+                <Ionicons
+                  name={
+                    activeTab === "expense"
+                      ? "arrow-up-outline"
+                      : "arrow-down-outline"
+                  }
+                  size={28}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={styles.emptyTitle}>No {activeTab} transactions</Text>
+              <Text style={styles.emptyDescription}>
+                Start tracking your {activeTab} by adding your first transaction
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => {
+                  setTransactionType(activeTab);
+                  setShowAddModal(true);
+                }}
+              >
+                <Text style={styles.emptyButtonText}>Add Transaction</Text>
+              </TouchableOpacity>
+            </Card>
+          )}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+
+        {/* Add Transaction Modal */}
+        <BottomSheet
+          visible={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            resetForm();
+          }}
+          title="Add Transaction"
+        >
+          {/* Transaction Type Toggle */}
+          <View style={styles.typeToggle}>
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                transactionType === "expense" && styles.typeButtonActive,
+              ]}
               onPress={() => {
-                setTransactionType(activeTab);
-                setShowAddModal(true);
+                setTransactionType("expense");
+                setCategoryId("");
               }}
             >
-              <Text style={styles.emptyButtonText}>Add Transaction</Text>
+              <Ionicons
+                name="arrow-up"
+                size={16}
+                color={
+                  transactionType === "expense"
+                    ? colors.textInverse
+                    : colors.expense
+                }
+              />
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  transactionType === "expense" && styles.typeButtonTextActive,
+                ]}
+              >
+                Expense
+              </Text>
             </TouchableOpacity>
-          </Card>
-        )}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                transactionType === "income" && styles.typeButtonActiveIncome,
+              ]}
+              onPress={() => {
+                setTransactionType("income");
+                setCategoryId("");
+              }}
+            >
+              <Ionicons
+                name="arrow-down"
+                size={16}
+                color={
+                  transactionType === "income"
+                    ? colors.textInverse
+                    : colors.income
+                }
+              />
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  transactionType === "income" && styles.typeButtonTextActive,
+                ]}
+              >
+                Income
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Add Transaction Modal */}
-      <BottomSheet
-        visible={showAddModal}
-        onClose={() => {
-          setShowAddModal(false);
-          resetForm();
-        }}
-        title="Add Transaction"
-      >
-        {/* Transaction Type Toggle */}
-        <View style={styles.typeToggle}>
-          <TouchableOpacity
-            style={[
-              styles.typeButton,
-              transactionType === 'expense' && styles.typeButtonActive,
-            ]}
-            onPress={() => {
-              setTransactionType('expense');
-              setCategoryId('');
-            }}
-          >
-            <Ionicons 
-              name="arrow-up" 
-              size={16} 
-              color={transactionType === 'expense' ? colors.textInverse : colors.expense} 
-            />
-            <Text style={[
-              styles.typeButtonText,
-              transactionType === 'expense' && styles.typeButtonTextActive,
-            ]}>
-              Expense
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.typeButton,
-              transactionType === 'income' && styles.typeButtonActiveIncome,
-            ]}
-            onPress={() => {
-              setTransactionType('income');
-              setCategoryId('');
-            }}
-          >
-            <Ionicons 
-              name="arrow-down" 
-              size={16} 
-              color={transactionType === 'income' ? colors.textInverse : colors.income} 
-            />
-            <Text style={[
-              styles.typeButtonText,
-              transactionType === 'income' && styles.typeButtonTextActive,
-            ]}>
-              Income
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <Input
+            label="Amount"
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="0.00"
+            keyboardType="numeric"
+          />
 
-        <Input
-          label="Amount"
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="0.00"
-          keyboardType="numeric"
-        />
+          <Select
+            label="Category"
+            value={categoryId}
+            options={getCategoryOptions()}
+            onSelect={setCategoryId}
+            placeholder="Select a category"
+          />
 
-        <Select
-          label="Category"
-          value={categoryId}
-          options={getCategoryOptions()}
-          onSelect={setCategoryId}
-          placeholder="Select a category"
-        />
+          <Select
+            label="Account (optional)"
+            value={accountId}
+            options={getAccountOptions()}
+            onSelect={setAccountId}
+            placeholder="Select an account"
+          />
 
-        <Select
-          label="Account (optional)"
-          value={accountId}
-          options={getAccountOptions()}
-          onSelect={setAccountId}
-          placeholder="Select an account"
-        />
+          <Input
+            label="Description (optional)"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="What was this for?"
+          />
 
-        <Input
-          label="Description (optional)"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="What was this for?"
-        />
+          <Button
+            title={isSubmitting ? "Adding..." : "Add Transaction"}
+            onPress={handleAddTransaction}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            fullWidth
+            style={{ marginTop: spacing.md }}
+          />
+        </BottomSheet>
 
-        <Button
-          title={isSubmitting ? "Adding..." : "Add Transaction"}
-          onPress={handleAddTransaction}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          fullWidth
-          style={{ marginTop: spacing.md }}
-        />
-      </BottomSheet>
+        {/* Edit Transaction Modal */}
+        <BottomSheet
+          visible={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            resetForm();
+          }}
+          title="Edit Transaction"
+        >
+          {/* Transaction Type Toggle */}
+          <View style={styles.typeToggle}>
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                transactionType === "expense" && styles.typeButtonActive,
+              ]}
+              onPress={() => {
+                setTransactionType("expense");
+                setCategoryId("");
+              }}
+            >
+              <Ionicons
+                name="arrow-up"
+                size={16}
+                color={
+                  transactionType === "expense"
+                    ? colors.textInverse
+                    : colors.expense
+                }
+              />
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  transactionType === "expense" && styles.typeButtonTextActive,
+                ]}
+              >
+                Expense
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                transactionType === "income" && styles.typeButtonActiveIncome,
+              ]}
+              onPress={() => {
+                setTransactionType("income");
+                setCategoryId("");
+              }}
+            >
+              <Ionicons
+                name="arrow-down"
+                size={16}
+                color={
+                  transactionType === "income"
+                    ? colors.textInverse
+                    : colors.income
+                }
+              />
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  transactionType === "income" && styles.typeButtonTextActive,
+                ]}
+              >
+                Income
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Edit Transaction Modal */}
-      <BottomSheet
-        visible={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          resetForm();
-        }}
-        title="Edit Transaction"
-      >
-        {/* Transaction Type Toggle */}
-        <View style={styles.typeToggle}>
-          <TouchableOpacity
-            style={[
-              styles.typeButton,
-              transactionType === 'expense' && styles.typeButtonActive,
-            ]}
-            onPress={() => {
-              setTransactionType('expense');
-              setCategoryId('');
-            }}
-          >
-            <Ionicons 
-              name="arrow-up" 
-              size={16} 
-              color={transactionType === 'expense' ? colors.textInverse : colors.expense} 
-            />
-            <Text style={[
-              styles.typeButtonText,
-              transactionType === 'expense' && styles.typeButtonTextActive,
-            ]}>
-              Expense
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.typeButton,
-              transactionType === 'income' && styles.typeButtonActiveIncome,
-            ]}
-            onPress={() => {
-              setTransactionType('income');
-              setCategoryId('');
-            }}
-          >
-            <Ionicons 
-              name="arrow-down" 
-              size={16} 
-              color={transactionType === 'income' ? colors.textInverse : colors.income} 
-            />
-            <Text style={[
-              styles.typeButtonText,
-              transactionType === 'income' && styles.typeButtonTextActive,
-            ]}>
-              Income
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <Input
+            label="Amount"
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="0.00"
+            keyboardType="numeric"
+          />
 
-        <Input
-          label="Amount"
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="0.00"
-          keyboardType="numeric"
-        />
+          <Select
+            label="Category"
+            value={categoryId}
+            options={getCategoryOptions()}
+            onSelect={setCategoryId}
+            placeholder="Select a category"
+          />
 
-        <Select
-          label="Category"
-          value={categoryId}
-          options={getCategoryOptions()}
-          onSelect={setCategoryId}
-          placeholder="Select a category"
-        />
+          <Select
+            label="Account (optional)"
+            value={accountId}
+            options={getAccountOptions()}
+            onSelect={setAccountId}
+            placeholder="Select an account"
+          />
 
-        <Select
-          label="Account (optional)"
-          value={accountId}
-          options={getAccountOptions()}
-          onSelect={setAccountId}
-          placeholder="Select an account"
-        />
+          <Input
+            label="Description (optional)"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="What was this for?"
+          />
 
-        <Input
-          label="Description (optional)"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="What was this for?"
-        />
-
-        <Button
-          title={isSubmitting ? "Saving..." : "Save Changes"}
-          onPress={handleEditTransaction}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          fullWidth
-          style={{ marginTop: spacing.md }}
-        />
-      </BottomSheet>
-    </View>
+          <Button
+            title={isSubmitting ? "Saving..." : "Save Changes"}
+            onPress={handleEditTransaction}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            fullWidth
+            style={{ marginTop: spacing.md }}
+          />
+        </BottomSheet>
+      </View>
     </GestureHandlerRootView>
   );
 }
@@ -602,15 +730,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+  },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   addButton: {
@@ -621,11 +757,11 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   statsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
     marginBottom: spacing.lg,
@@ -641,10 +777,10 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginHorizontal: spacing.lg,
     backgroundColor: colors.surfaceSecondary,
     borderRadius: borderRadius.md,
@@ -654,12 +790,12 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: spacing.sm,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: borderRadius.sm,
   },
   tabActive: {
     backgroundColor: colors.surface,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -667,7 +803,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   tabTextActive: {
@@ -684,7 +820,7 @@ const styles = StyleSheet.create({
   },
   monthTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
@@ -693,8 +829,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   transactionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   transactionInfo: {
     flex: 1,
@@ -702,7 +838,7 @@ const styles = StyleSheet.create({
   },
   transactionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   transactionSubtitle: {
@@ -712,44 +848,44 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   transactionIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   statLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: spacing.xs,
   },
   emptyCard: {
     padding: spacing.xl,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
     backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   emptyDescription: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.lg,
   },
   emptyButton: {
@@ -760,25 +896,25 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   typeToggle: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
     marginBottom: spacing.lg,
   },
   typeButton: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   typeButtonActive: {
     backgroundColor: colors.expense,
@@ -788,16 +924,16 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   typeButtonTextActive: {
     color: colors.textInverse,
   },
   swipeHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xs,
     gap: 4,
     marginBottom: spacing.sm,
@@ -808,8 +944,8 @@ const styles = StyleSheet.create({
   },
   deleteAction: {
     backgroundColor: colors.expense,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     width: 80,
     marginBottom: spacing.sm,
     borderTopRightRadius: borderRadius.md,

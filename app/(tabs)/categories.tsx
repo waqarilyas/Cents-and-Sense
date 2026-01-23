@@ -10,35 +10,59 @@ import {
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
-import { 
-  Card, 
-  LoadingState, 
-  Button, 
-  Input, 
+import {
+  Card,
+  LoadingState,
+  Button,
+  Input,
   BottomSheet,
 } from "../../lib/components";
-import { getCategoryIcon, getCategoryEmoji, SMART_CATEGORIES } from "../../lib/smartCategories";
+import {
+  getCategoryIcon,
+  getCategoryEmoji,
+  SMART_CATEGORIES,
+} from "../../lib/smartCategories";
 
 type CategoryType = "expense" | "income";
 
 const CATEGORY_COLORS = [
-  "#F97316", "#8B5CF6", "#EC4899", "#14B8A6", "#6366F1",
-  "#A855F7", "#EAB308", "#3B82F6", "#22C55E", "#EF4444",
-  "#059669", "#64748B", "#0EA5E9", "#D946EF",
+  "#F97316",
+  "#8B5CF6",
+  "#EC4899",
+  "#14B8A6",
+  "#6366F1",
+  "#A855F7",
+  "#EAB308",
+  "#3B82F6",
+  "#22C55E",
+  "#EF4444",
+  "#059669",
+  "#64748B",
+  "#0EA5E9",
+  "#D946EF",
 ];
 
 export default function CategoriesScreen() {
   const insets = useSafeAreaInsets();
-  const { categories, expenseCategories, incomeCategories, loading, addCategory, deleteCategory } = useCategories();
+  const router = useRouter();
+  const {
+    categories,
+    expenseCategories,
+    incomeCategories,
+    loading,
+    addCategory,
+    deleteCategory,
+  } = useCategories();
   const { transactions } = useTransactions();
-  
+
   const [activeTab, setActiveTab] = useState<CategoryType>("expense");
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Form state
   const [categoryName, setCategoryName] = useState("");
   const [categoryColor, setCategoryColor] = useState(CATEGORY_COLORS[0]);
@@ -51,11 +75,13 @@ export default function CategoriesScreen() {
     const currentYear = now.getFullYear();
 
     return transactions
-      .filter(t => {
+      .filter((t) => {
         const tDate = new Date(t.date);
-        return t.categoryId === categoryId && 
-               tDate.getMonth() === currentMonth && 
-               tDate.getFullYear() === currentYear;
+        return (
+          t.categoryId === categoryId &&
+          tDate.getMonth() === currentMonth &&
+          tDate.getFullYear() === currentYear
+        );
       })
       .reduce((sum, t) => sum + t.amount, 0);
   };
@@ -87,12 +113,12 @@ export default function CategoriesScreen() {
 
   const handleDeleteCategory = (id: string, name: string) => {
     // Check if category has transactions
-    const hasTransactions = transactions.some(t => t.categoryId === id);
-    
+    const hasTransactions = transactions.some((t) => t.categoryId === id);
+
     if (hasTransactions) {
       Alert.alert(
         "Cannot Delete",
-        `The category "${name}" has transactions associated with it. Delete the transactions first.`
+        `The category "${name}" has transactions associated with it. Delete the transactions first.`,
       );
       return;
     }
@@ -113,7 +139,7 @@ export default function CategoriesScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -121,14 +147,17 @@ export default function CategoriesScreen() {
     return <LoadingState />;
   }
 
-  const displayCategories = activeTab === "expense" ? expenseCategories : incomeCategories;
+  const displayCategories =
+    activeTab === "expense" ? expenseCategories : incomeCategories;
   const totalThisMonth = transactions
-    .filter(t => {
+    .filter((t) => {
       const now = new Date();
       const tDate = new Date(t.date);
-      return t.type === activeTab && 
-             tDate.getMonth() === now.getMonth() && 
-             tDate.getFullYear() === now.getFullYear();
+      return (
+        t.type === activeTab &&
+        tDate.getMonth() === now.getMonth() &&
+        tDate.getFullYear() === now.getFullYear()
+      );
     })
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -136,8 +165,14 @@ export default function CategoriesScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={26} color={colors.primary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Categories</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
             setCategoryType(activeTab);
@@ -151,20 +186,28 @@ export default function CategoriesScreen() {
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
         <View style={styles.summaryLabelRow}>
-          <Ionicons 
-            name={activeTab === 'expense' ? 'trending-down-outline' : 'trending-up-outline'} 
-            size={18} 
-            color={colors.textSecondary} 
+          <Ionicons
+            name={
+              activeTab === "expense"
+                ? "trending-down-outline"
+                : "trending-up-outline"
+            }
+            size={18}
+            color={colors.textSecondary}
           />
           <Text style={styles.summaryLabel}>
-            {activeTab === 'expense' ? 'Total Expenses' : 'Total Income'} This Month
+            {activeTab === "expense" ? "Total Expenses" : "Total Income"} This
+            Month
           </Text>
         </View>
-        <Text style={[
-          styles.summaryValue,
-          { color: activeTab === 'expense' ? colors.expense : colors.income }
-        ]}>
-          {activeTab === 'expense' ? '-' : '+'}{formatCurrency(totalThisMonth)}
+        <Text
+          style={[
+            styles.summaryValue,
+            { color: activeTab === "expense" ? colors.expense : colors.income },
+          ]}
+        >
+          {activeTab === "expense" ? "-" : "+"}
+          {formatCurrency(totalThisMonth)}
         </Text>
         <Text style={styles.summarySubtext}>
           Across {displayCategories.length} categories
@@ -177,7 +220,12 @@ export default function CategoriesScreen() {
           style={[styles.tab, activeTab === "expense" && styles.tabActive]}
           onPress={() => setActiveTab("expense")}
         >
-          <Text style={[styles.tabText, activeTab === "expense" && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "expense" && styles.tabTextActive,
+            ]}
+          >
             Expenses ({expenseCategories.length})
           </Text>
         </TouchableOpacity>
@@ -185,7 +233,12 @@ export default function CategoriesScreen() {
           style={[styles.tab, activeTab === "income" && styles.tabActive]}
           onPress={() => setActiveTab("income")}
         >
-          <Text style={[styles.tabText, activeTab === "income" && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "income" && styles.tabTextActive,
+            ]}
+          >
             Income ({incomeCategories.length})
           </Text>
         </TouchableOpacity>
@@ -197,7 +250,11 @@ export default function CategoriesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(false)} colors={[colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => setRefreshing(false)}
+            colors={[colors.primary]}
+          />
         }
       >
         <View style={styles.categoriesGrid}>
@@ -209,16 +266,25 @@ export default function CategoriesScreen() {
               <TouchableOpacity
                 key={category.id}
                 style={[styles.categoryCard, { borderColor: category.color }]}
-                onLongPress={() => handleDeleteCategory(category.id, category.name)}
+                onLongPress={() =>
+                  handleDeleteCategory(category.id, category.name)
+                }
                 delayLongPress={500}
               >
-                <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
+                <View
+                  style={[
+                    styles.categoryIcon,
+                    { backgroundColor: category.color + "20" },
+                  ]}
+                >
                   <Ionicons name={icon} size={24} color={category.color} />
                 </View>
                 <Text style={styles.categoryName} numberOfLines={1}>
                   {category.name}
                 </Text>
-                <Text style={[styles.categorySpending, { color: category.color }]}>
+                <Text
+                  style={[styles.categorySpending, { color: category.color }]}
+                >
                   {formatCurrency(spending)}
                 </Text>
               </TouchableOpacity>
@@ -229,10 +295,14 @@ export default function CategoriesScreen() {
         {displayCategories.length === 0 && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons 
-                name={activeTab === 'expense' ? 'arrow-up-outline' : 'arrow-down-outline'} 
-                size={32} 
-                color={colors.primary} 
+              <Ionicons
+                name={
+                  activeTab === "expense"
+                    ? "arrow-up-outline"
+                    : "arrow-down-outline"
+                }
+                size={32}
+                color={colors.primary}
               />
             </View>
             <Text style={styles.emptyTitle}>No {activeTab} categories</Text>
@@ -272,38 +342,46 @@ export default function CategoriesScreen() {
           <TouchableOpacity
             style={[
               styles.typeButton,
-              categoryType === 'expense' && styles.typeButtonActive,
+              categoryType === "expense" && styles.typeButtonActive,
             ]}
-            onPress={() => setCategoryType('expense')}
+            onPress={() => setCategoryType("expense")}
           >
-            <Ionicons 
-              name="arrow-up" 
-              size={16} 
-              color={categoryType === 'expense' ? colors.textInverse : colors.expense} 
+            <Ionicons
+              name="arrow-up"
+              size={16}
+              color={
+                categoryType === "expense" ? colors.textInverse : colors.expense
+              }
             />
-            <Text style={[
-              styles.typeButtonText,
-              categoryType === 'expense' && styles.typeButtonTextActive,
-            ]}>
+            <Text
+              style={[
+                styles.typeButtonText,
+                categoryType === "expense" && styles.typeButtonTextActive,
+              ]}
+            >
               Expense
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.typeButton,
-              categoryType === 'income' && styles.typeButtonActiveIncome,
+              categoryType === "income" && styles.typeButtonActiveIncome,
             ]}
-            onPress={() => setCategoryType('income')}
+            onPress={() => setCategoryType("income")}
           >
-            <Ionicons 
-              name="arrow-down" 
-              size={16} 
-              color={categoryType === 'income' ? colors.textInverse : colors.income} 
+            <Ionicons
+              name="arrow-down"
+              size={16}
+              color={
+                categoryType === "income" ? colors.textInverse : colors.income
+              }
             />
-            <Text style={[
-              styles.typeButtonText,
-              categoryType === 'income' && styles.typeButtonTextActive,
-            ]}>
+            <Text
+              style={[
+                styles.typeButtonText,
+                categoryType === "income" && styles.typeButtonTextActive,
+              ]}
+            >
               Income
             </Text>
           </TouchableOpacity>
@@ -339,11 +417,18 @@ export default function CategoriesScreen() {
         <View style={styles.previewContainer}>
           <Text style={styles.previewLabel}>Preview</Text>
           <View style={[styles.previewCard, { borderColor: categoryColor }]}>
-            <View style={[styles.categoryIcon, { backgroundColor: categoryColor + '20' }]}>
-              <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
+            <View
+              style={[
+                styles.categoryIcon,
+                { backgroundColor: categoryColor + "20" },
+              ]}
+            >
+              <View
+                style={[styles.categoryDot, { backgroundColor: categoryColor }]}
+              />
             </View>
             <Text style={styles.categoryName}>
-              {categoryName || 'Category Name'}
+              {categoryName || "Category Name"}
             </Text>
           </View>
         </View>
@@ -367,15 +452,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+  },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.textPrimary,
   },
   addButton: {
@@ -386,18 +479,18 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
   summaryCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xl,
   },
   summaryLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: spacing.sm,
   },
@@ -407,7 +500,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: spacing.xs,
   },
   summarySubtext: {
@@ -415,7 +508,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginHorizontal: spacing.lg,
     backgroundColor: colors.surfaceSecondary,
     borderRadius: borderRadius.md,
@@ -425,12 +518,12 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: spacing.sm,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: borderRadius.sm,
   },
   tabActive: {
     backgroundColor: colors.surface,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -438,7 +531,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   tabTextActive: {
@@ -451,12 +544,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   categoryCard: {
-    width: '48%',
+    width: "48%",
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
@@ -468,8 +561,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   categoryDot: {
@@ -479,17 +572,17 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: 4,
   },
   categorySpending: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xxxl,
   },
   emptyIconContainer: {
@@ -497,25 +590,25 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.lg,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
   },
   hintContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: spacing.lg,
   },
@@ -524,21 +617,21 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   typeToggle: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
     marginBottom: spacing.lg,
   },
   typeButton: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   typeButtonActive: {
     backgroundColor: colors.expense,
@@ -548,7 +641,7 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   typeButtonTextActive: {
@@ -556,13 +649,13 @@ const styles = StyleSheet.create({
   },
   colorLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
@@ -570,8 +663,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   colorOptionSelected: {
     borderWidth: 3,
@@ -580,14 +673,14 @@ const styles = StyleSheet.create({
   colorCheck: {
     color: colors.textInverse,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   previewContainer: {
     marginBottom: spacing.lg,
   },
   previewLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
@@ -597,6 +690,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 2,
     borderLeftWidth: 4,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
 });

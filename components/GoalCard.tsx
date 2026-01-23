@@ -3,6 +3,7 @@
 import { View } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 import { Goal } from "../lib/database";
+import { formatCurrency } from "../lib/theme";
 
 interface GoalCardProps {
   goal: Goal;
@@ -76,10 +77,10 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
                 color: completed ? "#2e7d32" : "#1565c0",
               }}
             >
-              ${goal.currentAmount.toFixed(2)}
+              {formatCurrency(goal.currentAmount, goal.currency)}
             </Text>
             <Text variant="labelSmall" style={{ color: "#999" }}>
-              of ${goal.targetAmount.toFixed(2)}
+              of {formatCurrency(goal.targetAmount, goal.currency)}
             </Text>
           </View>
         </View>

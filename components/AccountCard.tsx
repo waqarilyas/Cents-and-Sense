@@ -3,6 +3,7 @@
 import { View } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 import { Account } from "../lib/database";
+import { formatCurrency } from "../lib/theme";
 
 interface AccountCardProps {
   account: Account;
@@ -65,7 +66,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
               variant="titleLarge"
               style={{ fontWeight: "bold", color: "#1565c0" }}
             >
-              ${account.balance.toFixed(2)}
+              {formatCurrency(account.balance, account.currency)}
             </Text>
           </View>
         </View>
