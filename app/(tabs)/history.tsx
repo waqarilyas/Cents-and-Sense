@@ -150,7 +150,7 @@ export default function HistoryScreen() {
           <Text style={styles.headerTitle}>History</Text>
           <TouchableOpacity
             style={styles.profileButton}
-            onPress={() => router.push("/(tabs)/profile")}
+            onPress={() => router.push("/(stack)/profile")}
           >
             <Ionicons
               name="person-circle-outline"

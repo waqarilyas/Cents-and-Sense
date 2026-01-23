@@ -110,7 +110,8 @@ export default function AnalysisScreen() {
   const previousPeriodTransactions = useMemo(() => {
     return transactions.filter(
       (t) =>
-        t.date >= previousPeriodRange.start && t.date < previousPeriodRange.end,
+        t.date >= previousPeriodRange.start &&
+        t.date < previousPeriodRange.end,
     );
   }, [transactions, previousPeriodRange]);
 
@@ -685,7 +686,8 @@ export default function AnalysisScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}
+    >
       {/* Premium Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

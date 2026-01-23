@@ -276,7 +276,8 @@ export default function TransactionsScreen() {
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
-          <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Card style={[styles.statCard, { backgroundColor: colors.surface }]}
+          >
             <View style={styles.statLabelRow}>
               <Ionicons
                 name="wallet-outline"
@@ -294,7 +295,8 @@ export default function TransactionsScreen() {
               {formatCurrency(totalBalance)}
             </Text>
           </Card>
-          <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Card style={[styles.statCard, { backgroundColor: colors.surface }]}
+          >
             <View style={styles.statLabelRow}>
               <Ionicons
                 name={

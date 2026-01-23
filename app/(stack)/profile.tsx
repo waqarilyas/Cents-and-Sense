@@ -110,7 +110,7 @@ export default function ProfileScreen() {
           subtitle: `${accounts.length} accounts • Total: $${totalBalance.toFixed(0)}`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/accounts");
+            router.push("/(stack)/accounts");
           },
           badge: accounts.length,
           showArrow: true,
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
           subtitle: `${activeBudgets} active budgets`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/budgets");
+            router.push("/(stack)/budgets");
           },
           badge: activeBudgets,
           showArrow: true,
@@ -132,7 +132,7 @@ export default function ProfileScreen() {
           subtitle: `${activeGoals} active goals`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/goals");
+            router.push("/(stack)/goals");
           },
           badge: activeGoals,
           showArrow: true,
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
           subtitle: `${categories.length} categories`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/categories");
+            router.push("/(stack)/categories");
           },
           showArrow: true,
         },
@@ -153,7 +153,7 @@ export default function ProfileScreen() {
           subtitle: `${activeSubscriptions.length} active • ${formatCurrency(monthlySubscriptionCost)}/mo`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/subscriptions");
+            router.push("/(stack)/subscriptions");
           },
           badge: activeSubscriptions.length,
           showArrow: true,
@@ -169,7 +169,7 @@ export default function ProfileScreen() {
           subtitle: "Advanced spending trends and reports",
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/analysis");
+            router.push("/(stack)/analysis");
           },
           showArrow: true,
         },
@@ -184,7 +184,7 @@ export default function ProfileScreen() {
           subtitle: "Learn how to use the app effectively",
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/guide");
+            router.push("/(stack)/guide");
           },
           showArrow: true,
         },
@@ -465,7 +465,8 @@ export default function ProfileScreen() {
                 <Ionicons name="trash-outline" size={22} color={colors.error} />
               </View>
               <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemLabel, { color: colors.error }]}>
+                <Text style={[styles.menuItemLabel, { color: colors.error }]}
+                >
                   Clear All Data
                 </Text>
                 <Text style={styles.menuItemSubtitle}>Delete all app data</Text>

@@ -136,47 +136,6 @@ export default function TabLayout() {
             ),
           }}
         />
-        {/* Hidden screens - accessible via navigation, tab bar hidden */}
-        <Tabs.Screen
-          name="transactions"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="analysis"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="accounts"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="budgets"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="goals"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="categories"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="subscriptions"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
-        <Tabs.Screen
-          name="guide"
-          options={{ href: null, tabBarStyle: { display: "none" } }}
-        />
         <Tabs.Screen name="add-placeholder" options={{ href: null }} />
       </Tabs>
 

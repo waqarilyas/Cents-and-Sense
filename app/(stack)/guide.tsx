@@ -151,14 +151,14 @@ const JOURNEY_STEPS = [
     description:
       "Start by adding your bank accounts, savings, and credit cards",
     icon: "wallet" as keyof typeof Ionicons.glyphMap,
-    route: "/(tabs)/accounts",
+    route: "/(stack)/accounts",
   },
   {
     step: 2,
     title: "Create Budgets",
     description: "Set spending limits for different categories",
     icon: "pie-chart" as keyof typeof Ionicons.glyphMap,
-    route: "/(tabs)/budgets",
+    route: "/(stack)/budgets",
   },
   {
     step: 3,
@@ -172,21 +172,21 @@ const JOURNEY_STEPS = [
     title: "Add Subscriptions",
     description: "Don't forget recurring payments",
     icon: "repeat" as keyof typeof Ionicons.glyphMap,
-    route: "/(tabs)/subscriptions",
+    route: "/(stack)/subscriptions",
   },
   {
     step: 5,
     title: "Set Goals",
     description: "Define what you're saving for",
     icon: "flag" as keyof typeof Ionicons.glyphMap,
-    route: "/(tabs)/goals",
+    route: "/(stack)/goals",
   },
   {
     step: 6,
     title: "Review Analytics",
     description: "Understand your spending patterns",
     icon: "analytics" as keyof typeof Ionicons.glyphMap,
-    route: "/(tabs)/analysis",
+    route: "/(stack)/analysis",
   },
 ];
 
@@ -215,7 +215,8 @@ export default function GuideScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

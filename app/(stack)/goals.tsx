@@ -266,7 +266,8 @@ export default function GoalsScreen() {
                 color={colors.success}
               />
             </View>
-            <Text style={[styles.summaryValue, { color: colors.success }]}>
+            <Text style={[styles.summaryValue, { color: colors.success }]}
+            >
               {completedGoals}
             </Text>
             <Text style={styles.summaryLabel}>Completed</Text>
@@ -281,7 +282,8 @@ export default function GoalsScreen() {
             >
               <Ionicons name="wallet" size={20} color={colors.income} />
             </View>
-            <Text style={[styles.summaryValue, { color: colors.primary }]}>
+            <Text style={[styles.summaryValue, { color: colors.primary }]}
+            >
               {totalTarget > 0
                 ? ((totalSaved / totalTarget) * 100).toFixed(0)
                 : 0}

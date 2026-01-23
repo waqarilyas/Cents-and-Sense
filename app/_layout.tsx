@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View, StatusBar } from "react-native";
 import { PaperProvider, MD3LightTheme } from "react-native-paper";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { initializeDatabase } from "../lib/database";
 import { AccountProvider } from "../lib/contexts/AccountContext";
@@ -73,7 +73,10 @@ export default function RootLayout() {
                   <BudgetProvider>
                     <GoalProvider>
                       <SubscriptionProvider>
-                        <Slot />
+                        <Stack screenOptions={{ headerShown: false }}>
+                          <Stack.Screen name="(tabs)" />
+                          <Stack.Screen name="(stack)" />
+                        </Stack>
                       </SubscriptionProvider>
                     </GoalProvider>
                   </BudgetProvider>

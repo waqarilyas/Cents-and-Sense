@@ -243,7 +243,7 @@ export default function BudgetsScreen() {
         />
         <View style={styles.summaryFooter}>
           <Text style={styles.summaryFooterText}>
-            {formatCurrency(totalSpent)} spent of{" "}
+            {formatCurrency(totalSpent)} spent of {" "}
             {formatCurrency(totalBudgeted)}
           </Text>
           <Text
@@ -314,8 +314,7 @@ export default function BudgetsScreen() {
                       {budget.category?.name || "Unknown Category"}
                     </Text>
                     <Text style={styles.budgetPeriod}>
-                      {budget.period === "monthly" ? "Monthly" : "Yearly"}{" "}
-                      Budget
+                      {budget.period === "monthly" ? "Monthly" : "Yearly"} Budget
                     </Text>
                   </View>
                   <View style={styles.budgetAmounts}>

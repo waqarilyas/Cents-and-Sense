@@ -189,7 +189,8 @@ export default function AccountsScreen() {
           <View style={styles.balanceStatDivider} />
           <View style={styles.balanceStat}>
             <Text style={styles.balanceStatLabel}>Active</Text>
-            <Text style={[styles.balanceStatValue, { color: colors.income }]}>
+            <Text style={[styles.balanceStatValue, { color: colors.income }]}
+            >
               {accounts.filter((a) => a.balance > 0).length}
             </Text>
           </View>

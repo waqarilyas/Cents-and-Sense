@@ -293,7 +293,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             style={styles.profileButton}
-            onPress={() => router.push("/(tabs)/profile")}
+            onPress={() => router.push("/(stack)/profile")}
           >
             <View style={styles.profileAvatar}>
               <Ionicons name="person" size={20} color={colors.primary} />
@@ -359,7 +359,7 @@ export default function HomeScreen() {
         <View style={styles.quickAccessRow}>
           <TouchableOpacity
             style={styles.quickAccessItem}
-            onPress={() => router.push("/(tabs)/accounts")}
+            onPress={() => router.push("/(stack)/accounts")}
           >
             <View
               style={[
@@ -373,7 +373,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickAccessItem}
-            onPress={() => router.push("/(tabs)/budgets")}
+            onPress={() => router.push("/(stack)/budgets")}
           >
             <View
               style={[
@@ -391,7 +391,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickAccessItem}
-            onPress={() => router.push("/(tabs)/goals")}
+            onPress={() => router.push("/(stack)/goals")}
           >
             <View
               style={[
@@ -405,7 +405,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickAccessItem}
-            onPress={() => router.push("/(tabs)/subscriptions")}
+            onPress={() => router.push("/(stack)/subscriptions")}
           >
             <View
               style={[
@@ -423,7 +423,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickAccessItem}
-            onPress={() => router.push("/(tabs)/analysis")}
+            onPress={() => router.push("/(stack)/analysis")}
           >
             <View
               style={[
@@ -460,7 +460,7 @@ export default function HomeScreen() {
               styles.alertCard,
               budgetAlert.isOver && styles.alertCardDanger,
             ]}
-            onPress={() => router.push("/(tabs)/budgets")}
+            onPress={() => router.push("/(stack)/budgets")}
           >
             <Ionicons
               name={budgetAlert.isOver ? "alert-circle" : "warning"}
@@ -555,7 +555,7 @@ export default function HomeScreen() {
         {upcomingSubscriptions.length > 0 && (
           <TouchableOpacity
             style={styles.subscriptionAlert}
-            onPress={() => router.push("/(tabs)/subscriptions")}
+            onPress={() => router.push("/(stack)/subscriptions")}
           >
             <View style={styles.subscriptionIcon}>
               <Ionicons name="repeat" size={20} color={colors.primary} />
@@ -588,7 +588,7 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Goals Progress</Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/goals")}>
+              <TouchableOpacity onPress={() => router.push("/(stack)/goals")}>
                 <Text style={styles.sectionAction}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -602,7 +602,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={goal.id}
                   style={styles.goalItem}
-                  onPress={() => router.push("/(tabs)/goals")}
+                  onPress={() => router.push("/(stack)/goals")}
                 >
                   <View style={styles.goalHeader}>
                     <View style={styles.goalInfo}>
@@ -640,7 +640,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/history")}>
+            <TouchableOpacity onPress={() => router.push("/history")}>
               <Text style={styles.sectionAction}>See All</Text>
             </TouchableOpacity>
           </View>
