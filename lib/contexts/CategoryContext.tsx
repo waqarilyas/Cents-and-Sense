@@ -1,0 +1,214 @@
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { Category, getDatabase } from "../database";
+
+interface CategoryContextType {
+  categories: Category[];
+  expenseCategories: Category[];
+  incomeCategories: Category[];
+  loading: boolean;
+  error: string | null;
+  addCategory: (name: string, type: "income" | "expense", color: string) => Promise<void>;
+  updateCategory: (id: string, name: string, color: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  getCategory: (id: string) => Category | undefined;
+  getCategoriesByType: (type: "income" | "expense") => Category[];
+  refreshCategories: () => Promise<void>;
+}
+
+const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
+
+// Default categories to seed the database - Expanded premium set
+const DEFAULT_CATEGORIES = [
+  // Expense Categories (comprehensive)
+  { name: "Food & Dining", type: "expense", color: "#F97316" },
+  { name: "Coffee & Cafe", type: "expense", color: "#92400E" },
+  { name: "Groceries", type: "expense", color: "#22C55E" },
+  { name: "Transportation", type: "expense", color: "#8B5CF6" },
+  { name: "Shopping", type: "expense", color: "#EC4899" },
+  { name: "Entertainment", type: "expense", color: "#A855F7" },
+  { name: "Health & Fitness", type: "expense", color: "#EF4444" },
+  { name: "Bills & Utilities", type: "expense", color: "#EAB308" },
+  { name: "Housing", type: "expense", color: "#6366F1" },
+  { name: "Travel", type: "expense", color: "#0EA5E9" },
+  { name: "Education", type: "expense", color: "#14B8A6" },
+  { name: "Personal Care", type: "expense", color: "#F472B6" },
+  { name: "Pets", type: "expense", color: "#FB923C" },
+  { name: "Kids & Family", type: "expense", color: "#FB7185" },
+  { name: "Insurance", type: "expense", color: "#4B5563" },
+  { name: "Gifts & Donations", type: "expense", color: "#F43F5E" },
+  { name: "Alcohol & Bars", type: "expense", color: "#B45309" },
+  { name: "Subscriptions", type: "expense", color: "#7C3AED" },
+  { name: "ATM & Cash", type: "expense", color: "#059669" },
+  { name: "Fees & Charges", type: "expense", color: "#DC2626" },
+  { name: "Taxes", type: "expense", color: "#1F2937" },
+  { name: "Other Expense", type: "expense", color: "#64748B" },
+  // Income Categories (comprehensive)
+  { name: "Salary", type: "income", color: "#22C55E" },
+  { name: "Freelance", type: "income", color: "#10B981" },
+  { name: "Business Income", type: "income", color: "#0D9488" },
+  { name: "Investment", type: "income", color: "#059669" },
+  { name: "Rental Income", type: "income", color: "#0891B2" },
+  { name: "Refund", type: "income", color: "#6366F1" },
+  { name: "Gift Received", type: "income", color: "#F43F5E" },
+  { name: "Government", type: "income", color: "#1D4ED8" },
+  { name: "Other Income", type: "income", color: "#64748B" },
+] as const;
+
+export function CategoryProvider({ children }: { children: React.ReactNode }) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const seedDefaultCategories = useCallback(async () => {
+    try {
+      const db = await getDatabase();
+      for (const cat of DEFAULT_CATEGORIES) {
+        const id = `cat_${cat.name.toLowerCase().replace(/\s+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        await db.runAsync(
+          "INSERT OR IGNORE INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
+          [id, cat.name, cat.type, cat.color, Date.now()]
+        );
+      }
+    } catch (err) {
+      console.error("Error seeding categories:", err);
+    }
+  }, []);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const db = await getDatabase();
+      let result = await db.getAllAsync<Category>(
+        "SELECT * FROM categories ORDER BY name ASC"
+      );
+      
+      // If no categories exist, seed defaults
+      if (!result || result.length === 0) {
+        await seedDefaultCategories();
+        result = await db.getAllAsync<Category>(
+          "SELECT * FROM categories ORDER BY name ASC"
+        );
+      }
+      
+      setCategories(result || []);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load categories"
+      );
+      console.error("Error loading categories:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [seedDefaultCategories]);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  const addCategory = useCallback(
+    async (name: string, type: "income" | "expense", color: string) => {
+      try {
+        setError(null);
+        const id = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const db = await getDatabase();
+        await db.runAsync(
+          "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
+          [id, name, type, color, Date.now()]
+        );
+        await loadCategories();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to add category";
+        setError(message);
+        throw err;
+      }
+    },
+    [loadCategories]
+  );
+
+  const updateCategory = useCallback(
+    async (id: string, name: string, color: string) => {
+      try {
+        setError(null);
+        const db = await getDatabase();
+        await db.runAsync(
+          "UPDATE categories SET name = ?, color = ? WHERE id = ?",
+          [name, color, id]
+        );
+        await loadCategories();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to update category";
+        setError(message);
+        throw err;
+      }
+    },
+    [loadCategories]
+  );
+
+  const deleteCategory = useCallback(
+    async (id: string) => {
+      try {
+        setError(null);
+        const db = await getDatabase();
+        await db.runAsync("DELETE FROM categories WHERE id = ?", [id]);
+        await loadCategories();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to delete category";
+        setError(message);
+        throw err;
+      }
+    },
+    [loadCategories]
+  );
+
+  const getCategory = useCallback(
+    (id: string) => {
+      return categories.find((c) => c.id === id);
+    },
+    [categories]
+  );
+
+  const getCategoriesByType = useCallback(
+    (type: "income" | "expense") => {
+      return categories.filter((c) => c.type === type);
+    },
+    [categories]
+  );
+
+  const expenseCategories = categories.filter((c) => c.type === "expense");
+  const incomeCategories = categories.filter((c) => c.type === "income");
+
+  return (
+    <CategoryContext.Provider
+      value={{
+        categories,
+        expenseCategories,
+        incomeCategories,
+        loading,
+        error,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        getCategory,
+        getCategoriesByType,
+        refreshCategories: loadCategories,
+      }}
+    >
+      {children}
+    </CategoryContext.Provider>
+  );
+}
+
+export function useCategories() {
+  const context = useContext(CategoryContext);
+  if (context === undefined) {
+    throw new Error("useCategories must be used within CategoryProvider");
+  }
+  return context;
+}

@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Budget Planner",
+    "slug": "budget-planner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "budgetplanner",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.budgetplanner.app"
+    },
+    "android": {
+      "package": "com.budgetplanner.app"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
