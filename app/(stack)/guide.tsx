@@ -215,8 +215,7 @@ export default function GuideScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}
-    >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
