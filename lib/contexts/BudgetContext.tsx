@@ -5,10 +5,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { Budget, getDatabase } from "../database";
+import { Budget, MonthlyBudget, getDatabase } from "../database";
 
 interface BudgetContextType {
   budgets: Budget[];
+  monthlyBudget: MonthlyBudget | null;
   loading: boolean;
   error: string | null;
   addBudget: (
@@ -23,6 +24,8 @@ interface BudgetContextType {
     period: "monthly" | "yearly",
     currency?: string,
   ) => Promise<void>;
+  setMonthlyBudget: (amount: number, currency?: string) => Promise<void>;
+  clearMonthlyBudget: () => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
   getBudget: (id: string) => Budget | undefined;
   getBudgetByCategory: (categoryId: string) => Budget | undefined;
@@ -33,6 +36,9 @@ const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
 export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [monthlyBudget, setMonthlyBudgetState] = useState<MonthlyBudget | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,9 +59,26 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loadMonthlyBudget = useCallback(async () => {
+    try {
+      const db = await getDatabase();
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      const result = await db.getFirstAsync<MonthlyBudget>(
+        "SELECT * FROM monthly_budgets WHERE month = ? AND year = ? LIMIT 1",
+        [month, year],
+      );
+      setMonthlyBudgetState(result || null);
+    } catch (err) {
+      console.error("[v0] Error loading monthly budget:", err);
+    }
+  }, []);
+
   useEffect(() => {
     loadBudgets();
-  }, [loadBudgets]);
+    loadMonthlyBudget();
+  }, [loadBudgets, loadMonthlyBudget]);
 
   const addBudget = useCallback(
     async (
@@ -115,6 +138,60 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     [loadBudgets],
   );
 
+  const setMonthlyBudget = useCallback(
+    async (amount: number, currency: string = "USD") => {
+      try {
+        setError(null);
+        const db = await getDatabase();
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const year = now.getFullYear();
+        const existing = await db.getFirstAsync<MonthlyBudget>(
+          "SELECT * FROM monthly_budgets WHERE month = ? AND year = ? LIMIT 1",
+          [month, year],
+        );
+        if (existing) {
+          await db.runAsync(
+            "UPDATE monthly_budgets SET amount = ?, currency = ? WHERE id = ?",
+            [amount, currency, existing.id],
+          );
+        } else {
+          await db.runAsync(
+            "INSERT INTO monthly_budgets (id, amount, currency, month, year, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
+            [Date.now().toString(), amount, currency, month, year, Date.now()],
+          );
+        }
+        await loadMonthlyBudget();
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to set monthly budget";
+        setError(message);
+        throw err;
+      }
+    },
+    [loadMonthlyBudget],
+  );
+
+  const clearMonthlyBudget = useCallback(async () => {
+    try {
+      setError(null);
+      const db = await getDatabase();
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      await db.runAsync(
+        "DELETE FROM monthly_budgets WHERE month = ? AND year = ?",
+        [month, year],
+      );
+      await loadMonthlyBudget();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to clear monthly budget";
+      setError(message);
+      throw err;
+    }
+  }, [loadMonthlyBudget]);
+
   const deleteBudget = useCallback(
     async (id: string) => {
       try {
@@ -154,10 +231,13 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     <BudgetContext.Provider
       value={{
         budgets,
+        monthlyBudget,
         loading,
         error,
         addBudget,
         updateBudget,
+        setMonthlyBudget,
+        clearMonthlyBudget,
         deleteBudget,
         getBudget,
         getBudgetByCategory,

@@ -21,12 +21,12 @@ import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import {
-  colors,
   spacing,
   borderRadius,
   formatCurrency,
   formatShortDate,
 } from "../../lib/theme";
+import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
 
@@ -35,6 +35,8 @@ type FilterType = "all" | "income" | "expense";
 export default function HistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { transactions, loading, deleteTransaction } = useTransactions();
   const { categories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
@@ -332,143 +334,144 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  profileButton: {
-    padding: spacing.xs,
-  },
-  searchContainer: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: spacing.sm,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.textSecondary,
-  },
-  filterChipTextActive: {
-    color: "#FFFFFF",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  dateSection: {
-    marginBottom: spacing.lg,
-  },
-  dateTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  transactionCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-  },
-  transactionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  transactionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  transactionInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  transactionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  transactionSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  deleteAction: {
-    backgroundColor: colors.expense,
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-    marginBottom: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginTop: spacing.lg,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-    textAlign: "center",
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    profileButton: {
+      padding: spacing.xs,
+    },
+    searchContainer: {
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: spacing.sm,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    filterContainer: {
+      flexDirection: "row",
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      gap: spacing.sm,
+    },
+    filterChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    filterChipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    filterChipText: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: colors.textSecondary,
+    },
+    filterChipTextActive: {
+      color: "#FFFFFF",
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    dateSection: {
+      marginBottom: spacing.lg,
+    },
+    dateTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    transactionCard: {
+      marginBottom: spacing.sm,
+      padding: spacing.md,
+    },
+    transactionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    transactionIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    transactionInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    transactionTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    transactionSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    transactionAmount: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    deleteAction: {
+      backgroundColor: colors.expense,
+      justifyContent: "center",
+      alignItems: "center",
+      width: 80,
+      marginBottom: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.lg,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
+      textAlign: "center",
+    },
+  });

@@ -11,7 +11,7 @@ import {
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius } from "../theme";
+import { spacing, borderRadius, useThemeColors, ThemeColors } from "../theme";
 import {
   Currency,
   CURRENCIES,
@@ -42,6 +42,8 @@ export const CurrencyPicker: React.FC<CurrencyPickerProps> = ({
   title = "Select Currency",
 }) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("popular");
   const [expandedRegion, setExpandedRegion] = useState<CurrencyRegion | null>(
@@ -313,6 +315,8 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   onPress,
   compact = false,
 }) => {
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const currency = CURRENCIES.find((c) => c.code === selectedCode);
 
   if (compact) {
@@ -335,193 +339,194 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRadius: 12,
-    gap: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  content: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xxxl,
-  },
-  currencyItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.xs,
-    borderRadius: 12,
-    gap: spacing.md,
-  },
-  currencyItemSelected: {
-    backgroundColor: colors.primary + "15",
-  },
-  currencyFlag: {
-    fontSize: 24,
-  },
-  currencyInfo: {
-    flex: 1,
-  },
-  currencyCode: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  currencyName: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  currencySymbol: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: colors.textSecondary,
-    minWidth: 40,
-    textAlign: "right",
-  },
-  showAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.lg,
-    marginTop: spacing.md,
-    gap: spacing.xs,
-  },
-  showAllText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  backToPopular: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-    gap: spacing.xs,
-  },
-  backToPopularText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.primary,
-  },
-  regionSection: {
-    marginBottom: spacing.sm,
-  },
-  regionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-  },
-  regionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  regionRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  regionCount: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  regionCurrencies: {
-    paddingLeft: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginTop: spacing.md,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  // Selector styles
-  selector: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 10,
-    gap: spacing.sm,
-  },
-  selectorFlag: {
-    fontSize: 18,
-  },
-  selectorCode: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  compactSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    gap: 2,
-  },
-  compactSelectorText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    closeButton: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    searchContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      marginHorizontal: spacing.md,
+      marginVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      borderRadius: 12,
+      gap: spacing.sm,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    content: {
+      flex: 1,
+    },
+    listContent: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xxxl,
+    },
+    currencyItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.xs,
+      borderRadius: 12,
+      gap: spacing.md,
+    },
+    currencyItemSelected: {
+      backgroundColor: colors.primary + "15",
+    },
+    currencyFlag: {
+      fontSize: 24,
+    },
+    currencyInfo: {
+      flex: 1,
+    },
+    currencyCode: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    currencyName: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    currencySymbol: {
+      fontSize: 18,
+      fontWeight: "500",
+      color: colors.textSecondary,
+      minWidth: 40,
+      textAlign: "right",
+    },
+    showAllButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.lg,
+      marginTop: spacing.md,
+      gap: spacing.xs,
+    },
+    showAllText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+    backToPopular: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      marginBottom: spacing.md,
+      gap: spacing.xs,
+    },
+    backToPopularText: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: colors.primary,
+    },
+    regionSection: {
+      marginBottom: spacing.sm,
+    },
+    regionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+    },
+    regionTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    regionRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    regionCount: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    regionCurrencies: {
+      paddingLeft: spacing.sm,
+      paddingTop: spacing.xs,
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+    },
+    // Selector styles
+    selector: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 10,
+      gap: spacing.sm,
+    },
+    selectorFlag: {
+      fontSize: 18,
+    },
+    selectorCode: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    compactSelector: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      gap: 2,
+    },
+    compactSelectorText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+  });
 
 export default CurrencyPicker;

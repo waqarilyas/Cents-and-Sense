@@ -6,7 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Transaction } from "../lib/database";
 import { useCategories } from "../lib/contexts/CategoryContext";
 import { getCategoryIcon } from "../lib/smartCategories";
-import { colors, spacing, borderRadius, formatCurrency } from "../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  formatCurrency,
+  useThemeColors,
+  ThemeColors,
+} from "../lib/theme";
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -20,6 +26,8 @@ export function TransactionCard({
   onDelete,
 }: TransactionCardProps) {
   const { getCategory } = useCategories();
+  const { colors } = useThemeColors();
+  const styles = createStyles(colors);
   const category = getCategory(transaction.categoryId);
 
   const formattedDate = new Date(transaction.date).toLocaleDateString("en-US", {
@@ -85,46 +93,47 @@ export function TransactionCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 12,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-  },
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
-  },
-  details: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  amountContainer: {
-    alignItems: "flex-end",
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  actions: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: {
+      marginBottom: 12,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+    },
+    content: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.md,
+    },
+    details: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    amountContainer: {
+      alignItems: "flex-end",
+    },
+    amount: {
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    actions: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+  });

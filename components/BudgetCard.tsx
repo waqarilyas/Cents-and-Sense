@@ -3,7 +3,7 @@
 import { View } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 import { Budget, Category } from "../lib/database";
-import { formatCurrency } from "../lib/theme";
+import { formatCurrency, useThemeColors } from "../lib/theme";
 
 interface BudgetCardProps {
   budget: Budget;
@@ -20,6 +20,7 @@ export function BudgetCard({
   onEdit,
   onDelete,
 }: BudgetCardProps) {
+  const { colors } = useThemeColors();
   const percentage = (spent / budget.budget_limit) * 100;
   const isOver = spent > budget.budget_limit;
   const remaining = Math.max(0, budget.budget_limit - spent);
@@ -28,7 +29,7 @@ export function BudgetCard({
     <Card
       style={{
         marginBottom: 12,
-        backgroundColor: isOver ? "#ffebee" : "#fafafa",
+        backgroundColor: isOver ? colors.errorLight : colors.surface,
       }}
     >
       <Card.Content>
@@ -47,7 +48,7 @@ export function BudgetCard({
             >
               {category?.name || "Unknown"}
             </Text>
-            <Text variant="labelSmall" style={{ color: "#999" }}>
+            <Text variant="labelSmall" style={{ color: colors.textSecondary }}>
               {budget.period === "monthly" ? "Monthly" : "Yearly"} Budget
             </Text>
           </View>
@@ -56,12 +57,12 @@ export function BudgetCard({
               style={{
                 fontWeight: "600",
                 fontSize: 16,
-                color: isOver ? "#d32f2f" : "#2e7d32",
+                color: isOver ? colors.expense : colors.income,
               }}
             >
               {formatCurrency(spent, budget.currency)}
             </Text>
-            <Text variant="labelSmall" style={{ color: "#999" }}>
+            <Text variant="labelSmall" style={{ color: colors.textSecondary }}>
               of {formatCurrency(budget.budget_limit, budget.currency)}
             </Text>
           </View>
@@ -71,7 +72,7 @@ export function BudgetCard({
         <View
           style={{
             height: 8,
-            backgroundColor: "#e0e0e0",
+            backgroundColor: colors.border,
             borderRadius: 4,
             overflow: "hidden",
             marginBottom: 12,
@@ -81,10 +82,10 @@ export function BudgetCard({
             style={{
               height: "100%",
               backgroundColor: isOver
-                ? "#d32f2f"
+                ? colors.expense
                 : percentage > 75
-                  ? "#ff9800"
-                  : "#4CAF50",
+                  ? colors.warning
+                  : colors.success,
               width: `${Math.min(percentage, 100)}%`,
             }}
           />
@@ -95,7 +96,7 @@ export function BudgetCard({
           <Text
             variant="labelSmall"
             style={{
-              color: isOver ? "#d32f2f" : "#2e7d32",
+              color: isOver ? colors.expense : colors.income,
               fontWeight: "500",
             }}
           >
@@ -107,7 +108,7 @@ export function BudgetCard({
       </Card.Content>
       <Card.Actions>
         <Button onPress={onEdit}>Edit</Button>
-        <Button onPress={onDelete} textColor="#d32f2f">
+        <Button onPress={onDelete} textColor={colors.expense}>
           Delete
         </Button>
       </Card.Actions>

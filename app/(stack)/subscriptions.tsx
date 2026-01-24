@@ -16,7 +16,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
-import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  formatCurrency,
+  useThemeColors,
+  ThemeColors,
+} from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -58,6 +64,8 @@ const FREQUENCY_LABELS: Record<string, string> = {
 export default function SubscriptionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     subscriptions,
     activeSubscriptions,
@@ -542,251 +550,252 @@ export default function SubscriptionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    padding: spacing.xs,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  addButton: {
-    padding: spacing.xs,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  summaryCard: {
-    marginBottom: spacing.lg,
-    backgroundColor: colors.primary,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: spacing.xs,
-  },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  subscriptionCard: {
-    marginBottom: spacing.sm,
-  },
-  subscriptionInactive: {
-    opacity: 0.6,
-  },
-  subscriptionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  subscriptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  subscriptionInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  subscriptionName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  subscriptionDue: {
-    fontSize: 13,
-    color: colors.warning,
-    fontWeight: "500",
-    marginTop: 2,
-  },
-  subscriptionMeta: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  subscriptionRight: {
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  subscriptionAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.expense,
-  },
-  textInactive: {
-    color: colors.textMuted,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginTop: spacing.lg,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-    textAlign: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  emptyButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    marginTop: spacing.xl,
-    gap: spacing.xs,
-  },
-  emptyButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  saveButton: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  modalContent: {
-    flex: 1,
-    padding: spacing.lg,
-  },
-  inputGroup: {
-    marginBottom: spacing.xl,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  textInput: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  frequencyRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  frequencyButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  frequencyButtonActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  frequencyButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  frequencyButtonTextActive: {
-    color: colors.primary,
-  },
-  categoryScroll: {
-    marginHorizontal: -spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: spacing.xs,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.textPrimary,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      padding: spacing.xs,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      padding: spacing.xs,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    summaryCard: {
+      marginBottom: spacing.lg,
+      backgroundColor: colors.primary,
+    },
+    summaryRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    summaryItem: {
+      flex: 1,
+      alignItems: "center",
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.8)",
+      marginBottom: spacing.xs,
+    },
+    summaryValue: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: "#FFFFFF",
+    },
+    summaryDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: "rgba(255,255,255,0.2)",
+    },
+    section: {
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    subscriptionCard: {
+      marginBottom: spacing.sm,
+    },
+    subscriptionInactive: {
+      opacity: 0.6,
+    },
+    subscriptionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    subscriptionIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    subscriptionInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    subscriptionName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    subscriptionDue: {
+      fontSize: 13,
+      color: colors.warning,
+      fontWeight: "500",
+      marginTop: 2,
+    },
+    subscriptionMeta: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    subscriptionRight: {
+      alignItems: "flex-end",
+      gap: spacing.xs,
+    },
+    subscriptionAmount: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.expense,
+    },
+    textInactive: {
+      color: colors.textMuted,
+    },
+    emptyState: {
+      alignItems: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.lg,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
+      textAlign: "center",
+      paddingHorizontal: spacing.xl,
+    },
+    emptyButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: 12,
+      marginTop: spacing.xl,
+      gap: spacing.xs,
+    },
+    emptyButtonText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: "#FFFFFF",
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    saveButton: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+    modalContent: {
+      flex: 1,
+      padding: spacing.lg,
+    },
+    inputGroup: {
+      marginBottom: spacing.xl,
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    textInput: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontSize: 16,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: "top",
+    },
+    frequencyRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    frequencyButton: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    frequencyButtonActive: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primary,
+    },
+    frequencyButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    frequencyButtonTextActive: {
+      color: colors.primary,
+    },
+    categoryScroll: {
+      marginHorizontal: -spacing.lg,
+      paddingHorizontal: spacing.lg,
+    },
+    categoryChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      marginRight: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    categoryDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: spacing.xs,
+    },
+    categoryChipText: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+  });

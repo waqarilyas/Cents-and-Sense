@@ -12,7 +12,20 @@ import {
   TextStyle,
   StyleProp,
 } from "react-native";
-import { colors, spacing, borderRadius, typography, shadows } from "./theme";
+import {
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+  useThemeColors,
+  ThemeColors,
+} from "./theme";
+
+const useComponentStyles = () => {
+  const { colors } = useThemeColors();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+};
 
 // ========================================
 // CARD COMPONENT
@@ -24,6 +37,7 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ children, style, onPress }) => {
+  const { styles } = useComponentStyles();
   const cardStyle: StyleProp<ViewStyle> = [styles.card, style];
 
   if (onPress) {
@@ -63,6 +77,7 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   style,
 }) => {
+  const { colors, styles } = useComponentStyles();
   const buttonStyles = [
     styles.button,
     styles[`button_${variant}`],
@@ -126,6 +141,7 @@ export const Input: React.FC<InputProps> = ({
   secureTextEntry,
   style,
 }) => {
+  const { colors, styles } = useComponentStyles();
   return (
     <View style={[styles.inputContainer, style]}>
       {label && <Text style={styles.inputLabel}>{label}</Text>}
@@ -159,9 +175,11 @@ interface IconBadgeProps {
 
 export const IconBadge: React.FC<IconBadgeProps> = ({
   icon,
-  color = colors.primary,
+  color,
   size = "md",
 }) => {
+  const { colors, styles } = useComponentStyles();
+  const resolvedColor = color || colors.primary;
   const sizes = {
     sm: { container: 36, icon: 18 },
     md: { container: 44, icon: 22 },
@@ -176,7 +194,7 @@ export const IconBadge: React.FC<IconBadgeProps> = ({
           width: sizes[size].container,
           height: sizes[size].container,
           borderRadius: sizes[size].container / 2,
-          backgroundColor: color + "20", // 20% opacity
+          backgroundColor: resolvedColor + "20", // 20% opacity
         },
       ]}
     >
@@ -202,16 +220,20 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   icon,
   trend,
-  color = colors.textPrimary,
+  color,
   style,
 }) => {
+  const { colors, styles } = useComponentStyles();
+  const resolvedColor = color || colors.textPrimary;
   return (
     <Card style={[styles.statCard, style as ViewStyle]}>
       <View style={styles.statCardHeader}>
         {icon && <Text style={styles.statCardIcon}>{icon}</Text>}
         <Text style={styles.statCardLabel}>{label}</Text>
       </View>
-      <Text style={[styles.statCardValue, { color }]}>{value}</Text>
+      <Text style={[styles.statCardValue, { color: resolvedColor }]}>
+        {value}
+      </Text>
       {trend && (
         <Text
           style={[
@@ -251,6 +273,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   actionLabel,
   onAction,
 }) => {
+  const { colors, styles } = useComponentStyles();
   return (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateIcon}>{icon}</Text>
@@ -274,6 +297,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 // LOADING STATE COMPONENT
 // ========================================
 export const LoadingState: React.FC = () => {
+  const { colors, styles } = useComponentStyles();
   return (
     <View style={styles.loadingState}>
       <ActivityIndicator size="large" color={colors.primary} />
@@ -294,6 +318,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   title,
   action,
 }) => {
+  const { styles } = useComponentStyles();
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionHeaderTitle}>{title}</Text>
@@ -319,22 +344,30 @@ interface ProgressBarProps {
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
-  color = colors.primary,
-  backgroundColor = colors.surfaceSecondary,
+  color,
+  backgroundColor,
   height = 8,
   showLabel = false,
 }) => {
   const clampedProgress = Math.min(Math.max(progress, 0), 100);
+  const { colors, styles } = useComponentStyles();
+  const resolvedColor = color || colors.primary;
+  const resolvedBackground = backgroundColor || colors.surfaceSecondary;
 
   return (
     <View>
-      <View style={[styles.progressBarContainer, { height, backgroundColor }]}>
+      <View
+        style={[
+          styles.progressBarContainer,
+          { height, backgroundColor: resolvedBackground },
+        ]}
+      >
         <View
           style={[
             styles.progressBarFill,
             {
               width: `${clampedProgress}%`,
-              backgroundColor: color,
+              backgroundColor: resolvedColor,
               height,
             },
           ]}
@@ -365,6 +398,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   title,
   children,
 }) => {
+  const { styles } = useComponentStyles();
   return (
     <Modal
       visible={visible}
@@ -415,6 +449,7 @@ export const Select: React.FC<SelectProps> = ({
   onSelect,
   placeholder = "Select...",
 }) => {
+  const { colors, styles } = useComponentStyles();
   const [isOpen, setIsOpen] = React.useState(false);
   const selectedOption = options.find((o) => o.value === value);
 
@@ -501,6 +536,7 @@ export const ListItem: React.FC<ListItemProps> = ({
   onPress,
   style,
 }) => {
+  const { styles } = useComponentStyles();
   const content = (
     <View style={[styles.listItem, style]}>
       {left && <View style={styles.listItemLeft}>{left}</View>}
@@ -526,342 +562,343 @@ export const ListItem: React.FC<ListItemProps> = ({
 // ========================================
 // STYLES
 // ========================================
-const styles = StyleSheet.create({
-  // Card
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    ...shadows.sm,
-  },
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    // Card
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      ...shadows.sm,
+    },
 
-  // Button
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: borderRadius.md,
-  },
-  button_primary: {
-    backgroundColor: colors.primary,
-  },
-  button_secondary: {
-    backgroundColor: colors.surfaceSecondary,
-  },
-  button_outline: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-  },
-  button_ghost: {
-    backgroundColor: "transparent",
-  },
-  button_danger: {
-    backgroundColor: colors.error,
-  },
-  button_sm: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  button_md: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  button_lg: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-  },
-  buttonFullWidth: {
-    width: "100%",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  buttonIcon: {
-    marginRight: spacing.sm,
-  },
-  buttonText: {
-    fontWeight: "600",
-  },
-  buttonText_primary: {
-    color: colors.textInverse,
-  },
-  buttonText_secondary: {
-    color: colors.textPrimary,
-  },
-  buttonText_outline: {
-    color: colors.primary,
-  },
-  buttonText_ghost: {
-    color: colors.primary,
-  },
-  buttonText_danger: {
-    color: colors.textInverse,
-  },
-  buttonText_sm: {
-    fontSize: 14,
-  },
-  buttonText_md: {
-    fontSize: 16,
-  },
-  buttonText_lg: {
-    fontSize: 18,
-  },
+    // Button
+    button: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: borderRadius.md,
+    },
+    button_primary: {
+      backgroundColor: colors.primary,
+    },
+    button_secondary: {
+      backgroundColor: colors.surfaceSecondary,
+    },
+    button_outline: {
+      backgroundColor: "transparent",
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+    },
+    button_ghost: {
+      backgroundColor: "transparent",
+    },
+    button_danger: {
+      backgroundColor: colors.error,
+    },
+    button_sm: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
+    button_md: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    button_lg: {
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.xl,
+    },
+    buttonFullWidth: {
+      width: "100%",
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    buttonContent: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    buttonIcon: {
+      marginRight: spacing.sm,
+    },
+    buttonText: {
+      fontWeight: "600",
+    },
+    buttonText_primary: {
+      color: colors.textInverse,
+    },
+    buttonText_secondary: {
+      color: colors.textPrimary,
+    },
+    buttonText_outline: {
+      color: colors.primary,
+    },
+    buttonText_ghost: {
+      color: colors.primary,
+    },
+    buttonText_danger: {
+      color: colors.textInverse,
+    },
+    buttonText_sm: {
+      fontSize: 14,
+    },
+    buttonText_md: {
+      fontSize: 16,
+    },
+    buttonText_lg: {
+      fontSize: 18,
+    },
 
-  // Input
-  inputContainer: {
-    marginBottom: spacing.lg,
-  },
-  inputLabel: {
-    ...typography.smallSemibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    fontSize: 16,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inputMultiline: {
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-  inputError: {
-    borderColor: colors.error,
-  },
-  inputErrorText: {
-    ...typography.caption,
-    color: colors.error,
-    marginTop: spacing.xs,
-  },
+    // Input
+    inputContainer: {
+      marginBottom: spacing.lg,
+    },
+    inputLabel: {
+      ...typography.smallSemibold,
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    input: {
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      fontSize: 16,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    inputMultiline: {
+      minHeight: 100,
+      textAlignVertical: "top",
+    },
+    inputError: {
+      borderColor: colors.error,
+    },
+    inputErrorText: {
+      ...typography.caption,
+      color: colors.error,
+      marginTop: spacing.xs,
+    },
 
-  // Icon Badge
-  iconBadge: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
+    // Icon Badge
+    iconBadge: {
+      justifyContent: "center",
+      alignItems: "center",
+    },
 
-  // Stat Card
-  statCard: {
-    flex: 1,
-  },
-  statCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.sm,
-  },
-  statCardIcon: {
-    fontSize: 14,
-    marginRight: spacing.xs,
-  },
-  statCardLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  statCardValue: {
-    ...typography.mediumNumber,
-  },
-  statCardTrend: {
-    ...typography.caption,
-    marginTop: spacing.xs,
-  },
+    // Stat Card
+    statCard: {
+      flex: 1,
+    },
+    statCardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.sm,
+    },
+    statCardIcon: {
+      fontSize: 14,
+      marginRight: spacing.xs,
+    },
+    statCardLabel: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    statCardValue: {
+      ...typography.mediumNumber,
+    },
+    statCardTrend: {
+      ...typography.caption,
+      marginTop: spacing.xs,
+    },
 
-  // Empty State
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spacing.xxxl,
-  },
-  emptyStateIcon: {
-    fontSize: 48,
-    marginBottom: spacing.lg,
-  },
-  emptyStateTitle: {
-    ...typography.h4,
-    color: colors.textPrimary,
-    textAlign: "center",
-    marginBottom: spacing.sm,
-  },
-  emptyStateDescription: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
+    // Empty State
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      padding: spacing.xxxl,
+    },
+    emptyStateIcon: {
+      fontSize: 48,
+      marginBottom: spacing.lg,
+    },
+    emptyStateTitle: {
+      ...typography.h4,
+      color: colors.textPrimary,
+      textAlign: "center",
+      marginBottom: spacing.sm,
+    },
+    emptyStateDescription: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
 
-  // Loading State
-  loadingState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-  },
+    // Loading State
+    loadingState: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.background,
+    },
+    loadingText: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: spacing.md,
+    },
 
-  // Section Header
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  sectionHeaderTitle: {
-    ...typography.h4,
-    color: colors.textPrimary,
-  },
-  sectionHeaderAction: {
-    ...typography.smallSemibold,
-    color: colors.primary,
-  },
+    // Section Header
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    sectionHeaderTitle: {
+      ...typography.h4,
+      color: colors.textPrimary,
+    },
+    sectionHeaderAction: {
+      ...typography.smallSemibold,
+      color: colors.primary,
+    },
 
-  // Progress Bar
-  progressBarContainer: {
-    borderRadius: borderRadius.full,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    borderRadius: borderRadius.full,
-  },
-  progressBarLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-    textAlign: "right",
-  },
+    // Progress Bar
+    progressBarContainer: {
+      borderRadius: borderRadius.full,
+      overflow: "hidden",
+    },
+    progressBarFill: {
+      borderRadius: borderRadius.full,
+    },
+    progressBarLabel: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+      textAlign: "right",
+    },
 
-  // Bottom Sheet
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  bottomSheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    maxHeight: "90%",
-  },
-  bottomSheetHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginTop: spacing.md,
-  },
-  bottomSheetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  bottomSheetTitle: {
-    ...typography.h4,
-    color: colors.textPrimary,
-  },
-  bottomSheetClose: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bottomSheetCloseText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  bottomSheetContent: {
-    padding: spacing.lg,
-  },
+    // Bottom Sheet
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      justifyContent: "flex-end",
+    },
+    bottomSheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
+      maxHeight: "90%",
+    },
+    bottomSheetHandle: {
+      width: 40,
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      alignSelf: "center",
+      marginTop: spacing.md,
+    },
+    bottomSheetHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    bottomSheetTitle: {
+      ...typography.h4,
+      color: colors.textPrimary,
+    },
+    bottomSheetClose: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceSecondary,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    bottomSheetCloseText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    bottomSheetContent: {
+      padding: spacing.lg,
+    },
 
-  // Select
-  selectTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  selectTriggerText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  selectArrow: {
-    fontSize: 10,
-    color: colors.textSecondary,
-  },
-  selectOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-  },
-  selectOptionSelected: {
-    backgroundColor: colors.primaryLight,
-  },
-  selectOptionIcon: {
-    fontSize: 20,
-    marginRight: spacing.md,
-  },
-  selectOptionText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  selectOptionTextSelected: {
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  selectCheckmark: {
-    fontSize: 18,
-    color: colors.primary,
-    fontWeight: "700",
-  },
+    // Select
+    selectTrigger: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    selectTriggerText: {
+      ...typography.body,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    selectArrow: {
+      fontSize: 10,
+      color: colors.textSecondary,
+    },
+    selectOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+    },
+    selectOptionSelected: {
+      backgroundColor: colors.primaryLight,
+    },
+    selectOptionIcon: {
+      fontSize: 20,
+      marginRight: spacing.md,
+    },
+    selectOptionText: {
+      ...typography.body,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    selectOptionTextSelected: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    selectCheckmark: {
+      fontSize: 18,
+      color: colors.primary,
+      fontWeight: "700",
+    },
 
-  // List Item
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  listItemLeft: {
-    marginRight: spacing.md,
-  },
-  listItemContent: {
-    flex: 1,
-  },
-  listItemTitle: {
-    ...typography.bodySemibold,
-    color: colors.textPrimary,
-  },
-  listItemSubtitle: {
-    ...typography.small,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  listItemRight: {
-    marginLeft: spacing.md,
-  },
-});
+    // List Item
+    listItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    listItemLeft: {
+      marginRight: spacing.md,
+    },
+    listItemContent: {
+      flex: 1,
+    },
+    listItemTitle: {
+      ...typography.bodySemibold,
+      color: colors.textPrimary,
+    },
+    listItemSubtitle: {
+      ...typography.small,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    listItemRight: {
+      marginLeft: spacing.md,
+    },
+  });

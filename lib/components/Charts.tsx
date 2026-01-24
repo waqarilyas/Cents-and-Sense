@@ -2,9 +2,15 @@ import React from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 import { Text } from "react-native-paper";
 import Svg, { G, Path, Circle, Rect, Text as SvgText } from "react-native-svg";
-import { colors, spacing, formatCurrency } from "../theme";
+import { spacing, formatCurrency, useThemeColors, ThemeColors } from "../theme";
 
 const { width } = Dimensions.get("window");
+
+const useChartStyles = () => {
+  const { colors } = useThemeColors();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+};
 
 // ============================================
 // DONUT CHART COMPONENT
@@ -32,6 +38,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   centerLabel = "Total",
   centerValue,
 }) => {
+  const { colors, styles } = useChartStyles();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
@@ -140,9 +147,11 @@ interface BarChartProps {
 export const BarChart: React.FC<BarChartProps> = ({
   data,
   height = 120,
-  barColor = colors.primary,
+  barColor,
   showValues = false,
 }) => {
+  const { colors, styles } = useChartStyles();
+  const resolvedBarColor = barColor || colors.primary;
   const maxValue = Math.max(...data.map((d) => d.value), 1);
   const barWidth =
     (width - spacing.lg * 2 - spacing.sm * (data.length - 1)) / data.length;
@@ -161,7 +170,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                     styles.bar,
                     {
                       height: barHeight,
-                      backgroundColor: item.color || barColor,
+                      backgroundColor: item.color || resolvedBarColor,
                       width: Math.min(barWidth - 8, 28),
                     },
                   ]}
@@ -195,6 +204,7 @@ export const WeeklyTrendChart: React.FC<WeeklyTrendChartProps> = ({
   data,
   height = 140,
 }) => {
+  const { colors, styles } = useChartStyles();
   const maxValue = Math.max(
     ...data.map((d) => Math.max(d.income, d.expense)),
     1,
@@ -276,6 +286,7 @@ export const CategorySpendingList: React.FC<CategorySpendingProps> = ({
   data,
   maxItems = 5,
 }) => {
+  const { styles } = useChartStyles();
   const sortedData = [...data]
     .sort((a, b) => b.amount - a.amount)
     .slice(0, maxItems);
@@ -325,11 +336,13 @@ export const BudgetProgressItem: React.FC<BudgetProgressProps> = ({
   name,
   spent,
   limit,
-  color = colors.primary,
+  color,
 }) => {
+  const { colors, styles } = useChartStyles();
+  const resolvedColor = color || colors.primary;
   const percentage = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
   const isOverBudget = spent > limit;
-  const progressColor = isOverBudget ? colors.expense : color;
+  const progressColor = isOverBudget ? colors.expense : resolvedColor;
 
   return (
     <View style={styles.budgetProgressContainer}>
@@ -363,179 +376,180 @@ export const BudgetProgressItem: React.FC<BudgetProgressProps> = ({
 // STYLES
 // ============================================
 
-const styles = StyleSheet.create({
-  // Donut Chart
-  donutContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  donutCenter: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  donutCenterValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  donutCenterLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    // Donut Chart
+    donutContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    donutCenter: {
+      position: "absolute",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    donutCenterValue: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    donutCenterLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
 
-  // Bar Chart
-  barChartContainer: {
-    width: "100%",
-  },
-  barsContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  barWrapper: {
-    alignItems: "center",
-    flex: 1,
-  },
-  barBackground: {
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  bar: {
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-    minHeight: 2,
-  },
-  barLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
+    // Bar Chart
+    barChartContainer: {
+      width: "100%",
+    },
+    barsContainer: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+    },
+    barWrapper: {
+      alignItems: "center",
+      flex: 1,
+    },
+    barBackground: {
+      justifyContent: "flex-end",
+      alignItems: "center",
+    },
+    bar: {
+      borderTopLeftRadius: 4,
+      borderTopRightRadius: 4,
+      minHeight: 2,
+    },
+    barLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
 
-  // Weekly Trend
-  weeklyTrendContainer: {
-    width: "100%",
-  },
-  legendContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  trendBarsContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  trendBarWrapper: {
-    alignItems: "center",
-  },
-  trendBarBackground: {
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  trendBarGroup: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 2,
-  },
-  trendBar: {
-    width: 10,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
-    minHeight: 2,
-  },
-  trendBarLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
+    // Weekly Trend
+    weeklyTrendContainer: {
+      width: "100%",
+    },
+    legendContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    legendItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    legendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    legendText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    trendBarsContainer: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+    },
+    trendBarWrapper: {
+      alignItems: "center",
+    },
+    trendBarBackground: {
+      justifyContent: "flex-end",
+      alignItems: "center",
+    },
+    trendBarGroup: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 2,
+    },
+    trendBar: {
+      width: 10,
+      borderTopLeftRadius: 3,
+      borderTopRightRadius: 3,
+      minHeight: 2,
+    },
+    trendBarLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
 
-  // Category List
-  categoryListContainer: {
-    gap: spacing.sm,
-  },
-  categoryListItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  categoryListLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    gap: spacing.sm,
-  },
-  categoryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  categoryName: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  categoryListRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  categoryAmount: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  categoryPercent: {
-    fontSize: 12,
-    color: colors.textMuted,
-    width: 36,
-    textAlign: "right",
-  },
+    // Category List
+    categoryListContainer: {
+      gap: spacing.sm,
+    },
+    categoryListItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    categoryListLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+      gap: spacing.sm,
+    },
+    categoryDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+    },
+    categoryName: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    categoryListRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+    },
+    categoryAmount: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    categoryPercent: {
+      fontSize: 12,
+      color: colors.textMuted,
+      width: 36,
+      textAlign: "right",
+    },
 
-  // Budget Progress
-  budgetProgressContainer: {
-    marginBottom: spacing.md,
-  },
-  budgetProgressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  budgetProgressName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.textPrimary,
-  },
-  budgetProgressAmount: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  budgetProgressBarBg: {
-    height: 8,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  budgetProgressBar: {
-    height: "100%",
-    borderRadius: 4,
-  },
-});
+    // Budget Progress
+    budgetProgressContainer: {
+      marginBottom: spacing.md,
+    },
+    budgetProgressHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6,
+    },
+    budgetProgressName: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+    budgetProgressAmount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    budgetProgressBarBg: {
+      height: 8,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 4,
+      overflow: "hidden",
+    },
+    budgetProgressBar: {
+      height: "100%",
+      borderRadius: 4,
+    },
+  });

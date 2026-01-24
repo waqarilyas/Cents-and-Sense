@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   View,
   TouchableOpacity,
@@ -15,7 +21,7 @@ import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { colors, spacing, borderRadius } from "../theme";
+import { spacing, borderRadius, useThemeColors, ThemeColors } from "../theme";
 import { useTransactions } from "../contexts/TransactionContext";
 import { useCategories } from "../contexts/CategoryContext";
 import { useAccounts } from "../contexts/AccountContext";
@@ -133,6 +139,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { addTransaction, refreshTransactions } = useTransactions();
   const { expenseCategories, incomeCategories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
@@ -1252,463 +1260,464 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
 const BUTTON_SIZE = Math.min((SCREEN_WIDTH - 80) / 3, 72);
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  successOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
-  },
-  successIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.income,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.lg,
-  },
-  successText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  slidingContainer: {
-    flex: 1,
-    flexDirection: "row",
-    width: SCREEN_WIDTH * 3,
-  },
-  amountStep: {
-    width: SCREEN_WIDTH,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "space-between",
-  },
-  detailsStep: {
-    width: SCREEN_WIDTH,
-    flex: 1,
-  },
-  typeToggle: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 4,
-    marginTop: spacing.lg,
-  },
-  typeButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-    borderRadius: 10,
-    gap: spacing.xs,
-  },
-  typeButtonExpenseActive: {
-    backgroundColor: colors.expense,
-  },
-  typeButtonIncomeActive: {
-    backgroundColor: colors.income,
-  },
-  typeButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  typeButtonTextActive: {
-    color: "#FFFFFF",
-  },
-  amountDisplay: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  currencyButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
-    gap: 4,
-  },
-  currencyButtonText: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  amountText: {
-    fontSize: 56,
-    fontWeight: "700",
-  },
-  numpad: {
-    alignItems: "center",
-  },
-  numpadRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  numpadButton: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  numpadButtonText: {
-    fontSize: 28,
-    fontWeight: "500",
-    color: colors.textPrimary,
-  },
-  buttonContainer: {
-    paddingTop: spacing.md,
-  },
-  continueButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-    borderRadius: 16,
-    gap: spacing.sm,
-  },
-  continueButtonDisabled: {
-    opacity: 0.4,
-  },
-  continueButtonText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  // Details Step
-  amountSummaryCompact: {
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  amountSummaryText: {
-    fontSize: 32,
-    fontWeight: "700",
-  },
-  descriptionInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 12,
-    gap: spacing.sm,
-  },
-  descriptionInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.textPrimary,
-    paddingVertical: spacing.xs,
-  },
-  accountSelectorContainer: {
-    marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
-  },
-  accountSelectorLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  accountChipsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  accountChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  accountChipSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + "10",
-  },
-  accountChipText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    maxWidth: 120,
-  },
-  accountChipTextSelected: {
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  smartMatchBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
-    backgroundColor: colors.primary + "10",
-    borderRadius: 8,
-  },
-  smartMatchText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: "500",
-  },
-  categoryLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  categoryScroll: {
-    flex: 1,
-  },
-  categoryGrid: {
-    paddingHorizontal: spacing.md,
-  },
-  suggestionsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  suggestionChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    gap: 4,
-  },
-  suggestionEmoji: {
-    fontSize: 14,
-  },
-  suggestionChipText: {
-    fontSize: 13,
-    color: colors.textPrimary,
-    maxWidth: 80,
-  },
-  categoryItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.xs,
-    borderRadius: 12,
-    gap: spacing.sm,
-  },
-  categoryItemSelected: {
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-  },
-  subscriptionItem: {
-    backgroundColor: colors.primary + "08",
-    borderWidth: 1,
-    borderColor: colors.primary + "30",
-    borderStyle: "dashed",
-    marginBottom: spacing.md,
-  },
-  categoryIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  subscriptionIcon: {
-    backgroundColor: colors.primary + "15",
-  },
-  categoryItemName: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.textPrimary,
-  },
-  matchDot: {
-    position: "absolute",
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  saveButtonContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  saveButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-    borderRadius: 16,
-    gap: spacing.sm,
-  },
-  saveButtonDisabled: {
-    opacity: 0.4,
-  },
-  saveButtonText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  // Subscription Step Styles
-  subscriptionStep: {
-    width: SCREEN_WIDTH,
-    flex: 1,
-  },
-  subscriptionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  subscriptionSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  subscriptionContent: {
-    flex: 1,
-  },
-  subscriptionScrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-  },
-  inputGroup: {
-    marginBottom: spacing.lg,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  subscriptionInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 12,
-    gap: spacing.sm,
-  },
-  subscriptionInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.textPrimary,
-    paddingVertical: spacing.xs,
-  },
-  frequencyRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  frequencyButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-  },
-  frequencyButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  frequencyButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  frequencyButtonTextActive: {
-    color: "#FFFFFF",
-  },
-  horizontalCategoryScroll: {
-    marginHorizontal: -spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    marginRight: spacing.sm,
-    borderWidth: 1.5,
-    borderColor: "transparent",
-    gap: spacing.xs,
-  },
-  categoryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  estimateCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: 12,
-    gap: spacing.md,
-  },
-  estimateContent: {
-    flex: 1,
-  },
-  estimateLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  estimateValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerButton: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    successOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.85)",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 100,
+    },
+    successIcon: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.income,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.lg,
+    },
+    successText: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: "#FFFFFF",
+    },
+    slidingContainer: {
+      flex: 1,
+      flexDirection: "row",
+      width: SCREEN_WIDTH * 3,
+    },
+    amountStep: {
+      width: SCREEN_WIDTH,
+      paddingHorizontal: spacing.lg,
+      justifyContent: "space-between",
+    },
+    detailsStep: {
+      width: SCREEN_WIDTH,
+      flex: 1,
+    },
+    typeToggle: {
+      flexDirection: "row",
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 4,
+      marginTop: spacing.lg,
+    },
+    typeButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.md,
+      borderRadius: 10,
+      gap: spacing.xs,
+    },
+    typeButtonExpenseActive: {
+      backgroundColor: colors.expense,
+    },
+    typeButtonIncomeActive: {
+      backgroundColor: colors.income,
+    },
+    typeButtonText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    typeButtonTextActive: {
+      color: "#FFFFFF",
+    },
+    amountDisplay: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing.lg,
+      gap: spacing.sm,
+    },
+    currencyButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.lg,
+      gap: 4,
+    },
+    currencyButtonText: {
+      fontSize: 24,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    amountText: {
+      fontSize: 56,
+      fontWeight: "700",
+    },
+    numpad: {
+      alignItems: "center",
+    },
+    numpadRow: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    numpadButton: {
+      width: BUTTON_SIZE,
+      height: BUTTON_SIZE,
+      borderRadius: BUTTON_SIZE / 2,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    numpadButtonText: {
+      fontSize: 28,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+    buttonContainer: {
+      paddingTop: spacing.md,
+    },
+    continueButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.md,
+      borderRadius: 16,
+      gap: spacing.sm,
+    },
+    continueButtonDisabled: {
+      opacity: 0.4,
+    },
+    continueButtonText: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: "#FFFFFF",
+    },
+    // Details Step
+    amountSummaryCompact: {
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      backgroundColor: colors.surface,
+    },
+    amountSummaryText: {
+      fontSize: 32,
+      fontWeight: "700",
+    },
+    descriptionInputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 12,
+      gap: spacing.sm,
+    },
+    descriptionInput: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+      paddingVertical: spacing.xs,
+    },
+    accountSelectorContainer: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+    },
+    accountSelectorLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+    accountChipsContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    accountChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    accountChipSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primary + "10",
+    },
+    accountChipText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      maxWidth: 120,
+    },
+    accountChipTextSelected: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    smartMatchBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.xs,
+      paddingVertical: spacing.sm,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      backgroundColor: colors.primary + "10",
+      borderRadius: 8,
+    },
+    smartMatchText: {
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: "500",
+    },
+    categoryLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    categoryScroll: {
+      flex: 1,
+    },
+    categoryGrid: {
+      paddingHorizontal: spacing.md,
+    },
+    suggestionsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    suggestionChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 20,
+      borderWidth: 1.5,
+      gap: 4,
+    },
+    suggestionEmoji: {
+      fontSize: 14,
+    },
+    suggestionChipText: {
+      fontSize: 13,
+      color: colors.textPrimary,
+      maxWidth: 80,
+    },
+    categoryItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      marginBottom: spacing.xs,
+      borderRadius: 12,
+      gap: spacing.sm,
+    },
+    categoryItemSelected: {
+      backgroundColor: colors.surface,
+      borderWidth: 2,
+    },
+    subscriptionItem: {
+      backgroundColor: colors.primary + "08",
+      borderWidth: 1,
+      borderColor: colors.primary + "30",
+      borderStyle: "dashed",
+      marginBottom: spacing.md,
+    },
+    categoryIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    subscriptionIcon: {
+      backgroundColor: colors.primary + "15",
+    },
+    categoryItemName: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.textPrimary,
+    },
+    matchDot: {
+      position: "absolute",
+      top: -2,
+      right: -2,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    saveButtonContainer: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    saveButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.md,
+      borderRadius: 16,
+      gap: spacing.sm,
+    },
+    saveButtonDisabled: {
+      opacity: 0.4,
+    },
+    saveButtonText: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: "#FFFFFF",
+    },
+    // Subscription Step Styles
+    subscriptionStep: {
+      width: SCREEN_WIDTH,
+      flex: 1,
+    },
+    subscriptionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    subscriptionSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    subscriptionContent: {
+      flex: 1,
+    },
+    subscriptionScrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+    },
+    inputGroup: {
+      marginBottom: spacing.lg,
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    subscriptionInputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 12,
+      gap: spacing.sm,
+    },
+    subscriptionInput: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+      paddingVertical: spacing.xs,
+    },
+    frequencyRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    frequencyButton: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+    },
+    frequencyButtonActive: {
+      backgroundColor: colors.primary,
+    },
+    frequencyButtonText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    frequencyButtonTextActive: {
+      color: "#FFFFFF",
+    },
+    horizontalCategoryScroll: {
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    categoryChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      marginRight: spacing.sm,
+      borderWidth: 1.5,
+      borderColor: "transparent",
+      gap: spacing.xs,
+    },
+    categoryDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    categoryChipText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    estimateCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      padding: spacing.md,
+      borderRadius: 12,
+      gap: spacing.md,
+    },
+    estimateContent: {
+      flex: 1,
+    },
+    estimateLabel: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    estimateValue: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+  });
 
 export default QuickAddModal;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -13,11 +13,12 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import {
-  colors,
   spacing,
   borderRadius,
   formatCurrency,
   formatDate,
+  useThemeColors,
+  ThemeColors,
 } from "../../lib/theme";
 import {
   Card,
@@ -32,6 +33,8 @@ import { Goal } from "../../lib/database";
 export default function GoalsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     goals,
     loading,
@@ -161,7 +164,7 @@ export default function GoalsScreen() {
         currentAmount: newAmount,
       });
       if (isCompleted) {
-        Alert.alert("🎉 Congratulations!", "You've reached your goal!");
+        Alert.alert("Goal reached", "You've reached your goal.");
       } else {
         Alert.alert(
           "Success",
@@ -399,7 +402,7 @@ export default function GoalsScreen() {
                 <View style={styles.goalFooter}>
                   <Text style={styles.goalRemaining}>
                     {goal.isCompleted
-                      ? "Congratulations!"
+                      ? "Complete"
                       : `${formatCurrency(goal.remaining)} to go`}
                   </Text>
                   <Text style={styles.goalPercentage}>
@@ -416,7 +419,7 @@ export default function GoalsScreen() {
             </View>
             <Text style={styles.emptyTitle}>No goals yet</Text>
             <Text style={styles.emptyDescription}>
-              Create savings goals to track your progress towards your dreams
+              Create goals to track progress.
             </Text>
             <Button
               title="Create Goal"
@@ -430,7 +433,7 @@ export default function GoalsScreen() {
           <View style={styles.hintContainer}>
             <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
             <Text style={styles.hint}>
-              Tap to contribute • Long press to edit
+              Tap to contribute, long press to edit.
             </Text>
           </View>
         )}
@@ -463,7 +466,7 @@ export default function GoalsScreen() {
         />
 
         <Text style={styles.deadlineNote}>
-          📅 Deadline will be set to 6 months from today. You can edit it later.
+          Deadline is set to 6 months from today. You can change it later.
         </Text>
 
         <Button
@@ -595,271 +598,272 @@ export default function GoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    paddingVertical: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  summaryCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  summaryItem: {
-    alignItems: "center",
-  },
-  summaryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.xs,
-  },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-  },
-  summaryAmount: {
-    alignItems: "center",
-  },
-  summaryAmountLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  summaryAmountValue: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.primary,
-    marginVertical: 4,
-  },
-  summaryAmountTarget: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  goalCard: {
-    marginBottom: spacing.md,
-  },
-  goalCardCompleted: {
-    backgroundColor: colors.incomeLight,
-    borderWidth: 1,
-    borderColor: colors.success,
-  },
-  goalCardOverdue: {
-    borderWidth: 1,
-    borderColor: colors.warning,
-  },
-  goalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  goalIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  goalInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  goalName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  goalDeadline: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  contributeButton: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.sm,
-  },
-  contributeButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  goalAmounts: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: spacing.sm,
-  },
-  goalSaved: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  goalTarget: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: spacing.sm,
-  },
-  goalFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: spacing.sm,
-  },
-  goalRemaining: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  goalPercentage: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  hintContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: spacing.lg,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  deadlineNote: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    backgroundColor: colors.surfaceSecondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-  },
-  editActions: {
-    flexDirection: "row",
-    marginTop: spacing.lg,
-  },
-  contributeInfo: {
-    backgroundColor: colors.surfaceSecondary,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-  },
-  contributeGoalName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  contributeProgress: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: spacing.sm,
-  },
-  contributeCurrent: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  contributeTarget: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: spacing.sm,
-  },
-  previewContribution: {
-    backgroundColor: colors.primaryLight,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    alignItems: "center",
-  },
-  previewLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  previewValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.primary,
-    marginTop: 4,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      paddingVertical: spacing.sm,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    addButtonText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    summaryCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    summaryRow: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      marginBottom: spacing.lg,
+      paddingBottom: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    summaryItem: {
+      alignItems: "center",
+    },
+    summaryIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.xs,
+    },
+    summaryValue: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    summaryDivider: {
+      width: 1,
+      backgroundColor: colors.border,
+    },
+    summaryAmount: {
+      alignItems: "center",
+    },
+    summaryAmountLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    summaryAmountValue: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: colors.primary,
+      marginVertical: 4,
+    },
+    summaryAmountTarget: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    goalCard: {
+      marginBottom: spacing.md,
+    },
+    goalCardCompleted: {
+      backgroundColor: colors.incomeLight,
+      borderWidth: 1,
+      borderColor: colors.success,
+    },
+    goalCardOverdue: {
+      borderWidth: 1,
+      borderColor: colors.warning,
+    },
+    goalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    goalIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    goalInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    goalName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    goalDeadline: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    contributeButton: {
+      backgroundColor: colors.primaryLight,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.sm,
+    },
+    contributeButtonText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+    goalAmounts: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      marginBottom: spacing.sm,
+    },
+    goalSaved: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    goalTarget: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginLeft: spacing.sm,
+    },
+    goalFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: spacing.sm,
+    },
+    goalRemaining: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    goalPercentage: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.lg,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingHorizontal: spacing.xl,
+    },
+    hintContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: spacing.lg,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    deadlineNote: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      backgroundColor: colors.surfaceSecondary,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.lg,
+    },
+    editActions: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+    },
+    contributeInfo: {
+      backgroundColor: colors.surfaceSecondary,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.lg,
+    },
+    contributeGoalName: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    contributeProgress: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      marginBottom: spacing.sm,
+    },
+    contributeCurrent: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+    contributeTarget: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginLeft: spacing.sm,
+    },
+    previewContribution: {
+      backgroundColor: colors.primaryLight,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+      alignItems: "center",
+    },
+    previewLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    previewValue: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.primary,
+      marginTop: 4,
+    },
+  });

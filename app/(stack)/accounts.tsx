@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -12,7 +12,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAccounts } from "../../lib/contexts/AccountContext";
-import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  formatCurrency,
+  useThemeColors,
+  ThemeColors,
+} from "../../lib/theme";
 import {
   Card,
   LoadingState,
@@ -41,6 +47,8 @@ const ACCOUNT_LABELS: Record<AccountType, string> = {
 export default function AccountsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     accounts,
     loading,
@@ -279,7 +287,7 @@ export default function AccountsScreen() {
             </View>
             <Text style={styles.emptyTitle}>No accounts yet</Text>
             <Text style={styles.emptyDescription}>
-              Add your bank accounts, credit cards, or cash to start tracking
+              Add accounts to start tracking.
             </Text>
             <Button
               title="Add Account"
@@ -291,7 +299,7 @@ export default function AccountsScreen() {
 
         <View style={styles.hintContainer}>
           <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.hint}>Tap to edit • Long press to delete</Text>
+          <Text style={styles.hint}>Tap to edit, long press to delete.</Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -384,167 +392,168 @@ export default function AccountsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    paddingVertical: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  balanceCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    paddingVertical: spacing.xl,
-  },
-  balanceLabel: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: spacing.xs,
-  },
-  balanceAmount: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: colors.textInverse,
-    marginBottom: spacing.lg,
-  },
-  balanceStats: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  balanceStat: {
-    alignItems: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  balanceStatLabel: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 4,
-  },
-  balanceStatValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textInverse,
-  },
-  balanceStatDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  accountCard: {
-    marginBottom: spacing.md,
-  },
-  accountHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  accountIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  accountInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  accountName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  accountType: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  accountBalanceContainer: {
-    alignItems: "flex-end",
-  },
-  accountBalance: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  accountProgress: {
-    marginTop: spacing.sm,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  hintContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: spacing.lg,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  editActions: {
-    flexDirection: "row",
-    marginTop: spacing.lg,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      paddingVertical: spacing.sm,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    addButtonText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    balanceCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      paddingVertical: spacing.xl,
+    },
+    balanceLabel: {
+      fontSize: 14,
+      color: "rgba(255,255,255,0.8)",
+      marginBottom: spacing.xs,
+    },
+    balanceAmount: {
+      fontSize: 36,
+      fontWeight: "700",
+      color: colors.textInverse,
+      marginBottom: spacing.lg,
+    },
+    balanceStats: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    balanceStat: {
+      alignItems: "center",
+      paddingHorizontal: spacing.xl,
+    },
+    balanceStatLabel: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.7)",
+      marginBottom: 4,
+    },
+    balanceStatValue: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.textInverse,
+    },
+    balanceStatDivider: {
+      width: 1,
+      height: 30,
+      backgroundColor: "rgba(255,255,255,0.2)",
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    accountCard: {
+      marginBottom: spacing.md,
+    },
+    accountHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    accountIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    accountInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    accountName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    accountType: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    accountBalanceContainer: {
+      alignItems: "flex-end",
+    },
+    accountBalance: {
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    accountProgress: {
+      marginTop: spacing.sm,
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.lg,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingHorizontal: spacing.xl,
+    },
+    hintContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: spacing.lg,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    editActions: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+    },
+  });

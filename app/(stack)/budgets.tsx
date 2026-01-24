@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -14,7 +14,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
-import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  formatCurrency,
+  useThemeColors,
+  ThemeColors,
+} from "../../lib/theme";
 import {
   Card,
   LoadingState,
@@ -31,13 +37,24 @@ type Period = Budget["period"];
 export default function BudgetsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { budgets, loading, addBudget, updateBudget, deleteBudget } =
-    useBudgets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const {
+    budgets,
+    monthlyBudget,
+    loading,
+    addBudget,
+    updateBudget,
+    deleteBudget,
+    setMonthlyBudget,
+    clearMonthlyBudget,
+  } = useBudgets();
   const { categories, expenseCategories } = useCategories();
   const { transactions } = useTransactions();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMonthlyBudgetModal, setShowMonthlyBudgetModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -46,6 +63,8 @@ export default function BudgetsScreen() {
   const [budgetLimit, setBudgetLimit] = useState("");
   const [period, setPeriod] = useState<Period>("monthly");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [monthlyBudgetValue, setMonthlyBudgetValue] = useState("");
+  const [isMonthlySubmitting, setIsMonthlySubmitting] = useState(false);
 
   const getBudgetProgress = (budget: Budget) => {
     const now = new Date();
@@ -78,6 +97,51 @@ export default function BudgetsScreen() {
     setBudgetLimit("");
     setPeriod("monthly");
     setEditingBudget(null);
+  };
+
+  const openMonthlyBudgetModal = () => {
+    setMonthlyBudgetValue(
+      monthlyBudget?.amount ? monthlyBudget.amount.toString() : "",
+    );
+    setShowMonthlyBudgetModal(true);
+  };
+
+  const handleSaveMonthlyBudget = async () => {
+    if (!monthlyBudgetValue || parseFloat(monthlyBudgetValue) <= 0) {
+      Alert.alert("Error", "Please enter a valid monthly budget amount");
+      return;
+    }
+    setIsMonthlySubmitting(true);
+    try {
+      await setMonthlyBudget(parseFloat(monthlyBudgetValue));
+      setShowMonthlyBudgetModal(false);
+      Alert.alert("Success", "Overall monthly budget updated!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to update monthly budget. Try again.");
+    } finally {
+      setIsMonthlySubmitting(false);
+    }
+  };
+
+  const handleClearMonthlyBudget = () => {
+    Alert.alert(
+      "Clear Overall Budget",
+      "Remove the overall monthly budget for this month?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await clearMonthlyBudget();
+            } catch (error) {
+              Alert.alert("Error", "Failed to clear monthly budget");
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleAddBudget = async () => {
@@ -172,6 +236,10 @@ export default function BudgetsScreen() {
     return <LoadingState />;
   }
 
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
   const budgetsWithProgress = budgets.map((budget) => ({
     ...budget,
     category: categories.find((c) => c.id === budget.categoryId),
@@ -180,8 +248,21 @@ export default function BudgetsScreen() {
 
   const totalBudgeted = budgets.reduce((sum, b) => sum + b.budget_limit, 0);
   const totalSpent = budgetsWithProgress.reduce((sum, b) => sum + b.spent, 0);
+  const totalSpentAll = transactions
+    .filter((t) => {
+      const tDate = new Date(t.date);
+      return (
+        t.type === "expense" &&
+        tDate.getMonth() === currentMonth &&
+        tDate.getFullYear() === currentYear
+      );
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const summaryBudget = monthlyBudget?.amount ?? totalBudgeted;
+  const summarySpent = monthlyBudget ? totalSpentAll : totalSpent;
   const overallPercentage =
-    totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
+    summaryBudget > 0 ? (summarySpent / summaryBudget) * 100 : 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -206,9 +287,11 @@ export default function BudgetsScreen() {
       <Card style={styles.summaryCard}>
         <View style={styles.summaryHeader}>
           <View>
-            <Text style={styles.summaryLabel}>Monthly Budget</Text>
+            <Text style={styles.summaryLabel}>
+              {monthlyBudget ? "Overall Monthly Budget" : "Monthly Budget"}
+            </Text>
             <Text style={styles.summaryAmount}>
-              {formatCurrency(totalBudgeted)}
+              {formatCurrency(summaryBudget)}
             </Text>
           </View>
           <View style={styles.summaryStats}>
@@ -243,22 +326,42 @@ export default function BudgetsScreen() {
         />
         <View style={styles.summaryFooter}>
           <Text style={styles.summaryFooterText}>
-            {formatCurrency(totalSpent)} spent of{" "}
-            {formatCurrency(totalBudgeted)}
+            {formatCurrency(summarySpent)} spent of{" "}
+            {formatCurrency(summaryBudget)}
           </Text>
           <Text
             style={[
               styles.summaryRemaining,
               {
                 color:
-                  totalBudgeted - totalSpent >= 0
+                  summaryBudget - summarySpent >= 0
                     ? colors.income
                     : colors.error,
               },
             ]}
           >
-            {formatCurrency(Math.max(totalBudgeted - totalSpent, 0))} remaining
+            {formatCurrency(Math.max(summaryBudget - summarySpent, 0))}{" "}
+            remaining
           </Text>
+        </View>
+        <View style={styles.overallBudgetActions}>
+          <TouchableOpacity onPress={openMonthlyBudgetModal}>
+            <Text style={styles.overallBudgetActionText}>
+              {monthlyBudget ? "Edit Overall Budget" : "Set Overall Budget"}
+            </Text>
+          </TouchableOpacity>
+          {monthlyBudget && (
+            <TouchableOpacity onPress={handleClearMonthlyBudget}>
+              <Text
+                style={[
+                  styles.overallBudgetActionText,
+                  { color: colors.error },
+                ]}
+              >
+                Clear
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </Card>
 
@@ -380,8 +483,7 @@ export default function BudgetsScreen() {
             </View>
             <Text style={styles.emptyTitle}>No budgets yet</Text>
             <Text style={styles.emptyDescription}>
-              Create budgets to track and limit your spending in different
-              categories
+              Create budgets to track spending by category.
             </Text>
             <Button
               title="Create Budget"
@@ -394,7 +496,7 @@ export default function BudgetsScreen() {
         {budgetsWithProgress.length > 0 && (
           <View style={styles.hintContainer}>
             <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-            <Text style={styles.hint}>Tap to edit • Long press to delete</Text>
+            <Text style={styles.hint}>Tap to edit, long press to delete.</Text>
           </View>
         )}
 
@@ -564,249 +666,284 @@ export default function BudgetsScreen() {
           />
         </View>
       </BottomSheet>
+
+      {/* Overall Monthly Budget Modal */}
+      <BottomSheet
+        visible={showMonthlyBudgetModal}
+        onClose={() => setShowMonthlyBudgetModal(false)}
+        title="Overall Monthly Budget"
+      >
+        <Input
+          label="Monthly Budget"
+          value={monthlyBudgetValue}
+          onChangeText={setMonthlyBudgetValue}
+          placeholder="0.00"
+          keyboardType="numeric"
+        />
+
+        <Button
+          title={isMonthlySubmitting ? "Saving..." : "Save Budget"}
+          onPress={handleSaveMonthlyBudget}
+          disabled={isMonthlySubmitting}
+          loading={isMonthlySubmitting}
+          fullWidth
+          style={{ marginTop: spacing.md }}
+        />
+      </BottomSheet>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    paddingVertical: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  summaryCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  summaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: spacing.md,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  summaryAmount: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginTop: 4,
-  },
-  summaryStats: {
-    alignItems: "flex-end",
-  },
-  summaryPercentage: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  summaryUsed: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  summaryFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: spacing.md,
-  },
-  summaryFooterText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  summaryRemaining: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  budgetCard: {
-    marginBottom: spacing.md,
-  },
-  budgetCardOver: {
-    borderWidth: 1,
-    borderColor: colors.error,
-    backgroundColor: colors.errorLight,
-  },
-  budgetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  budgetIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  budgetDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-  },
-  budgetInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  budgetName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  budgetPeriod: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  budgetAmounts: {
-    alignItems: "flex-end",
-  },
-  budgetSpent: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  budgetLimit: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  budgetFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: spacing.sm,
-  },
-  budgetRemaining: {
-    fontSize: 12,
-  },
-  budgetPercentage: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  hintContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: spacing.lg,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  periodSelector: {
-    marginBottom: spacing.lg,
-  },
-  periodLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  periodOptions: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  periodOption: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  periodOptionActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  periodOptionText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  periodOptionTextActive: {
-    color: colors.primary,
-  },
-  editCategoryInfo: {
-    marginBottom: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-  },
-  editCategoryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  editCategoryName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  editActions: {
-    flexDirection: "row",
-    marginTop: spacing.lg,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      paddingVertical: spacing.sm,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    addButtonText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    summaryCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    summaryHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: spacing.md,
+    },
+    summaryLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    summaryAmount: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginTop: 4,
+    },
+    summaryStats: {
+      alignItems: "flex-end",
+    },
+    summaryPercentage: {
+      fontSize: 24,
+      fontWeight: "700",
+    },
+    summaryUsed: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    summaryFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: spacing.md,
+    },
+    summaryFooterText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    summaryRemaining: {
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    overallBudgetActions: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: spacing.md,
+    },
+    overallBudgetActionText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    budgetCard: {
+      marginBottom: spacing.md,
+    },
+    budgetCardOver: {
+      borderWidth: 1,
+      borderColor: colors.error,
+      backgroundColor: colors.errorLight,
+    },
+    budgetHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    budgetIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    budgetDot: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+    },
+    budgetInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    budgetName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    budgetPeriod: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    budgetAmounts: {
+      alignItems: "flex-end",
+    },
+    budgetSpent: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    budgetLimit: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    budgetFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: spacing.sm,
+    },
+    budgetRemaining: {
+      fontSize: 12,
+    },
+    budgetPercentage: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.lg,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingHorizontal: spacing.xl,
+    },
+    hintContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: spacing.lg,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    periodSelector: {
+      marginBottom: spacing.lg,
+    },
+    periodLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    periodOptions: {
+      flexDirection: "row",
+      gap: spacing.md,
+    },
+    periodOption: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceSecondary,
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+    periodOptionActive: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primary,
+    },
+    periodOptionText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    periodOptionTextActive: {
+      color: colors.primary,
+    },
+    editCategoryInfo: {
+      marginBottom: spacing.lg,
+      padding: spacing.md,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+    },
+    editCategoryLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    editCategoryName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    editActions: {
+      flexDirection: "row",
+      marginTop: spacing.lg,
+    },
+  });

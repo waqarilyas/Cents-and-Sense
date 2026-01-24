@@ -20,18 +20,20 @@ import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useSettings } from "../../lib/contexts/SettingsContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import {
-  colors,
   spacing,
   borderRadius,
   formatCurrency,
   formatShortDate,
 } from "../../lib/theme";
+import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     getTotalBalance,
     loading: accountsLoading,
@@ -288,7 +290,7 @@ export default function HomeScreen() {
         {/* Premium Header with Greeting */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerGreeting}>{getGreeting()} 👋</Text>
+            <Text style={styles.headerGreeting}>{getGreeting()}</Text>
             <Text style={styles.headerTitle}>Your Finances</Text>
           </View>
           <TouchableOpacity
@@ -706,7 +708,7 @@ export default function HomeScreen() {
               />
               <Text style={styles.emptyTitle}>No transactions yet</Text>
               <Text style={styles.emptyDescription}>
-                Tap the + button below to add your first expense
+                Add a transaction to get started.
               </Text>
             </View>
           )}
@@ -719,410 +721,411 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-  },
-  headerGreeting: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  profileButton: {
-    padding: spacing.xs,
-  },
-  profileAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  balanceCard: {
-    backgroundColor: colors.primary,
-    padding: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  balanceLabel: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: spacing.xs,
-  },
-  balanceAmount: {
-    fontSize: 40,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: spacing.lg,
-  },
-  balanceBreakdown: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  balanceBreakdownText: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.85)",
-    fontWeight: "500",
-  },
-  balanceBreakdownSeparator: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
-  },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statValueLight: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    marginHorizontal: spacing.md,
-  },
-  quickAccessRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  quickAccessItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  quickAccessIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.xs,
-  },
-  quickAccessLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: "500",
-  },
-  insightCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    borderLeftWidth: 4,
-    gap: spacing.md,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: "500",
-  },
-  alertCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  alertCardDanger: {
-    backgroundColor: "#FEE2E2",
-  },
-  alertContent: {
-    flex: 1,
-  },
-  alertTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  alertProgressBg: {
-    height: 4,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 2,
-  },
-  alertProgress: {
-    height: 4,
-    borderRadius: 2,
-  },
-  pendingSection: {
-    backgroundColor: "#FEF3C7",
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: "#F59E0B",
-  },
-  pendingHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.sm,
-  },
-  pendingTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  pendingIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#F59E0B",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pendingTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#92400E",
-  },
-  approveAllButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
-  },
-  approveAllText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FFF",
-  },
-  pendingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    padding: spacing.sm,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.xs,
-    gap: spacing.sm,
-  },
-  pendingItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#FEF3C7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pendingItemContent: {
-    flex: 1,
-  },
-  pendingItemName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  pendingItemDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  pendingItemAmount: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.expense,
-    marginRight: spacing.xs,
-  },
-  subscriptionAlert: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primaryLight,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  subscriptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  subscriptionContent: {
-    flex: 1,
-  },
-  subscriptionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  subscriptionSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  section: {
-    marginTop: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  sectionAction: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  transactionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  transactionInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  transactionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  transactionDate: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginTop: spacing.md,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-    textAlign: "center",
-    paddingHorizontal: spacing.xl,
-  },
-  goalItem: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  goalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.sm,
-  },
-  goalInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  goalIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: colors.success + "15",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.sm,
-  },
-  goalName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  goalProgress: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.success,
-  },
-  goalProgressBar: {
-    height: 6,
-    backgroundColor: colors.surface,
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  goalProgressFill: {
-    height: "100%",
-    backgroundColor: colors.success,
-    borderRadius: 3,
-  },
-  goalRemaining: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+    },
+    headerGreeting: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    headerTitle: {
+      fontSize: 26,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    profileButton: {
+      padding: spacing.xs,
+    },
+    profileAvatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 2,
+      borderColor: colors.primary,
+    },
+    balanceCard: {
+      backgroundColor: colors.primary,
+      padding: spacing.xl,
+      marginBottom: spacing.lg,
+    },
+    balanceLabel: {
+      fontSize: 14,
+      color: "rgba(255,255,255,0.8)",
+      marginBottom: spacing.xs,
+    },
+    balanceAmount: {
+      fontSize: 40,
+      fontWeight: "700",
+      color: "#FFFFFF",
+      marginBottom: spacing.lg,
+    },
+    balanceBreakdown: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      marginBottom: spacing.md,
+    },
+    balanceBreakdownText: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.85)",
+      fontWeight: "500",
+    },
+    balanceBreakdownSeparator: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.6)",
+    },
+    statsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    statItem: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    statIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    statLabel: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.7)",
+    },
+    statValue: {
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    statValueLight: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: "#FFFFFF",
+    },
+    statDivider: {
+      width: 1,
+      height: 36,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      marginHorizontal: spacing.md,
+    },
+    quickAccessRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    quickAccessItem: {
+      alignItems: "center",
+      flex: 1,
+    },
+    quickAccessIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.xs,
+    },
+    quickAccessLabel: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    insightCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.md,
+      borderLeftWidth: 4,
+      gap: spacing.md,
+    },
+    insightText: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: "500",
+    },
+    alertCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#FEF3C7",
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.lg,
+      gap: spacing.md,
+    },
+    alertCardDanger: {
+      backgroundColor: "#FEE2E2",
+    },
+    alertContent: {
+      flex: 1,
+    },
+    alertTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    alertProgressBg: {
+      height: 4,
+      backgroundColor: "rgba(0,0,0,0.1)",
+      borderRadius: 2,
+    },
+    alertProgress: {
+      height: 4,
+      borderRadius: 2,
+    },
+    pendingSection: {
+      backgroundColor: "#FEF3C7",
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: "#F59E0B",
+    },
+    pendingHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.sm,
+    },
+    pendingTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    pendingIconBadge: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: "#F59E0B",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pendingTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: "#92400E",
+    },
+    approveAllButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.md,
+    },
+    approveAllText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: "#FFF",
+    },
+    pendingItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#FFF",
+      padding: spacing.sm,
+      borderRadius: borderRadius.md,
+      marginTop: spacing.xs,
+      gap: spacing.sm,
+    },
+    pendingItemIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: "#FEF3C7",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pendingItemContent: {
+      flex: 1,
+    },
+    pendingItemName: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    pendingItemDate: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    pendingItemAmount: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.expense,
+      marginRight: spacing.xs,
+    },
+    subscriptionAlert: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.primaryLight,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.lg,
+      gap: spacing.md,
+    },
+    subscriptionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    subscriptionContent: {
+      flex: 1,
+    },
+    subscriptionTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    subscriptionSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    section: {
+      marginTop: spacing.sm,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    sectionAction: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.primary,
+    },
+    transactionItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    transactionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    transactionInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    transactionTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    transactionDate: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    transactionAmount: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    emptyState: {
+      alignItems: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
+      textAlign: "center",
+      paddingHorizontal: spacing.xl,
+    },
+    goalItem: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    goalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.sm,
+    },
+    goalInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    goalIconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: colors.success + "15",
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.sm,
+    },
+    goalName: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    goalProgress: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.success,
+    },
+    goalProgressBar: {
+      height: 6,
+      backgroundColor: colors.surface,
+      borderRadius: 3,
+      overflow: "hidden",
+      marginBottom: spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    goalProgressFill: {
+      height: "100%",
+      backgroundColor: colors.success,
+      borderRadius: 3,
+    },
+    goalRemaining: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+  });

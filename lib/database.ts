@@ -1,7 +1,7 @@
 import * as SQLite from "expo-sqlite";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 7; // Increment this when schema changes
+const SCHEMA_VERSION = 8; // Increment this when schema changes
 
 export interface Account {
   id: string;
@@ -39,6 +39,15 @@ export interface Budget {
   budget_limit: number;
   currency: string;
   period: "monthly" | "yearly";
+  createdAt: number;
+}
+
+export interface MonthlyBudget {
+  id: string;
+  amount: number;
+  currency: string;
+  month: number;
+  year: number;
   createdAt: number;
 }
 
@@ -129,6 +138,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         DROP TABLE IF EXISTS categories;
         DROP TABLE IF EXISTS accounts;
         DROP TABLE IF EXISTS goals;
+        DROP TABLE IF EXISTS monthly_budgets;
       `);
 
       // Set new version
@@ -199,6 +209,16 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS monthly_budgets (
+        id TEXT PRIMARY KEY,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        month INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        createdAt INTEGER NOT NULL,
+        UNIQUE(month, year)
+      );
+
       CREATE TABLE IF NOT EXISTS goals (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -214,6 +234,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
       CREATE INDEX IF NOT EXISTS idx_transactions_subscriptionId ON transactions(subscriptionId);
       CREATE INDEX IF NOT EXISTS idx_budgets_categoryId ON budgets(categoryId);
+      CREATE INDEX IF NOT EXISTS idx_monthly_budgets_month_year ON monthly_budgets(month, year);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_nextDueDate ON subscriptions(nextDueDate);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_isActive ON subscriptions(isActive);
     `);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -13,7 +13,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
-import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  formatCurrency,
+  useThemeColors,
+  ThemeColors,
+} from "../../lib/theme";
 import {
   Card,
   LoadingState,
@@ -49,6 +55,8 @@ const CATEGORY_COLORS = [
 export default function CategoriesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     categories,
     expenseCategories,
@@ -446,250 +454,251 @@ export default function CategoriesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surface,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  summaryCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    alignItems: "center",
-    paddingVertical: spacing.xl,
-  },
-  summaryLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: spacing.sm,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  summaryValue: {
-    fontSize: 32,
-    fontWeight: "700",
-    marginBottom: spacing.xs,
-  },
-  summarySubtext: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: 4,
-    marginBottom: spacing.lg,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: "center",
-    borderRadius: borderRadius.sm,
-  },
-  tabActive: {
-    backgroundColor: colors.surface,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.textPrimary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  categoriesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  categoryCard: {
-    width: "48%",
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderLeftWidth: 4,
-  },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.sm,
-  },
-  categoryDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  categoryName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  categorySpending: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xxxl,
-  },
-  emptyIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
-  hintContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: spacing.lg,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  typeToggle: {
-    flexDirection: "row",
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  typeButton: {
-    flex: 1,
-    flexDirection: "row",
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  typeButtonActive: {
-    backgroundColor: colors.expense,
-  },
-  typeButtonActiveIncome: {
-    backgroundColor: colors.income,
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  typeButtonTextActive: {
-    color: colors.textInverse,
-  },
-  colorLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  colorOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  colorOptionSelected: {
-    borderWidth: 3,
-    borderColor: colors.textPrimary,
-  },
-  colorCheck: {
-    color: colors.textInverse,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  previewContainer: {
-    marginBottom: spacing.lg,
-  },
-  previewLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  previewCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    borderWidth: 2,
-    borderLeftWidth: 4,
-    alignItems: "flex-start",
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    addButtonText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    summaryCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      alignItems: "center",
+      paddingVertical: spacing.xl,
+    },
+    summaryLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: spacing.sm,
+    },
+    summaryLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    summaryValue: {
+      fontSize: 32,
+      fontWeight: "700",
+      marginBottom: spacing.xs,
+    },
+    summarySubtext: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    tabContainer: {
+      flexDirection: "row",
+      marginHorizontal: spacing.lg,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+      padding: 4,
+      marginBottom: spacing.lg,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: "center",
+      borderRadius: borderRadius.sm,
+    },
+    tabActive: {
+      backgroundColor: colors.surface,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    tabTextActive: {
+      color: colors.textPrimary,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    categoriesGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+    categoryCard: {
+      width: "48%",
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      borderWidth: 2,
+      borderLeftWidth: 4,
+    },
+    categoryIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.sm,
+    },
+    categoryDot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+    },
+    categoryName: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    categorySpending: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xxxl,
+    },
+    emptyIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.lg,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    hintContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: spacing.lg,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    typeToggle: {
+      flexDirection: "row",
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    typeButton: {
+      flex: 1,
+      flexDirection: "row",
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceSecondary,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+    typeButtonActive: {
+      backgroundColor: colors.expense,
+    },
+    typeButtonActiveIncome: {
+      backgroundColor: colors.income,
+    },
+    typeButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    typeButtonTextActive: {
+      color: colors.textInverse,
+    },
+    colorLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    colorGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    colorOption: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    colorOptionSelected: {
+      borderWidth: 3,
+      borderColor: colors.textPrimary,
+    },
+    colorCheck: {
+      color: colors.textInverse,
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    previewContainer: {
+      marginBottom: spacing.lg,
+    },
+    previewLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    previewCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      borderWidth: 2,
+      borderLeftWidth: 4,
+      alignItems: "flex-start",
+    },
+  });

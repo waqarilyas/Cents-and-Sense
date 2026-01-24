@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import {
   ScrollView,
   View,
@@ -13,7 +13,12 @@ import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius } from "../../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  useThemeColors,
+  ThemeColors,
+} from "../../lib/theme";
 import { Card } from "../../lib/components";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -29,118 +34,73 @@ interface FeatureSection {
   tips: string[];
 }
 
-const APP_FEATURES: FeatureSection[] = [
+const getAppFeatures = (colors: ThemeColors): FeatureSection[] => [
   {
     id: "dashboard",
     icon: "home",
     title: "Dashboard",
-    description:
-      "Your financial command center. See your total balance, monthly spending insights, and quick access to all features.",
+    description: "Overview of balance, spending, and shortcuts.",
     color: colors.primary,
-    tips: [
-      "Pull down to refresh your data",
-      "Tap the balance card for detailed account info",
-      "Quick access shortcuts let you navigate faster",
-      "The insight card shows personalized tips based on your spending",
-    ],
+    tips: ["Pull down to refresh", "Use shortcuts for quick navigation"],
   },
   {
     id: "transactions",
     icon: "swap-vertical",
     title: "Quick Add Transactions",
-    description:
-      "The fastest way to track your money. Use the floating + button to add expenses or income in seconds.",
+    description: "Add income or expenses quickly.",
     color: colors.accent,
-    tips: [
-      "Tap the + button to quickly add a transaction",
-      "Choose expense or income type first",
-      "Enter amount with the numpad, then pick a category",
-      "Select 'Subscription' for recurring expenses",
-    ],
+    tips: ["Tap + to add a transaction", "Select type, amount, and category"],
   },
   {
     id: "accounts",
     icon: "wallet",
     title: "Accounts Management",
-    description:
-      "Track all your money sources - checking accounts, savings, and credit cards in one place.",
+    description: "Track checking, savings, and credit cards.",
     color: "#8B5CF6",
-    tips: [
-      "Add multiple accounts for complete financial picture",
-      "Tap an account to edit its balance",
-      "Long press to delete an account",
-      "Total balance shows across all accounts",
-    ],
+    tips: ["Tap an account to edit balance", "Long press to delete"],
   },
   {
     id: "budgets",
     icon: "pie-chart",
     title: "Budgets",
-    description:
-      "Set spending limits for categories and stay on track with visual progress bars.",
+    description: "Set category limits and monitor progress.",
     color: colors.warning,
     tips: [
-      "Create budgets for your spending categories",
-      "Watch the progress bar fill as you spend",
-      "Get alerts when approaching your limits",
-      "Monthly or yearly budget periods available",
+      "Create budgets for key categories",
+      "Monitor progress as you spend",
     ],
   },
   {
     id: "subscriptions",
     icon: "repeat",
     title: "Subscriptions",
-    description:
-      "Never forget a recurring payment. Track Netflix, Spotify, rent, and all your subscriptions.",
+    description: "Track recurring bills and due dates.",
     color: "#EC4899",
-    tips: [
-      "Add all your recurring expenses",
-      "See monthly cost at a glance",
-      "Get reminders before payments are due",
-      "Easily pause or cancel subscriptions",
-    ],
+    tips: ["Add recurring expenses", "Review monthly totals"],
   },
   {
     id: "goals",
     icon: "flag",
     title: "Savings Goals",
-    description:
-      "Dream big and save smart. Set financial goals and track your progress.",
+    description: "Set savings goals and track progress.",
     color: colors.income,
-    tips: [
-      "Create goals for vacations, emergencies, purchases",
-      "Add contributions regularly",
-      "Watch your progress grow",
-      "Celebrate when you reach your goals! 🎉",
-    ],
+    tips: ["Add contributions regularly", "Track progress over time"],
   },
   {
     id: "analytics",
     icon: "stats-chart",
     title: "Analytics & Insights",
-    description:
-      "Understand your money habits with powerful charts and detailed breakdowns.",
+    description: "Review trends and category breakdowns.",
     color: "#3B82F6",
-    tips: [
-      "Switch between week, month, or year views",
-      "See expense breakdown by category",
-      "Track income sources",
-      "Compare spending patterns over time",
-    ],
+    tips: ["Switch time ranges", "Review category trends"],
   },
   {
     id: "categories",
     icon: "pricetags",
     title: "Categories",
-    description:
-      "Organize your transactions with customizable categories for better tracking.",
+    description: "Customize categories for better tracking.",
     color: "#14B8A6",
-    tips: [
-      "Default categories cover most needs",
-      "Create custom categories for your lifestyle",
-      "Assign colors for easy identification",
-      "Separate expense and income categories",
-    ],
+    tips: ["Create custom categories", "Assign colors for clarity"],
   },
 ];
 
@@ -148,43 +108,42 @@ const JOURNEY_STEPS = [
   {
     step: 1,
     title: "Set Up Accounts",
-    description:
-      "Start by adding your bank accounts, savings, and credit cards",
+    description: "Add your accounts",
     icon: "wallet" as keyof typeof Ionicons.glyphMap,
     route: "/(stack)/accounts",
   },
   {
     step: 2,
     title: "Create Budgets",
-    description: "Set spending limits for different categories",
+    description: "Set category limits",
     icon: "pie-chart" as keyof typeof Ionicons.glyphMap,
     route: "/(stack)/budgets",
   },
   {
     step: 3,
     title: "Track Transactions",
-    description: "Record your daily expenses and income",
+    description: "Record expenses and income",
     icon: "add-circle" as keyof typeof Ionicons.glyphMap,
     route: null,
   },
   {
     step: 4,
     title: "Add Subscriptions",
-    description: "Don't forget recurring payments",
+    description: "Track recurring payments",
     icon: "repeat" as keyof typeof Ionicons.glyphMap,
     route: "/(stack)/subscriptions",
   },
   {
     step: 5,
     title: "Set Goals",
-    description: "Define what you're saving for",
+    description: "Define savings goals",
     icon: "flag" as keyof typeof Ionicons.glyphMap,
     route: "/(stack)/goals",
   },
   {
     step: 6,
     title: "Review Analytics",
-    description: "Understand your spending patterns",
+    description: "Review spending patterns",
     icon: "analytics" as keyof typeof Ionicons.glyphMap,
     route: "/(stack)/analysis",
   },
@@ -193,6 +152,9 @@ const JOURNEY_STEPS = [
 export default function GuideScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const appFeatures = useMemo(() => getAppFeatures(colors), [colors]);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -248,16 +210,15 @@ export default function GuideScreen() {
           </View>
           <Text style={styles.welcomeTitle}>Welcome to Budget Tracker</Text>
           <Text style={styles.welcomeSubtitle}>
-            Your premium personal finance companion. Let's help you take control
-            of your money!
+            A concise guide to help you get started.
           </Text>
         </View>
 
         {/* Getting Started Journey */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🚀 Getting Started</Text>
+          <Text style={styles.sectionTitle}>Getting Started</Text>
           <Text style={styles.sectionSubtitle}>
-            Follow these steps to set up your financial tracking
+            Follow these steps to set up
           </Text>
 
           <Card style={styles.journeyCard}>
@@ -301,12 +262,12 @@ export default function GuideScreen() {
 
         {/* Features Guide */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📱 Features Guide</Text>
+          <Text style={styles.sectionTitle}>Features</Text>
           <Text style={styles.sectionSubtitle}>
-            Tap each feature to learn more
+            Select a feature to learn more
           </Text>
 
-          {APP_FEATURES.map((feature) => (
+          {appFeatures.map((feature) => (
             <Card key={feature.id} style={styles.featureCard}>
               <TouchableOpacity
                 style={styles.featureHeader}
@@ -349,7 +310,7 @@ export default function GuideScreen() {
 
               {selectedFeature === feature.id && (
                 <View style={styles.featureTips}>
-                  <Text style={styles.featureTipsTitle}>💡 Pro Tips</Text>
+                  <Text style={styles.featureTipsTitle}>Tips</Text>
                   {feature.tips.map((tip, index) => (
                     <View key={index} style={styles.featureTipItem}>
                       <View
@@ -369,7 +330,7 @@ export default function GuideScreen() {
 
         {/* Pro Tips Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⭐ Premium Features</Text>
+          <Text style={styles.sectionTitle}>Premium Features</Text>
           <Card style={styles.premiumCard}>
             <View style={styles.premiumBadge}>
               <Ionicons name="diamond" size={16} color="#FFD700" />
@@ -377,8 +338,7 @@ export default function GuideScreen() {
             </View>
             <Text style={styles.premiumTitle}>Unlock Your Full Potential</Text>
             <Text style={styles.premiumDescription}>
-              You have access to all premium features including advanced
-              analytics, unlimited accounts, custom categories, and more!
+              All premium features are available to you.
             </Text>
 
             <View style={styles.premiumFeatures}>
@@ -434,7 +394,7 @@ export default function GuideScreen() {
 
         {/* Best Practices */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📈 Best Practices</Text>
+          <Text style={styles.sectionTitle}>Best Practices</Text>
           <Card style={styles.bestPracticesCard}>
             <View style={styles.bestPracticeItem}>
               <View
@@ -443,7 +403,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.primaryLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>📝</Text>
+                <Text style={styles.bestPracticeEmoji}>•</Text>
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>Track Daily</Text>
@@ -459,7 +419,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.warningLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>🎯</Text>
+                <Text style={styles.bestPracticeEmoji}>•</Text>
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>
@@ -477,7 +437,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.incomeLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>💪</Text>
+                <Text style={styles.bestPracticeEmoji}>•</Text>
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>Save 20% Rule</Text>
@@ -493,7 +453,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.accentLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>📊</Text>
+                <Text style={styles.bestPracticeEmoji}>•</Text>
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>Review Weekly</Text>
@@ -529,307 +489,308 @@ export default function GuideScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    padding: spacing.xs,
-    marginRight: spacing.sm,
-  },
-  headerSpacer: {
-    width: 36,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    textAlign: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      padding: spacing.xs,
+      marginRight: spacing.sm,
+    },
+    headerSpacer: {
+      width: 36,
+    },
+    headerTitle: {
+      flex: 1,
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      textAlign: "center",
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
 
-  // Welcome Section
-  welcomeSection: {
-    alignItems: "center",
-    paddingVertical: spacing.xxl,
-  },
-  welcomeIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.lg,
-  },
-  welcomeTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    textAlign: "center",
-    marginBottom: spacing.sm,
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 24,
-    paddingHorizontal: spacing.lg,
-  },
+    // Welcome Section
+    welcomeSection: {
+      alignItems: "center",
+      paddingVertical: spacing.xxl,
+    },
+    welcomeIcon: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.lg,
+    },
+    welcomeTitle: {
+      fontSize: 26,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      textAlign: "center",
+      marginBottom: spacing.sm,
+    },
+    welcomeSubtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      textAlign: "center",
+      lineHeight: 24,
+      paddingHorizontal: spacing.lg,
+    },
 
-  // Sections
-  section: {
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
+    // Sections
+    section: {
+      marginBottom: spacing.xl,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    sectionSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+    },
 
-  // Journey Card
-  journeyCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  journeyStep: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-  },
-  journeyStepBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  journeyStepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
-  },
-  journeyStepNumberText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFF",
-  },
-  journeyStepContent: {
-    flex: 1,
-  },
-  journeyStepHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  journeyStepTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  journeyStepDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
+    // Journey Card
+    journeyCard: {
+      padding: 0,
+      overflow: "hidden",
+    },
+    journeyStep: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+    },
+    journeyStepBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    journeyStepNumber: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.md,
+    },
+    journeyStepNumberText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#FFF",
+    },
+    journeyStepContent: {
+      flex: 1,
+    },
+    journeyStepHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    journeyStepTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    journeyStepDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
 
-  // Feature Cards
-  featureCard: {
-    marginBottom: spacing.md,
-    padding: 0,
-    overflow: "hidden",
-  },
-  featureHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
-  },
-  featureHeaderContent: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  featureTips: {
-    backgroundColor: colors.surfaceSecondary,
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  featureTipsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  featureTipItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: spacing.sm,
-  },
-  tipBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 7,
-    marginRight: spacing.sm,
-  },
-  featureTipText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
+    // Feature Cards
+    featureCard: {
+      marginBottom: spacing.md,
+      padding: 0,
+      overflow: "hidden",
+    },
+    featureHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+    },
+    featureIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.md,
+    },
+    featureHeaderContent: {
+      flex: 1,
+    },
+    featureTitle: {
+      fontSize: 17,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    featureDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    featureTips: {
+      backgroundColor: colors.surfaceSecondary,
+      padding: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    featureTipsTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    featureTipItem: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      marginBottom: spacing.sm,
+    },
+    tipBullet: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginTop: 7,
+      marginRight: spacing.sm,
+    },
+    featureTipText: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
 
-  // Premium Card
-  premiumCard: {
-    backgroundColor: "#1A1A2E",
-    borderWidth: 1,
-    borderColor: "#FFD700",
-  },
-  premiumBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255, 215, 0, 0.2)",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.md,
-  },
-  premiumBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#FFD700",
-  },
-  premiumTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FFF",
-    marginBottom: spacing.sm,
-  },
-  premiumDescription: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.7)",
-    lineHeight: 20,
-    marginBottom: spacing.lg,
-  },
-  premiumFeatures: {
-    gap: spacing.sm,
-  },
-  premiumFeatureItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  premiumFeatureText: {
-    fontSize: 14,
-    color: "#FFF",
-    fontWeight: "500",
-  },
+    // Premium Card
+    premiumCard: {
+      backgroundColor: "#1A1A2E",
+      borderWidth: 1,
+      borderColor: "#FFD700",
+    },
+    premiumBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      alignSelf: "flex-start",
+      backgroundColor: "rgba(255, 215, 0, 0.2)",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
+      marginBottom: spacing.md,
+    },
+    premiumBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#FFD700",
+    },
+    premiumTitle: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: "#FFF",
+      marginBottom: spacing.sm,
+    },
+    premiumDescription: {
+      fontSize: 14,
+      color: "rgba(255, 255, 255, 0.7)",
+      lineHeight: 20,
+      marginBottom: spacing.lg,
+    },
+    premiumFeatures: {
+      gap: spacing.sm,
+    },
+    premiumFeatureItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    premiumFeatureText: {
+      fontSize: 14,
+      color: "#FFF",
+      fontWeight: "500",
+    },
 
-  // Best Practices Card
-  bestPracticesCard: {
-    padding: spacing.md,
-  },
-  bestPracticeItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: spacing.md,
-  },
-  bestPracticeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
-  },
-  bestPracticeEmoji: {
-    fontSize: 20,
-  },
-  bestPracticeContent: {
-    flex: 1,
-  },
-  bestPracticeTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  bestPracticeText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
+    // Best Practices Card
+    bestPracticesCard: {
+      padding: spacing.md,
+    },
+    bestPracticeItem: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      marginBottom: spacing.md,
+    },
+    bestPracticeIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.md,
+    },
+    bestPracticeEmoji: {
+      fontSize: 20,
+    },
+    bestPracticeContent: {
+      flex: 1,
+    },
+    bestPracticeTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    bestPracticeText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
 
-  // Help Card
-  helpCard: {
-    alignItems: "center",
-    padding: spacing.xl,
-  },
-  helpTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  helpText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: spacing.lg,
-  },
-  helpButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  helpButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#FFF",
-  },
-});
+    // Help Card
+    helpCard: {
+      alignItems: "center",
+      padding: spacing.xl,
+    },
+    helpTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    helpText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginBottom: spacing.lg,
+    },
+    helpButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+    },
+    helpButtonText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: "#FFF",
+    },
+  });

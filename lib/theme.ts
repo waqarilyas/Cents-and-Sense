@@ -1,6 +1,10 @@
 // Professional Design System for Budget Tracker App
+import { useColorScheme } from "react-native";
+import { useSettings } from "./contexts/SettingsContext";
 
-export const colors = {
+export type ThemeMode = "light" | "dark" | "system";
+
+export const lightColors = {
   // Primary palette
   primary: "#10B981", // Emerald green - main brand color
   primaryDark: "#059669",
@@ -39,6 +43,64 @@ export const colors = {
   expense: "#EF4444",
   expenseLight: "#FEE2E2",
 } as const;
+
+export const darkColors = {
+  // Primary palette
+  primary: "#34D399",
+  primaryDark: "#10B981",
+  primaryLight: "#1F2937",
+
+  // Accent colors
+  accent: "#60A5FA",
+  accentLight: "#1E293B",
+
+  // Semantic colors
+  success: "#34D399",
+  successLight: "#064E3B",
+  warning: "#FBBF24",
+  warningLight: "#78350F",
+  error: "#FB7185",
+  errorLight: "#7F1D1D",
+
+  // Neutrals
+  background: "#0B1120",
+  surface: "#111827",
+  surfaceSecondary: "#1F2937",
+
+  // Text colors
+  textPrimary: "#F8FAFC",
+  textSecondary: "#CBD5E1",
+  textMuted: "#94A3B8",
+  textInverse: "#FFFFFF",
+
+  // Borders
+  border: "#1F2937",
+  borderLight: "#334155",
+
+  // Income/Expense specific
+  income: "#34D399",
+  incomeLight: "#064E3B",
+  expense: "#FB7185",
+  expenseLight: "#7F1D1D",
+} as const;
+
+export type ThemeColors = typeof lightColors | typeof darkColors;
+
+export function useThemeColors() {
+  const { settings, updateSetting } = useSettings();
+  const systemScheme = useColorScheme();
+  const theme = settings.theme;
+  const activeTheme =
+    theme === "system" ? (systemScheme === "dark" ? "dark" : "light") : theme;
+  const colors = activeTheme === "dark" ? darkColors : lightColors;
+
+  return {
+    colors,
+    theme,
+    activeTheme,
+    setTheme: (nextTheme: ThemeMode) => updateSetting("theme", nextTheme),
+  };
+}
 
 export const spacing = {
   xs: 4,

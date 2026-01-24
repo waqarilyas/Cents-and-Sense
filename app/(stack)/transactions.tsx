@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -20,11 +20,12 @@ import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import {
-  colors,
   spacing,
   borderRadius,
   formatCurrency,
   formatShortDate,
+  useThemeColors,
+  ThemeColors,
 } from "../../lib/theme";
 import {
   Card,
@@ -41,6 +42,8 @@ type TransactionType = "income" | "expense";
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     transactions,
     loading,
@@ -363,7 +366,7 @@ export default function TransactionsScreen() {
           <View style={styles.swipeHint}>
             <Ionicons name="arrow-back" size={12} color={colors.textMuted} />
             <Text style={styles.swipeHintText}>
-              Swipe left to delete • Tap to edit
+              Swipe to delete, tap to edit.
             </Text>
           </View>
         )}
@@ -724,231 +727,232 @@ export default function TransactionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surface,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  addButtonText: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  tabContainer: {
-    flexDirection: "row",
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: 4,
-    marginBottom: spacing.md,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: "center",
-    borderRadius: borderRadius.sm,
-  },
-  tabActive: {
-    backgroundColor: colors.surface,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.textPrimary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  monthSection: {
-    marginBottom: spacing.lg,
-  },
-  monthTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  transactionCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-  },
-  transactionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  transactionInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  transactionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  transactionSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  transactionAmount: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  transactionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: spacing.xs,
-  },
-  emptyCard: {
-    padding: spacing.xl,
-    alignItems: "center",
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: spacing.lg,
-  },
-  emptyButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-  },
-  emptyButtonText: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  typeToggle: {
-    flexDirection: "row",
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  typeButton: {
-    flex: 1,
-    flexDirection: "row",
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  typeButtonActive: {
-    backgroundColor: colors.expense,
-  },
-  typeButtonActiveIncome: {
-    backgroundColor: colors.income,
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  typeButtonTextActive: {
-    color: colors.textInverse,
-  },
-  swipeHint: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.xs,
-    gap: 4,
-    marginBottom: spacing.sm,
-  },
-  swipeHintText: {
-    fontSize: 11,
-    color: colors.textMuted,
-  },
-  deleteAction: {
-    backgroundColor: colors.expense,
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-    marginBottom: spacing.sm,
-    borderTopRightRadius: borderRadius.md,
-    borderBottomRightRadius: borderRadius.md,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    addButtonText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    statsContainer: {
+      flexDirection: "row",
+      paddingHorizontal: spacing.lg,
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    statCard: {
+      flex: 1,
+      padding: spacing.md,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+    statValue: {
+      fontSize: 20,
+      fontWeight: "700",
+    },
+    tabContainer: {
+      flexDirection: "row",
+      marginHorizontal: spacing.lg,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+      padding: 4,
+      marginBottom: spacing.md,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: "center",
+      borderRadius: borderRadius.sm,
+    },
+    tabActive: {
+      backgroundColor: colors.surface,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    tabTextActive: {
+      color: colors.textPrimary,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    monthSection: {
+      marginBottom: spacing.lg,
+    },
+    monthTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.md,
+    },
+    transactionCard: {
+      marginBottom: spacing.sm,
+      padding: spacing.md,
+    },
+    transactionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    transactionInfo: {
+      flex: 1,
+      marginLeft: spacing.md,
+    },
+    transactionTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    transactionSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    transactionAmount: {
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    transactionIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    statLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: spacing.xs,
+    },
+    emptyCard: {
+      padding: spacing.xl,
+      alignItems: "center",
+    },
+    emptyIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    emptyDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginBottom: spacing.lg,
+    },
+    emptyButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    emptyButtonText: {
+      color: colors.textInverse,
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    typeToggle: {
+      flexDirection: "row",
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    typeButton: {
+      flex: 1,
+      flexDirection: "row",
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceSecondary,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      borderWidth: 2,
+      borderColor: "transparent",
+    },
+    typeButtonActive: {
+      backgroundColor: colors.expense,
+    },
+    typeButtonActiveIncome: {
+      backgroundColor: colors.income,
+    },
+    typeButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    typeButtonTextActive: {
+      color: colors.textInverse,
+    },
+    swipeHint: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xs,
+      gap: 4,
+      marginBottom: spacing.sm,
+    },
+    swipeHintText: {
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+    deleteAction: {
+      backgroundColor: colors.expense,
+      justifyContent: "center",
+      alignItems: "center",
+      width: 80,
+      marginBottom: spacing.sm,
+      borderTopRightRadius: borderRadius.md,
+      borderBottomRightRadius: borderRadius.md,
+    },
+  });

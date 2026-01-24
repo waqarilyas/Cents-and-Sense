@@ -11,7 +11,14 @@ import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius, formatCurrency } from "../../lib/theme";
+import {
+  spacing,
+  borderRadius,
+  formatCurrency,
+  useThemeColors,
+  ThemeColors,
+  ThemeMode,
+} from "../../lib/theme";
 import { Card } from "../../lib/components";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
@@ -26,7 +33,7 @@ import {
 } from "../../lib/contexts/SettingsContext";
 import { CurrencyPicker } from "../../lib/components/CurrencyPicker";
 import { getCurrency } from "../../lib/currencies";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 
 interface MenuItem {
@@ -47,6 +54,8 @@ const SUBSCRIPTION_MODE_LABELS: Record<SubscriptionProcessingMode, string> = {
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, theme, setTheme } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { accounts } = useAccounts();
   const { goals } = useGoals();
@@ -59,7 +68,6 @@ export default function ProfileScreen() {
   const { settings, updateSetting } = useSettings();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   // Get current currency info for display
@@ -90,6 +98,16 @@ export default function ProfileScreen() {
         },
       ],
     );
+  };
+
+  const handleThemeChange = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert("Appearance", "Choose your theme", [
+      { text: "System", onPress: () => setTheme("system" as ThemeMode) },
+      { text: "Light", onPress: () => setTheme("light" as ThemeMode) },
+      { text: "Dark", onPress: () => setTheme("dark" as ThemeMode) },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   // Calculate some stats for display
@@ -209,13 +227,11 @@ export default function ProfileScreen() {
         },
         {
           icon: "moon-outline",
-          label: "Dark Mode",
-          subtitle: darkModeEnabled ? "Enabled" : "Coming Soon",
-          onPress: () =>
-            Alert.alert(
-              "Coming Soon",
-              "Dark mode will be available in a future update!",
-            ),
+          label: "Appearance",
+          subtitle:
+            theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light",
+          onPress: handleThemeChange,
+          showArrow: true,
         },
         {
           icon: "cash-outline",
@@ -506,159 +522,160 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  backButton: {
-    padding: spacing.xs,
-    marginRight: spacing.sm,
-  },
-  headerSpacer: {
-    width: 36,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    textAlign: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  profileCard: {
-    alignItems: "center",
-    paddingVertical: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  profileAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-  },
-  profileStats: {
-    flexDirection: "row",
-    width: "100%",
-    justifyContent: "space-around",
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  profileStatItem: {
-    alignItems: "center",
-  },
-  profileStatValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  profileStatLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  profileStatDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  menuCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  menuItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: spacing.md,
-  },
-  menuItemContent: {
-    flex: 1,
-  },
-  menuItemLabel: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: colors.textPrimary,
-  },
-  menuItemSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  menuItemBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    marginRight: spacing.sm,
-  },
-  menuItemBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textInverse,
-  },
-  footer: {
-    alignItems: "center",
-    paddingVertical: spacing.xl,
-  },
-  footerText: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  footerSubtext: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    backButton: {
+      padding: spacing.xs,
+      marginRight: spacing.sm,
+    },
+    headerSpacer: {
+      width: 36,
+    },
+    headerTitle: {
+      flex: 1,
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      textAlign: "center",
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+    },
+    profileCard: {
+      alignItems: "center",
+      paddingVertical: spacing.xl,
+      marginBottom: spacing.lg,
+    },
+    profileAvatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: colors.primaryLight,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.md,
+    },
+    profileName: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    profileEmail: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: spacing.lg,
+    },
+    profileStats: {
+      flexDirection: "row",
+      width: "100%",
+      justifyContent: "space-around",
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    profileStatItem: {
+      alignItems: "center",
+    },
+    profileStatValue: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+    profileStatLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    profileStatDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: colors.border,
+    },
+    section: {
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: spacing.sm,
+      marginLeft: spacing.xs,
+    },
+    menuCard: {
+      padding: 0,
+      overflow: "hidden",
+    },
+    menuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    menuItemBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    menuItemIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 8,
+      backgroundColor: colors.surfaceSecondary,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: spacing.md,
+    },
+    menuItemContent: {
+      flex: 1,
+    },
+    menuItemLabel: {
+      fontSize: 15,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+    menuItemSubtitle: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    menuItemBadge: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: borderRadius.full,
+      marginRight: spacing.sm,
+    },
+    menuItemBadgeText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.textInverse,
+    },
+    footer: {
+      alignItems: "center",
+      paddingVertical: spacing.xl,
+    },
+    footerText: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    footerSubtext: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+  });

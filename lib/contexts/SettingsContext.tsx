@@ -10,6 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Subscription processing modes
 export type SubscriptionProcessingMode = "auto" | "manual" | "notify";
+export type ThemeMode = "light" | "dark" | "system";
 
 interface Settings {
   // Subscription settings
@@ -22,6 +23,9 @@ interface Settings {
   // Display settings
   defaultCurrencyCode: string;
 
+  // Appearance
+  theme: ThemeMode;
+
   // Privacy
   hideBalances: boolean;
 }
@@ -32,6 +36,7 @@ const DEFAULT_SETTINGS: Settings = {
   subscriptionReminderDays: 3,
   defaultCurrencyCode: "USD",
   hideBalances: false,
+  theme: "system",
 };
 
 interface SettingsContextType {

@@ -9,14 +9,20 @@ import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius } from "../../lib/theme";
+import {
+  useThemeColors,
+  ThemeMode,
+  ThemeColors,
+  spacing,
+  borderRadius,
+} from "../../lib/theme";
 import { Card } from "../../lib/components";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -31,6 +37,8 @@ interface MenuItem {
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, theme, setTheme } = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const { accounts } = useAccounts();
   const { goals } = useGoals();
@@ -109,9 +117,24 @@ export default function SettingsScreen() {
         {
           icon: "moon-outline",
           label: "Appearance",
-          subtitle: "Light Mode",
+          subtitle:
+            theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light",
           onPress: () =>
-            Alert.alert("Coming Soon", "Dark mode will be available soon!"),
+            Alert.alert("Appearance", "Choose your theme", [
+              {
+                text: "System",
+                onPress: () => setTheme("system" as ThemeMode),
+              },
+              {
+                text: "Light",
+                onPress: () => setTheme("light" as ThemeMode),
+              },
+              {
+                text: "Dark",
+                onPress: () => setTheme("dark" as ThemeMode),
+              },
+              { text: "Cancel", style: "cancel" },
+            ]),
           showArrow: true,
         },
       ],
@@ -316,135 +339,136 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceSecondary,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-  },
-  statsCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.xs,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginTop: spacing.xs,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 50,
-    backgroundColor: colors.border,
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  menuCard: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.md,
-  },
-  menuItemContent: {
-    flex: 1,
-  },
-  menuItemLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: colors.textPrimary,
-  },
-  menuItemSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  badge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginRight: spacing.sm,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.surface,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    backButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceSecondary,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing.lg,
+    },
+    statsCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    statsRow: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      alignItems: "center",
+    },
+    statItem: {
+      alignItems: "center",
+      flex: 1,
+    },
+    statIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.xs,
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginTop: spacing.xs,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    statDivider: {
+      width: 1,
+      height: 50,
+      backgroundColor: colors.border,
+    },
+    section: {
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+      marginLeft: spacing.xs,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    menuCard: {
+      padding: 0,
+      overflow: "hidden",
+    },
+    menuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    menuItemBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    menuIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: colors.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.md,
+    },
+    menuItemContent: {
+      flex: 1,
+    },
+    menuItemLabel: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+    menuItemSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    badge: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: 12,
+      marginRight: spacing.sm,
+    },
+    badgeText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: "#FFFFFF",
+    },
+  });
