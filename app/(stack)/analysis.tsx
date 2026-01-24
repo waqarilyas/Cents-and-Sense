@@ -30,10 +30,13 @@ import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 
 // Format currency with abbreviations for compact display
-const formatCompactCurrency = (amount: number, currencySymbol: string = "$"): string => {
+const formatCompactCurrency = (
+  amount: number,
+  currencySymbol: string = "$",
+): string => {
   const absAmount = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
-  
+
   if (absAmount >= 1000000) {
     return `${sign}${currencySymbol}${(absAmount / 1000000).toFixed(1)}M`;
   } else if (absAmount >= 1000) {
@@ -42,7 +45,13 @@ const formatCompactCurrency = (amount: number, currencySymbol: string = "$"): st
     return `${sign}${currencySymbol}${absAmount.toFixed(0)}`;
   }
 };
-import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph } from "react-native-chart-kit";
+import {
+  LineChart,
+  BarChart,
+  PieChart,
+  ProgressChart,
+  ContributionGraph,
+} from "react-native-chart-kit";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -1123,11 +1132,16 @@ export default function AnalysisScreen() {
           style={styles.modalBackdrop}
           onPress={() => setShowRangeModal(false)}
         >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>Custom Range</Text>
-                <Text style={styles.modalSubtitle}>Select start and end dates</Text>
+                <Text style={styles.modalSubtitle}>
+                  Select start and end dates
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.modalCloseButton}
@@ -1137,7 +1151,7 @@ export default function AnalysisScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <ScrollView
               style={styles.modalScrollView}
               showsVerticalScrollIndicator={false}
               bounces={false}
@@ -1278,7 +1292,10 @@ export default function AnalysisScreen() {
           style={styles.modalBackdrop}
           onPress={() => setShowFilterModal(false)}
         >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>Filters</Text>
@@ -2214,7 +2231,11 @@ export default function AnalysisScreen() {
                 merchantBreakdown.map((merchant) => (
                   <View key={merchant.name} style={styles.listRow}>
                     <View style={styles.listLeftContent}>
-                      <Text style={styles.listTitle} numberOfLines={1} ellipsizeMode="tail">
+                      <Text
+                        style={styles.listTitle}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {merchant.name}
                       </Text>
                       <Text style={styles.listSubtitle}>
@@ -2235,13 +2256,39 @@ export default function AnalysisScreen() {
               <Text style={styles.cardTitle}>Transaction Size</Text>
               <View style={styles.summaryGrid}>
                 {transactionSizeBuckets.map((bucket, index) => {
-                  const iconNames = ['cart-outline', 'restaurant-outline', 'home-outline', 'diamond-outline'];
-                  const bgColors = [colors.primaryLight, colors.incomeLight, colors.warningLight, colors.expenseLight];
-                  const iconColors = [colors.primary, colors.income, colors.warning, colors.expense];
+                  const iconNames = [
+                    "cart-outline",
+                    "restaurant-outline",
+                    "home-outline",
+                    "diamond-outline",
+                  ];
+                  const bgColors = [
+                    colors.primaryLight,
+                    colors.incomeLight,
+                    colors.warningLight,
+                    colors.expenseLight,
+                  ];
+                  const iconColors = [
+                    colors.primary,
+                    colors.income,
+                    colors.warning,
+                    colors.expense,
+                  ];
                   return (
                     <View key={bucket.label} style={styles.summaryItem}>
-                      <View style={[styles.summaryItemIcon, { backgroundColor: bgColors[index % bgColors.length] }]}>
-                        <Ionicons name={iconNames[index % iconNames.length] as any} size={20} color={iconColors[index % iconColors.length]} />
+                      <View
+                        style={[
+                          styles.summaryItemIcon,
+                          {
+                            backgroundColor: bgColors[index % bgColors.length],
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={iconNames[index % iconNames.length] as any}
+                          size={20}
+                          color={iconColors[index % iconColors.length]}
+                        />
                       </View>
                       <View style={styles.summaryItemContent}>
                         <Text style={styles.summaryValue}>{bucket.count}</Text>
@@ -2262,7 +2309,12 @@ export default function AnalysisScreen() {
               <Text style={styles.cardTitle}>Income Overview</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.incomeLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.incomeLight },
+                    ]}
+                  >
                     <Ionicons name="cash" size={20} color={colors.income} />
                   </View>
                   <View style={styles.summaryItemContent}>
@@ -2273,29 +2325,54 @@ export default function AnalysisScreen() {
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
-                    <Ionicons name="calendar" size={20} color={colors.primary} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.primaryLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="calendar"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(stats.income / Math.max(periodMonths, 1), currencySymbol)}
+                      {formatCompactCurrency(
+                        stats.income / Math.max(periodMonths, 1),
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Monthly Avg</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.warningLight },
+                    ]}
+                  >
                     <Ionicons name="star" size={20} color={colors.warning} />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(incomeBreakdown[0]?.amount || 0, currencySymbol)}
+                      {formatCompactCurrency(
+                        incomeBreakdown[0]?.amount || 0,
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Top Source</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.accentLight },
+                    ]}
+                  >
                     <Ionicons name="layers" size={20} color={colors.accent} />
                   </View>
                   <View style={styles.summaryItemContent}>
@@ -2311,12 +2388,22 @@ export default function AnalysisScreen() {
             {incomeBreakdown.length > 0 && (
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader}>
-                  <Text style={styles.cardTitle}>Income Sources Distribution</Text>
-                  <Text style={styles.chartSubtitle}>Top 5 of {incomeBreakdown.length} sources</Text>
+                  <Text style={styles.cardTitle}>
+                    Income Sources Distribution
+                  </Text>
+                  <Text style={styles.chartSubtitle}>
+                    Top 5 of {incomeBreakdown.length} sources
+                  </Text>
                 </View>
                 <PieChart
                   data={incomeBreakdown.slice(0, 5).map((source, index) => {
-                    const pieColors = ['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+                    const pieColors = [
+                      "#22c55e",
+                      "#10b981",
+                      "#34d399",
+                      "#6ee7b7",
+                      "#a7f3d0",
+                    ];
                     return {
                       name: source.name.substring(0, 12),
                       population: Math.round(source.amount),
@@ -2346,15 +2433,22 @@ export default function AnalysisScreen() {
                 <View style={styles.chartHeader}>
                   <Text style={styles.cardTitle}>Income Trend</Text>
                   <Text style={styles.chartSubtitle}>
-                    {selectedPeriod === "year" ? "Monthly" : "Last 7 days"} income pattern
+                    {selectedPeriod === "year" ? "Monthly" : "Last 7 days"}{" "}
+                    income pattern
                   </Text>
                 </View>
                 <LineChart
                   data={{
-                    labels: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => d.label),
-                    datasets: [{
-                      data: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => Math.max(d.income, 1)),
-                    }],
+                    labels: dailyTrend
+                      .slice(selectedPeriod === "year" ? 0 : -7)
+                      .map((d) => d.label),
+                    datasets: [
+                      {
+                        data: dailyTrend
+                          .slice(selectedPeriod === "year" ? 0 : -7)
+                          .map((d) => Math.max(d.income, 1)),
+                      },
+                    ],
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
@@ -2366,8 +2460,8 @@ export default function AnalysisScreen() {
                     color: (opacity = 1) => colors.income,
                     labelColor: () => colors.textSecondary,
                     propsForDots: {
-                      r: '6',
-                      strokeWidth: '2',
+                      r: "6",
+                      strokeWidth: "2",
                       stroke: colors.income,
                     },
                   }}
@@ -2435,19 +2529,59 @@ export default function AnalysisScreen() {
               <Text style={styles.cardTitle}>Cash Flow Summary</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: cashFlowSummary.net >= 0 ? colors.incomeLight : colors.expenseLight }]}>
-                    <Ionicons name="trending-up" size={20} color={cashFlowSummary.net >= 0 ? colors.income : colors.expense} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      {
+                        backgroundColor:
+                          cashFlowSummary.net >= 0
+                            ? colors.incomeLight
+                            : colors.expenseLight,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="trending-up"
+                      size={20}
+                      color={
+                        cashFlowSummary.net >= 0
+                          ? colors.income
+                          : colors.expense
+                      }
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
-                    <Text style={[styles.summaryValue, { color: cashFlowSummary.net >= 0 ? colors.income : colors.expense }]}>
-                      {formatCompactCurrency(cashFlowSummary.net, currencySymbol)}
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        {
+                          color:
+                            cashFlowSummary.net >= 0
+                              ? colors.income
+                              : colors.expense,
+                        },
+                      ]}
+                    >
+                      {formatCompactCurrency(
+                        cashFlowSummary.net,
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Net Flow</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
-                    <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.primaryLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
@@ -2457,18 +2591,31 @@ export default function AnalysisScreen() {
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.accentLight },
+                    ]}
+                  >
                     <Ionicons name="wallet" size={20} color={colors.accent} />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(accountsSummary.totalBalance, currencySymbol)}
+                      {formatCompactCurrency(
+                        accountsSummary.totalBalance,
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Net Worth</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.warningLight },
+                    ]}
+                  >
                     <Ionicons name="water" size={20} color={colors.warning} />
                   </View>
                   <View style={styles.summaryItemContent}>
@@ -2493,15 +2640,21 @@ export default function AnalysisScreen() {
               </View>
               <LineChart
                 data={{
-                  labels: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => d.label),
+                  labels: dailyTrend
+                    .slice(selectedPeriod === "year" ? 0 : -7)
+                    .map((d) => d.label),
                   datasets: [
                     {
-                      data: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => Math.max(d.income, 0)),
+                      data: dailyTrend
+                        .slice(selectedPeriod === "year" ? 0 : -7)
+                        .map((d) => Math.max(d.income, 0)),
                       color: () => colors.income,
                       strokeWidth: 3,
                     },
                     {
-                      data: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => Math.max(d.expense, 0)),
+                      data: dailyTrend
+                        .slice(selectedPeriod === "year" ? 0 : -7)
+                        .map((d) => Math.max(d.expense, 0)),
                       color: () => colors.expense,
                       strokeWidth: 3,
                     },
@@ -2721,78 +2874,120 @@ export default function AnalysisScreen() {
               {budgetsSummary.budgetForPeriod > 0 ? (
                 <>
                   <View style={styles.budgetProgressGrid}>
-                    {budgetsSummary.budgetUsage.slice(0, 4).map((budget, index) => {
-                      const progress = Math.min(budget.percentage, 100);
-                      const circleColor = budget.percentage > 100 ? colors.expense : 
-                                         budget.percentage > 85 ? colors.warning : colors.income;
-                      const size = 80;
-                      const strokeWidth = 8;
-                      const center = size / 2;
-                      const radius = (size - strokeWidth) / 2;
-                      const circumference = 2 * Math.PI * radius;
-                      const strokeDashoffset = circumference - (progress / 100) * circumference;
-                      
-                      return (
-                        <View key={budget.id} style={styles.budgetProgressItem}>
-                          <View style={{ width: size, height: size, position: 'relative' }}>
-                            {/* Background circle */}
-                            <View style={{
-                              position: 'absolute',
-                              width: size,
-                              height: size,
-                              borderRadius: size / 2,
-                              borderWidth: strokeWidth,
-                              borderColor: colors.border,
-                            }} />
-                            {/* Progress circle */}
-                            <View style={{
-                              position: 'absolute',
-                              width: size,
-                              height: size,
-                              borderRadius: size / 2,
-                              borderWidth: strokeWidth,
-                              borderColor: circleColor,
-                              borderRightColor: 'transparent',
-                              borderTopColor: progress < 25 ? 'transparent' : circleColor,
-                              borderLeftColor: progress < 50 ? 'transparent' : circleColor,
-                              borderBottomColor: progress < 75 ? 'transparent' : circleColor,
-                              transform: [{ rotate: '-90deg' }],
-                            }} />
-                            {/* Percentage text */}
-                            <View style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                            }}>
-                              <Text style={[styles.budgetProgressPercent, { color: circleColor }]}>
-                                {budget.percentage.toFixed(0)}%
-                              </Text>
+                    {budgetsSummary.budgetUsage
+                      .slice(0, 4)
+                      .map((budget, index) => {
+                        const progress = Math.min(budget.percentage, 100);
+                        const circleColor =
+                          budget.percentage > 100
+                            ? colors.expense
+                            : budget.percentage > 85
+                              ? colors.warning
+                              : colors.income;
+                        const size = 80;
+                        const strokeWidth = 8;
+                        const center = size / 2;
+                        const radius = (size - strokeWidth) / 2;
+                        const circumference = 2 * Math.PI * radius;
+                        const strokeDashoffset =
+                          circumference - (progress / 100) * circumference;
+
+                        return (
+                          <View
+                            key={budget.id}
+                            style={styles.budgetProgressItem}
+                          >
+                            <View
+                              style={{
+                                width: size,
+                                height: size,
+                                position: "relative",
+                              }}
+                            >
+                              {/* Background circle */}
+                              <View
+                                style={{
+                                  position: "absolute",
+                                  width: size,
+                                  height: size,
+                                  borderRadius: size / 2,
+                                  borderWidth: strokeWidth,
+                                  borderColor: colors.border,
+                                }}
+                              />
+                              {/* Progress circle */}
+                              <View
+                                style={{
+                                  position: "absolute",
+                                  width: size,
+                                  height: size,
+                                  borderRadius: size / 2,
+                                  borderWidth: strokeWidth,
+                                  borderColor: circleColor,
+                                  borderRightColor: "transparent",
+                                  borderTopColor:
+                                    progress < 25 ? "transparent" : circleColor,
+                                  borderLeftColor:
+                                    progress < 50 ? "transparent" : circleColor,
+                                  borderBottomColor:
+                                    progress < 75 ? "transparent" : circleColor,
+                                  transform: [{ rotate: "-90deg" }],
+                                }}
+                              />
+                              {/* Percentage text */}
+                              <View
+                                style={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Text
+                                  style={[
+                                    styles.budgetProgressPercent,
+                                    { color: circleColor },
+                                  ]}
+                                >
+                                  {budget.percentage.toFixed(0)}%
+                                </Text>
+                              </View>
                             </View>
+                            <Text
+                              style={styles.budgetProgressLabel}
+                              numberOfLines={1}
+                            >
+                              {budget.name}
+                            </Text>
+                            <Text style={styles.budgetProgressAmount}>
+                              {formatCurrency(budget.spent)}
+                            </Text>
                           </View>
-                          <Text style={styles.budgetProgressLabel} numberOfLines={1}>
-                            {budget.name}
-                          </Text>
-                          <Text style={styles.budgetProgressAmount}>
-                            {formatCurrency(budget.spent)}
-                          </Text>
-                        </View>
-                      );
-                    })}
+                        );
+                      })}
                   </View>
-                  
+
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
                       {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
                       {formatCurrency(budgetsSummary.budgetForPeriod)}
                     </Text>
-                    <Text style={[styles.budgetUsagePercent, {
-                      color: budgetsSummary.utilization > 100 ? colors.expense : 
-                             budgetsSummary.utilization > 85 ? colors.warning : colors.income
-                    }]}>
+                    <Text
+                      style={[
+                        styles.budgetUsagePercent,
+                        {
+                          color:
+                            budgetsSummary.utilization > 100
+                              ? colors.expense
+                              : budgetsSummary.utilization > 85
+                                ? colors.warning
+                                : colors.income,
+                        },
+                      ]}
+                    >
                       {budgetsSummary.utilization.toFixed(0)}%
                     </Text>
                   </View>
@@ -2813,16 +3008,20 @@ export default function AnalysisScreen() {
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                   <Text style={styles.cardTitle}>Budget Distribution</Text>
-                  <Text style={styles.chartSubtitle}>Top 5 of {budgetsSummary.budgetUsage.length} budgets</Text>
+                  <Text style={styles.chartSubtitle}>
+                    Top 5 of {budgetsSummary.budgetUsage.length} budgets
+                  </Text>
                 </View>
                 <PieChart
-                  data={budgetsSummary.budgetUsage.slice(0, 5).map((budget, index) => ({
-                    name: budget.name.substring(0, 12),
-                    population: Math.round(budget.spent),
-                    color: budget.color,
-                    legendFontColor: colors.textSecondary,
-                    legendFontSize: 12,
-                  }))}
+                  data={budgetsSummary.budgetUsage
+                    .slice(0, 5)
+                    .map((budget, index) => ({
+                      name: budget.name.substring(0, 12),
+                      population: Math.round(budget.spent),
+                      color: budget.color,
+                      legendFontColor: colors.textSecondary,
+                      legendFontSize: 12,
+                    }))}
                   width={width - spacing.lg * 4}
                   height={220}
                   chartConfig={{
@@ -2851,20 +3050,23 @@ export default function AnalysisScreen() {
                           { backgroundColor: budget.color },
                         ]}
                       />
-                      <Text style={styles.budgetUsageName}>
-                        {budget.name}
-                      </Text>
+                      <Text style={styles.budgetUsageName}>{budget.name}</Text>
                     </View>
                     <View style={styles.budgetUsageRight}>
                       <Text style={styles.budgetUsageValue}>
                         {formatCurrency(budget.spent)} /{" "}
                         {formatCurrency(budget.limit)}
                       </Text>
-                      <Text style={[
-                        styles.budgetUsagePercent,
-                        budget.percentage > 100 && { color: colors.expense },
-                        budget.percentage > 85 && budget.percentage <= 100 && { color: colors.warning },
-                      ]}>
+                      <Text
+                        style={[
+                          styles.budgetUsagePercent,
+                          budget.percentage > 100 && { color: colors.expense },
+                          budget.percentage > 85 &&
+                            budget.percentage <= 100 && {
+                              color: colors.warning,
+                            },
+                        ]}
+                      >
                         {budget.percentage.toFixed(0)}%
                       </Text>
                     </View>
@@ -2882,8 +3084,17 @@ export default function AnalysisScreen() {
               <Text style={styles.cardTitle}>Subscriptions Summary</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
-                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.primaryLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
@@ -2893,30 +3104,63 @@ export default function AnalysisScreen() {
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.expenseLight }]}>
-                    <Ionicons name="calendar-outline" size={20} color={colors.expense} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.expenseLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color={colors.expense}
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(subscriptionsSummary.monthlyTotal, currencySymbol)}
+                      {formatCompactCurrency(
+                        subscriptionsSummary.monthlyTotal,
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Monthly</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
-                    <Ionicons name="calendar" size={20} color={colors.warning} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.warningLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="calendar"
+                      size={20}
+                      color={colors.warning}
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(subscriptionAnalytics.annualTotal, currencySymbol)}
+                      {formatCompactCurrency(
+                        subscriptionAnalytics.annualTotal,
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Annual</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
-                    <Ionicons name="time-outline" size={20} color={colors.accent} />
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.accentLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="time-outline"
+                      size={20}
+                      color={colors.accent}
+                    />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
@@ -2932,23 +3176,37 @@ export default function AnalysisScreen() {
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                   <Text style={styles.cardTitle}>Monthly Cost Breakdown</Text>
-                  <Text style={styles.chartSubtitle}>Top 5 of {subscriptionAnalytics.active.length} subscriptions</Text>
+                  <Text style={styles.chartSubtitle}>
+                    Top 5 of {subscriptionAnalytics.active.length} subscriptions
+                  </Text>
                 </View>
                 <PieChart
-                  data={subscriptionAnalytics.active.slice(0, 5).map((sub, index) => {
-                    const monthlyAmount = sub.frequency === 'daily' ? sub.amount * 30 :
-                                        sub.frequency === 'weekly' ? sub.amount * 4 :
-                                        sub.frequency === 'monthly' ? sub.amount :
-                                        sub.amount / 12;
-                    const pieColors = ['#e91e63', '#2c2c54', '#ff9800', '#f39c12', '#9b59b6'];
-                    return {
-                      name: sub.name.substring(0, 12),
-                      population: Math.round(monthlyAmount * 100) / 100,
-                      color: pieColors[index % pieColors.length],
-                      legendFontColor: colors.textSecondary,
-                      legendFontSize: 12,
-                    };
-                  })}
+                  data={subscriptionAnalytics.active
+                    .slice(0, 5)
+                    .map((sub, index) => {
+                      const monthlyAmount =
+                        sub.frequency === "daily"
+                          ? sub.amount * 30
+                          : sub.frequency === "weekly"
+                            ? sub.amount * 4
+                            : sub.frequency === "monthly"
+                              ? sub.amount
+                              : sub.amount / 12;
+                      const pieColors = [
+                        "#e91e63",
+                        "#2c2c54",
+                        "#ff9800",
+                        "#f39c12",
+                        "#9b59b6",
+                      ];
+                      return {
+                        name: sub.name.substring(0, 12),
+                        population: Math.round(monthlyAmount * 100) / 100,
+                        color: pieColors[index % pieColors.length],
+                        legendFontColor: colors.textSecondary,
+                        legendFontSize: 12,
+                      };
+                    })}
                   width={width - spacing.lg * 4}
                   height={220}
                   chartConfig={{
@@ -2970,15 +3228,48 @@ export default function AnalysisScreen() {
                 <Text style={styles.cardTitle}>Cost by Frequency</Text>
                 <BarChart
                   data={{
-                    labels: ['Daily', 'Weekly', 'Monthly', 'Yearly'],
-                    datasets: [{
-                      data: [
-                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'daily').reduce((sum, s) => sum + s.amount * 30, 0) * 100) / 100, 1),
-                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'weekly').reduce((sum, s) => sum + s.amount * 4, 0) * 100) / 100, 1),
-                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'monthly').reduce((sum, s) => sum + s.amount, 0) * 100) / 100, 1),
-                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'yearly').reduce((sum, s) => sum + s.amount / 12, 0) * 100) / 100, 1),
-                      ],
-                    }],
+                    labels: ["Daily", "Weekly", "Monthly", "Yearly"],
+                    datasets: [
+                      {
+                        data: [
+                          Math.max(
+                            Math.round(
+                              subscriptionAnalytics.active
+                                .filter((s) => s.frequency === "daily")
+                                .reduce((sum, s) => sum + s.amount * 30, 0) *
+                                100,
+                            ) / 100,
+                            1,
+                          ),
+                          Math.max(
+                            Math.round(
+                              subscriptionAnalytics.active
+                                .filter((s) => s.frequency === "weekly")
+                                .reduce((sum, s) => sum + s.amount * 4, 0) *
+                                100,
+                            ) / 100,
+                            1,
+                          ),
+                          Math.max(
+                            Math.round(
+                              subscriptionAnalytics.active
+                                .filter((s) => s.frequency === "monthly")
+                                .reduce((sum, s) => sum + s.amount, 0) * 100,
+                            ) / 100,
+                            1,
+                          ),
+                          Math.max(
+                            Math.round(
+                              subscriptionAnalytics.active
+                                .filter((s) => s.frequency === "yearly")
+                                .reduce((sum, s) => sum + s.amount / 12, 0) *
+                                100,
+                            ) / 100,
+                            1,
+                          ),
+                        ],
+                      },
+                    ],
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
@@ -3033,45 +3324,78 @@ export default function AnalysisScreen() {
               <Text style={styles.cardTitle}>Goals Summary</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.primaryLight },
+                    ]}
+                  >
                     <Ionicons name="flag" size={20} color={colors.primary} />
                   </View>
                   <View style={styles.summaryItemContent}>
-                    <Text style={styles.summaryValue}>
-                      {goals.length}
-                    </Text>
+                    <Text style={styles.summaryValue}>{goals.length}</Text>
                     <Text style={styles.summaryLabel}>Active</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.warningLight },
+                    ]}
+                  >
                     <Ionicons name="trophy" size={20} color={colors.warning} />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(goals.reduce((sum, g) => sum + g.targetAmount, 0), currencySymbol)}
+                      {formatCompactCurrency(
+                        goals.reduce((sum, g) => sum + g.targetAmount, 0),
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Target</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.incomeLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.incomeLight },
+                    ]}
+                  >
                     <Ionicons name="wallet" size={20} color={colors.income} />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {formatCompactCurrency(goals.reduce((sum, g) => sum + g.currentAmount, 0), currencySymbol)}
+                      {formatCompactCurrency(
+                        goals.reduce((sum, g) => sum + g.currentAmount, 0),
+                        currencySymbol,
+                      )}
                     </Text>
                     <Text style={styles.summaryLabel}>Saved</Text>
                   </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                  <View
+                    style={[
+                      styles.summaryItemIcon,
+                      { backgroundColor: colors.accentLight },
+                    ]}
+                  >
                     <Ionicons name="pulse" size={20} color={colors.accent} />
                   </View>
                   <View style={styles.summaryItemContent}>
                     <Text style={styles.summaryValue}>
-                      {goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.currentAmount / g.targetAmount * 100), 0) / goals.length) : 0}%
+                      {goals.length > 0
+                        ? Math.round(
+                            goals.reduce(
+                              (sum, g) =>
+                                sum + (g.currentAmount / g.targetAmount) * 100,
+                              0,
+                            ) / goals.length,
+                          )
+                        : 0}
+                      %
                     </Text>
                     <Text style={styles.summaryLabel}>Progress</Text>
                   </View>
@@ -3084,55 +3408,86 @@ export default function AnalysisScreen() {
                 <Text style={styles.cardTitle}>Goal Progress</Text>
                 <View style={styles.budgetProgressGrid}>
                   {goals.slice(0, 4).map((goal) => {
-                    const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
-                    const circleColor = progress >= 100 ? '#22c55e' : 
-                                       progress >= 75 ? '#3b82f6' : 
-                                       progress >= 50 ? '#f59e0b' : '#ef4444';
+                    const progress = Math.min(
+                      (goal.currentAmount / goal.targetAmount) * 100,
+                      100,
+                    );
+                    const circleColor =
+                      progress >= 100
+                        ? "#22c55e"
+                        : progress >= 75
+                          ? "#3b82f6"
+                          : progress >= 50
+                            ? "#f59e0b"
+                            : "#ef4444";
                     const size = 80;
                     const strokeWidth = 8;
-                    
+
                     return (
                       <View key={goal.id} style={styles.budgetProgressItem}>
-                        <View style={{ width: size, height: size, position: 'relative' }}>
+                        <View
+                          style={{
+                            width: size,
+                            height: size,
+                            position: "relative",
+                          }}
+                        >
                           {/* Background circle */}
-                          <View style={{
-                            position: 'absolute',
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                            borderWidth: strokeWidth,
-                            borderColor: colors.border,
-                          }} />
+                          <View
+                            style={{
+                              position: "absolute",
+                              width: size,
+                              height: size,
+                              borderRadius: size / 2,
+                              borderWidth: strokeWidth,
+                              borderColor: colors.border,
+                            }}
+                          />
                           {/* Progress circle */}
-                          <View style={{
-                            position: 'absolute',
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                            borderWidth: strokeWidth,
-                            borderColor: circleColor,
-                            borderRightColor: 'transparent',
-                            borderTopColor: progress < 25 ? 'transparent' : circleColor,
-                            borderLeftColor: progress < 50 ? 'transparent' : circleColor,
-                            borderBottomColor: progress < 75 ? 'transparent' : circleColor,
-                            transform: [{ rotate: '-90deg' }],
-                          }} />
+                          <View
+                            style={{
+                              position: "absolute",
+                              width: size,
+                              height: size,
+                              borderRadius: size / 2,
+                              borderWidth: strokeWidth,
+                              borderColor: circleColor,
+                              borderRightColor: "transparent",
+                              borderTopColor:
+                                progress < 25 ? "transparent" : circleColor,
+                              borderLeftColor:
+                                progress < 50 ? "transparent" : circleColor,
+                              borderBottomColor:
+                                progress < 75 ? "transparent" : circleColor,
+                              transform: [{ rotate: "-90deg" }],
+                            }}
+                          />
                           {/* Percentage text */}
-                          <View style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                          }}>
-                            <Text style={[styles.budgetProgressPercent, { color: circleColor }]}>
+                          <View
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.budgetProgressPercent,
+                                { color: circleColor },
+                              ]}
+                            >
                               {progress.toFixed(0)}%
                             </Text>
                           </View>
                         </View>
-                        <Text style={styles.budgetProgressLabel} numberOfLines={1}>
+                        <Text
+                          style={styles.budgetProgressLabel}
+                          numberOfLines={1}
+                        >
                           {goal.name}
                         </Text>
                         <Text style={styles.budgetProgressAmount}>
@@ -3147,24 +3502,43 @@ export default function AnalysisScreen() {
 
             {goals.length > 0 && (
               <Card style={styles.chartCard}>
-                <Text style={styles.cardTitle}>Savings Projection (12 Months)</Text>
+                <Text style={styles.cardTitle}>
+                  Savings Projection (12 Months)
+                </Text>
                 <LineChart
                   data={{
-                    labels: ['Now', '3mo', '6mo', '9mo', '12mo'],
-                    datasets: [{
-                      data: (() => {
-                        const totalCurrent = goals.reduce((sum, g) => sum + g.currentAmount, 0);
-                        const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
-                        const monthlyIncrease = Math.max((totalTarget - totalCurrent) / 12, 0);
-                        return [
-                          Math.max(totalCurrent, 0),
-                          Math.max(totalCurrent + monthlyIncrease * 3, 0),
-                          Math.max(totalCurrent + monthlyIncrease * 6, 0),
-                          Math.max(totalCurrent + monthlyIncrease * 9, 0),
-                          Math.max(Math.min(totalCurrent + monthlyIncrease * 12, totalTarget), 0),
-                        ];
-                      })(),
-                    }],
+                    labels: ["Now", "3mo", "6mo", "9mo", "12mo"],
+                    datasets: [
+                      {
+                        data: (() => {
+                          const totalCurrent = goals.reduce(
+                            (sum, g) => sum + g.currentAmount,
+                            0,
+                          );
+                          const totalTarget = goals.reduce(
+                            (sum, g) => sum + g.targetAmount,
+                            0,
+                          );
+                          const monthlyIncrease = Math.max(
+                            (totalTarget - totalCurrent) / 12,
+                            0,
+                          );
+                          return [
+                            Math.max(totalCurrent, 0),
+                            Math.max(totalCurrent + monthlyIncrease * 3, 0),
+                            Math.max(totalCurrent + monthlyIncrease * 6, 0),
+                            Math.max(totalCurrent + monthlyIncrease * 9, 0),
+                            Math.max(
+                              Math.min(
+                                totalCurrent + monthlyIncrease * 12,
+                                totalTarget,
+                              ),
+                              0,
+                            ),
+                          ];
+                        })(),
+                      },
+                    ],
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
@@ -3176,8 +3550,8 @@ export default function AnalysisScreen() {
                     color: (opacity = 1) => colors.success,
                     labelColor: () => colors.textSecondary,
                     propsForDots: {
-                      r: '6',
-                      strokeWidth: '2',
+                      r: "6",
+                      strokeWidth: "2",
                       stroke: colors.success,
                     },
                   }}
@@ -3329,31 +3703,50 @@ export default function AnalysisScreen() {
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                   <Text style={styles.cardTitle}>Top Spending Categories</Text>
-                  <Text style={styles.chartSubtitle}>Top 5 of {
-                    categories.filter(cat => 
-                      transactions.some(t => t.type === 'expense' && t.categoryId === cat.id)
-                    ).length
-                  } categories</Text>
+                  <Text style={styles.chartSubtitle}>
+                    Top 5 of{" "}
+                    {
+                      categories.filter((cat) =>
+                        transactions.some(
+                          (t) =>
+                            t.type === "expense" && t.categoryId === cat.id,
+                        ),
+                      ).length
+                    }{" "}
+                    categories
+                  </Text>
                 </View>
                 <BarChart
                   data={(() => {
                     // Calculate spending per category and sort by amount
                     const categorySpending = categories
-                      .map(cat => ({
+                      .map((cat) => ({
                         name: cat.name,
                         amount: transactions
-                          .filter(t => t.type === 'expense' && t.categoryId === cat.id)
+                          .filter(
+                            (t) =>
+                              t.type === "expense" && t.categoryId === cat.id,
+                          )
                           .reduce((sum, t) => sum + t.amount, 0),
                       }))
-                      .filter(cat => cat.amount > 0)
+                      .filter((cat) => cat.amount > 0)
                       .sort((a, b) => b.amount - a.amount)
                       .slice(0, 5);
-                    
+
                     return {
-                      labels: categorySpending.map(cat => cat.name.substring(0, 7)),
-                      datasets: [{
-                        data: categorySpending.length > 0 ? categorySpending.map(cat => Math.round(cat.amount)) : [0],
-                      }],
+                      labels: categorySpending.map((cat) =>
+                        cat.name.substring(0, 7),
+                      ),
+                      datasets: [
+                        {
+                          data:
+                            categorySpending.length > 0
+                              ? categorySpending.map((cat) =>
+                                  Math.round(cat.amount),
+                                )
+                              : [0],
+                        },
+                      ],
                     };
                   })()}
                   width={width - spacing.lg * 4}
@@ -3381,7 +3774,9 @@ export default function AnalysisScreen() {
             {/* Income vs Expenses Trend */}
             {transactions.length > 0 && (
               <Card style={styles.chartCard}>
-                <Text style={styles.cardTitle}>Income vs Expenses (7 Days)</Text>
+                <Text style={styles.cardTitle}>
+                  Income vs Expenses (7 Days)
+                </Text>
                 <LineChart
                   data={{
                     labels: (() => {
@@ -3389,7 +3784,11 @@ export default function AnalysisScreen() {
                       for (let i = 6; i >= 0; i--) {
                         const date = new Date();
                         date.setDate(date.getDate() - i);
-                        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+                        labels.push(
+                          date.toLocaleDateString("en-US", {
+                            weekday: "short",
+                          }),
+                        );
                       }
                       return labels;
                     })(),
@@ -3400,10 +3799,19 @@ export default function AnalysisScreen() {
                           for (let i = 6; i >= 0; i--) {
                             const date = new Date();
                             date.setDate(date.getDate() - i);
-                            const dayStart = new Date(date.setHours(0, 0, 0, 0));
-                            const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+                            const dayStart = new Date(
+                              date.setHours(0, 0, 0, 0),
+                            );
+                            const dayEnd = new Date(
+                              date.setHours(23, 59, 59, 999),
+                            );
                             const dayIncome = transactions
-                              .filter(t => t.type === 'income' && new Date(t.date) >= dayStart && new Date(t.date) <= dayEnd)
+                              .filter(
+                                (t) =>
+                                  t.type === "income" &&
+                                  new Date(t.date) >= dayStart &&
+                                  new Date(t.date) <= dayEnd,
+                              )
                               .reduce((sum, t) => sum + t.amount, 0);
                             incomeData.push(Math.round(dayIncome));
                           }
@@ -3418,10 +3826,19 @@ export default function AnalysisScreen() {
                           for (let i = 6; i >= 0; i--) {
                             const date = new Date();
                             date.setDate(date.getDate() - i);
-                            const dayStart = new Date(date.setHours(0, 0, 0, 0));
-                            const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+                            const dayStart = new Date(
+                              date.setHours(0, 0, 0, 0),
+                            );
+                            const dayEnd = new Date(
+                              date.setHours(23, 59, 59, 999),
+                            );
                             const dayExpense = transactions
-                              .filter(t => t.type === 'expense' && new Date(t.date) >= dayStart && new Date(t.date) <= dayEnd)
+                              .filter(
+                                (t) =>
+                                  t.type === "expense" &&
+                                  new Date(t.date) >= dayStart &&
+                                  new Date(t.date) <= dayEnd,
+                              )
                               .reduce((sum, t) => sum + t.amount, 0);
                             expenseData.push(Math.round(dayExpense));
                           }
@@ -3431,7 +3848,7 @@ export default function AnalysisScreen() {
                         strokeWidth: 3,
                       },
                     ],
-                    legend: ['Income', 'Expenses'],
+                    legend: ["Income", "Expenses"],
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
@@ -3443,8 +3860,8 @@ export default function AnalysisScreen() {
                     color: (opacity = 1) => colors.primary,
                     labelColor: () => colors.textSecondary,
                     propsForDots: {
-                      r: '4',
-                      strokeWidth: '2',
+                      r: "4",
+                      strokeWidth: "2",
                     },
                   }}
                   bezier
@@ -3461,11 +3878,19 @@ export default function AnalysisScreen() {
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                   <Text style={styles.cardTitle}>Account Distribution</Text>
-                  <Text style={styles.chartSubtitle}>Top 5 of {accounts.length} accounts</Text>
+                  <Text style={styles.chartSubtitle}>
+                    Top 5 of {accounts.length} accounts
+                  </Text>
                 </View>
                 <PieChart
                   data={accounts.slice(0, 5).map((acc, index) => {
-                    const pieColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+                    const pieColors = [
+                      "#3b82f6",
+                      "#22c55e",
+                      "#f59e0b",
+                      "#ef4444",
+                      "#8b5cf6",
+                    ];
                     return {
                       name: acc.name.substring(0, 12),
                       population: Math.round(Math.abs(acc.balance)),

@@ -29,7 +29,7 @@ export const WeeklyTrendChart: React.FC<WeeklyTrendChartProps> = ({
   height = 140,
 }) => {
   const { colors, styles } = useChartStyles();
-  
+
   if (data.length === 0) {
     return (
       <View style={[styles.weeklyTrendContainer, { height }]}>
@@ -68,10 +68,7 @@ export const WeeklyTrendChart: React.FC<WeeklyTrendChartProps> = ({
           const incomeHeight = (item.income / maxValue) * chartHeight;
           const expenseHeight = (item.expense / maxValue) * chartHeight;
           return (
-            <View
-              key={index}
-              style={styles.trendBarWrapper}
-            >
+            <View key={index} style={styles.trendBarWrapper}>
               <View
                 style={[styles.trendBarBackground, { height: chartHeight }]}
               >
