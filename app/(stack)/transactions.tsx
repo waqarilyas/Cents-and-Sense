@@ -108,7 +108,8 @@ export default function TransactionsScreen() {
         transactionType,
         accountId || undefined,
       );
-      await refreshAccounts(); // Refresh accounts to show updated balance
+      // Refresh accounts in background to show updated balance
+      refreshAccounts(); // Non-blocking
       setShowAddModal(false);
       resetForm();
       Alert.alert("Success", "Transaction added successfully!");
@@ -141,7 +142,8 @@ export default function TransactionsScreen() {
         transactionType,
         accountId || undefined,
       );
-      await refreshAccounts(); // Refresh accounts to show updated balance
+      // Refresh accounts in background to show updated balance
+      refreshAccounts(); // Non-blocking
       setShowEditModal(false);
       resetForm();
       Alert.alert("Success", "Transaction updated successfully!");
@@ -165,7 +167,8 @@ export default function TransactionsScreen() {
   const handleDeleteTransaction = async (id: string) => {
     try {
       await deleteTransaction(id);
-      await refreshAccounts(); // Refresh accounts to show updated balance
+      // Note: Account balance is updated within deleteTransaction
+      // No need to refresh - optimistic update handles UI
     } catch (error) {
       Alert.alert("Error", "Failed to delete transaction");
     }

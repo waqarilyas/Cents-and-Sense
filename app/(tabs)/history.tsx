@@ -54,7 +54,7 @@ export default function HistoryScreen() {
   const handleDeleteTransaction = async (id: string) => {
     try {
       await deleteTransaction(id);
-      await refreshAccounts();
+      // No need to refresh - optimistic update handles UI
     } catch (error) {
       Alert.alert("Error", "Failed to delete transaction");
     }

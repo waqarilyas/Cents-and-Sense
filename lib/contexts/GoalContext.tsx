@@ -66,23 +66,37 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       deadline: number,
       currency: string = "USD",
     ) => {
+      const id = Date.now().toString();
+      const newGoal: Goal = {
+        id,
+        name,
+        targetAmount,
+        currentAmount: 0,
+        deadline,
+        currency,
+        createdAt: Date.now(),
+      };
+
+      // Optimistic update
+      setGoals((prev) => [...prev, newGoal]);
+      setError(null);
+
       try {
-        setError(null);
-        const id = Date.now().toString();
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO goals (id, name, targetAmount, currentAmount, deadline, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
           [id, name, targetAmount, 0, deadline, currency, Date.now()],
         );
-        await loadGoals();
       } catch (err) {
+        // Rollback
+        setGoals((prev) => prev.filter((g) => g.id !== id));
         const message =
           err instanceof Error ? err.message : "Failed to add goal";
         setError(message);
         throw err;
       }
     },
-    [loadGoals],
+    [],
   );
 
   const updateGoal = useCallback(
@@ -94,8 +108,24 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       deadline: number,
       currency?: string,
     ) => {
+      const oldGoal = goals.find((g) => g.id === id);
+      if (!oldGoal) {
+        throw new Error("Goal not found");
+      }
+
+      // Optimistic update
+      const updatedGoal = {
+        ...oldGoal,
+        name,
+        targetAmount,
+        currentAmount,
+        deadline,
+        ...(currency && { currency }),
+      };
+      setGoals((prev) => prev.map((g) => (g.id === id ? updatedGoal : g)));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         if (currency) {
           await db.runAsync(
@@ -108,32 +138,38 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
             [name, targetAmount, currentAmount, deadline, id],
           );
         }
-        await loadGoals();
       } catch (err) {
+        // Rollback
+        setGoals((prev) => prev.map((g) => (g.id === id ? oldGoal : g)));
         const message =
           err instanceof Error ? err.message : "Failed to update goal";
         setError(message);
         throw err;
       }
     },
-    [loadGoals],
+    [goals],
   );
 
   const deleteGoal = useCallback(
     async (id: string) => {
+      // Optimistic update - remove from UI immediately
+      const previousGoals = [...goals];
+      setGoals((prev) => prev.filter((g) => g.id !== id));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         await db.runAsync("DELETE FROM goals WHERE id = ?", [id]);
-        await loadGoals();
       } catch (err) {
+        // Rollback on error
+        setGoals(previousGoals);
         const message =
           err instanceof Error ? err.message : "Failed to delete goal";
         setError(message);
         throw err;
       }
     },
-    [loadGoals],
+    [goals],
   );
 
   const getGoal = useCallback(

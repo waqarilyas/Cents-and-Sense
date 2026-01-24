@@ -121,32 +121,53 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       notes?: string,
       currency: string = "USD",
     ): Promise<string> => {
-      const db = await getDatabase();
       const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const now = Date.now();
+      const newSubscription: Subscription = {
+        id,
+        name,
+        amount,
+        currency,
+        categoryId,
+        frequency,
+        startDate,
+        nextDueDate: startDate,
+        isActive: true,
+        reminderDays,
+        notes,
+        createdAt: now,
+      };
 
-      await db.runAsync(
-        `INSERT INTO subscriptions (id, name, amount, currency, categoryId, frequency, startDate, nextDueDate, isActive, reminderDays, notes, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
-        [
-          id,
-          name,
-          amount,
-          currency,
-          categoryId,
-          frequency,
-          startDate,
-          startDate,
-          reminderDays,
-          notes || null,
-          now,
-        ],
-      );
+      // Optimistic update
+      setSubscriptions((prev) => [...prev, newSubscription]);
 
-      await loadSubscriptions();
-      return id;
+      try {
+        const db = await getDatabase();
+        await db.runAsync(
+          `INSERT INTO subscriptions (id, name, amount, currency, categoryId, frequency, startDate, nextDueDate, isActive, reminderDays, notes, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+          [
+            id,
+            name,
+            amount,
+            currency,
+            categoryId,
+            frequency,
+            startDate,
+            startDate,
+            reminderDays,
+            notes || null,
+            now,
+          ],
+        );
+        return id;
+      } catch (err) {
+        // Rollback
+        setSubscriptions((prev) => prev.filter((s) => s.id !== id));
+        throw err;
+      }
     },
-    [loadSubscriptions],
+    [],
   );
 
   const updateSubscription = useCallback(
@@ -154,67 +175,93 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       id: string,
       updates: Partial<Omit<Subscription, "id" | "createdAt">>,
     ) => {
-      const db = await getDatabase();
-
-      const fields: string[] = [];
-      const values: (string | number | null)[] = [];
-
-      if (updates.name !== undefined) {
-        fields.push("name = ?");
-        values.push(updates.name);
-      }
-      if (updates.amount !== undefined) {
-        fields.push("amount = ?");
-        values.push(updates.amount);
-      }
-      if (updates.categoryId !== undefined) {
-        fields.push("categoryId = ?");
-        values.push(updates.categoryId);
-      }
-      if (updates.frequency !== undefined) {
-        fields.push("frequency = ?");
-        values.push(updates.frequency);
-      }
-      if (updates.startDate !== undefined) {
-        fields.push("startDate = ?");
-        values.push(updates.startDate);
-      }
-      if (updates.nextDueDate !== undefined) {
-        fields.push("nextDueDate = ?");
-        values.push(updates.nextDueDate);
-      }
-      if (updates.isActive !== undefined) {
-        fields.push("isActive = ?");
-        values.push(updates.isActive ? 1 : 0);
-      }
-      if (updates.reminderDays !== undefined) {
-        fields.push("reminderDays = ?");
-        values.push(updates.reminderDays);
-      }
-      if (updates.notes !== undefined) {
-        fields.push("notes = ?");
-        values.push(updates.notes || null);
+      const oldSubscription = subscriptions.find((s) => s.id === id);
+      if (!oldSubscription) {
+        throw new Error("Subscription not found");
       }
 
-      if (fields.length > 0) {
-        values.push(id);
-        await db.runAsync(
-          `UPDATE subscriptions SET ${fields.join(", ")} WHERE id = ?`,
-          values,
+      // Optimistic update
+      const updatedSubscription = { ...oldSubscription, ...updates };
+      setSubscriptions((prev) =>
+        prev.map((s) => (s.id === id ? updatedSubscription : s)),
+      );
+
+      try {
+        const db = await getDatabase();
+        const fields: string[] = [];
+        const values: (string | number | null)[] = [];
+
+        if (updates.name !== undefined) {
+          fields.push("name = ?");
+          values.push(updates.name);
+        }
+        if (updates.amount !== undefined) {
+          fields.push("amount = ?");
+          values.push(updates.amount);
+        }
+        if (updates.categoryId !== undefined) {
+          fields.push("categoryId = ?");
+          values.push(updates.categoryId);
+        }
+        if (updates.frequency !== undefined) {
+          fields.push("frequency = ?");
+          values.push(updates.frequency);
+        }
+        if (updates.startDate !== undefined) {
+          fields.push("startDate = ?");
+          values.push(updates.startDate);
+        }
+        if (updates.nextDueDate !== undefined) {
+          fields.push("nextDueDate = ?");
+          values.push(updates.nextDueDate);
+        }
+        if (updates.isActive !== undefined) {
+          fields.push("isActive = ?");
+          values.push(updates.isActive ? 1 : 0);
+        }
+        if (updates.reminderDays !== undefined) {
+          fields.push("reminderDays = ?");
+          values.push(updates.reminderDays);
+        }
+        if (updates.notes !== undefined) {
+          fields.push("notes = ?");
+          values.push(updates.notes || null);
+        }
+
+        if (fields.length > 0) {
+          values.push(id);
+          await db.runAsync(
+            `UPDATE subscriptions SET ${fields.join(", ")} WHERE id = ?`,
+            values,
+          );
+        }
+      } catch (err) {
+        // Rollback
+        setSubscriptions((prev) =>
+          prev.map((s) => (s.id === id ? oldSubscription : s)),
         );
-        await loadSubscriptions();
+        throw err;
       }
     },
-    [loadSubscriptions],
+    [subscriptions],
   );
 
   const deleteSubscription = useCallback(
     async (id: string) => {
-      const db = await getDatabase();
-      await db.runAsync("DELETE FROM subscriptions WHERE id = ?", [id]);
-      await loadSubscriptions();
+      // Optimistic update - remove from UI immediately
+      const previousSubscriptions = [...subscriptions];
+      setSubscriptions((prev) => prev.filter((s) => s.id !== id));
+
+      try {
+        const db = await getDatabase();
+        await db.runAsync("DELETE FROM subscriptions WHERE id = ?", [id]);
+      } catch (err) {
+        // Rollback on error
+        setSubscriptions(previousSubscriptions);
+        throw err;
+      }
     },
-    [loadSubscriptions],
+    [subscriptions],
   );
 
   const toggleSubscription = useCallback(

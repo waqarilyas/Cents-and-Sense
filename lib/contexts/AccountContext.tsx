@@ -58,29 +58,56 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const addAccount = useCallback(
     async (name: string, type: Account["type"], currency: string = "USD") => {
+      const id = Date.now().toString();
+      const newAccount: Account = {
+        id,
+        name,
+        type,
+        balance: 0,
+        currency,
+        createdAt: Date.now(),
+      };
+
+      // Optimistic update
+      setAccounts((prev) => [newAccount, ...prev]);
+      setError(null);
+
       try {
-        setError(null);
-        const id = Date.now().toString();
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO accounts (id, name, type, balance, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
           [id, name, type, 0, currency, Date.now()],
         );
-        await loadAccounts();
       } catch (err) {
+        // Rollback
+        setAccounts((prev) => prev.filter((a) => a.id !== id));
         const message =
           err instanceof Error ? err.message : "Failed to add account";
         setError(message);
         throw err;
       }
     },
-    [loadAccounts],
+    [],
   );
 
   const updateAccount = useCallback(
     async (id: string, name: string, balance: number, currency?: string) => {
+      const oldAccount = accounts.find((a) => a.id === id);
+      if (!oldAccount) {
+        throw new Error("Account not found");
+      }
+
+      // Optimistic update
+      const updatedAccount = {
+        ...oldAccount,
+        name,
+        balance,
+        ...(currency && { currency }),
+      };
+      setAccounts((prev) => prev.map((a) => (a.id === id ? updatedAccount : a)));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         if (currency) {
           await db.runAsync(
@@ -93,32 +120,38 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             [name, balance, id],
           );
         }
-        await loadAccounts();
       } catch (err) {
+        // Rollback
+        setAccounts((prev) => prev.map((a) => (a.id === id ? oldAccount : a)));
         const message =
           err instanceof Error ? err.message : "Failed to update account";
         setError(message);
         throw err;
       }
     },
-    [loadAccounts],
+    [accounts],
   );
 
   const deleteAccount = useCallback(
     async (id: string) => {
+      // Optimistic update - remove from UI immediately
+      const previousAccounts = [...accounts];
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
-        await loadAccounts();
       } catch (err) {
+        // Rollback on error
+        setAccounts(previousAccounts);
         const message =
           err instanceof Error ? err.message : "Failed to delete account";
         setError(message);
         throw err;
       }
     },
-    [loadAccounts],
+    [accounts],
   );
 
   const getAccount = useCallback(

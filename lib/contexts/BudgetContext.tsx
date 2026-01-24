@@ -87,23 +87,36 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       period: "monthly" | "yearly",
       currency: string = "USD",
     ) => {
+      const id = Date.now().toString();
+      const newBudget: Budget = {
+        id,
+        categoryId,
+        budget_limit: amount,
+        period,
+        currency,
+        createdAt: Date.now(),
+      };
+
+      // Optimistic update
+      setBudgets((prev) => [...prev, newBudget]);
+      setError(null);
+
       try {
-        setError(null);
-        const id = Date.now().toString();
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO budgets (id, categoryId, budget_limit, period, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
           [id, categoryId, amount, period, currency, Date.now()],
         );
-        await loadBudgets();
       } catch (err) {
+        // Rollback
+        setBudgets((prev) => prev.filter((b) => b.id !== id));
         const message =
           err instanceof Error ? err.message : "Failed to add budget";
         setError(message);
         throw err;
       }
     },
-    [loadBudgets],
+    [],
   );
 
   const updateBudget = useCallback(
@@ -113,8 +126,22 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       period: "monthly" | "yearly",
       currency?: string,
     ) => {
+      const oldBudget = budgets.find((b) => b.id === id);
+      if (!oldBudget) {
+        throw new Error("Budget not found");
+      }
+
+      // Optimistic update
+      const updatedBudget = {
+        ...oldBudget,
+        budget_limit: amount,
+        period,
+        ...(currency && { currency }),
+      };
+      setBudgets((prev) => prev.map((b) => (b.id === id ? updatedBudget : b)));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         if (currency) {
           await db.runAsync(
@@ -127,15 +154,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             [amount, period, id],
           );
         }
-        await loadBudgets();
       } catch (err) {
+        // Rollback
+        setBudgets((prev) => prev.map((b) => (b.id === id ? oldBudget : b)));
         const message =
           err instanceof Error ? err.message : "Failed to update budget";
         setError(message);
         throw err;
       }
     },
-    [loadBudgets],
+    [budgets],
   );
 
   const setMonthlyBudget = useCallback(
@@ -194,19 +222,24 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
   const deleteBudget = useCallback(
     async (id: string) => {
+      // Optimistic update - remove from UI immediately
+      const previousBudgets = [...budgets];
+      setBudgets((prev) => prev.filter((b) => b.id !== id));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         await db.runAsync("DELETE FROM budgets WHERE id = ?", [id]);
-        await loadBudgets();
       } catch (err) {
+        // Rollback on error
+        setBudgets(previousBudgets);
         const message =
           err instanceof Error ? err.message : "Failed to delete budget";
         setError(message);
         throw err;
       }
     },
-    [loadBudgets],
+    [budgets],
   );
 
   const getBudget = useCallback(

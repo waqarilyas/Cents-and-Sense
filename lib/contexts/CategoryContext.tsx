@@ -120,60 +120,89 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
 
   const addCategory = useCallback(
     async (name: string, type: "income" | "expense", color: string) => {
+      const id = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newCategory: Category = {
+        id,
+        name,
+        type,
+        color,
+        createdAt: Date.now(),
+      };
+
+      // Optimistic update
+      setCategories((prev) => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+      setError(null);
+
       try {
-        setError(null);
-        const id = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
           [id, name, type, color, Date.now()],
         );
-        await loadCategories();
       } catch (err) {
+        // Rollback
+        setCategories((prev) => prev.filter((c) => c.id !== id));
         const message =
           err instanceof Error ? err.message : "Failed to add category";
         setError(message);
         throw err;
       }
     },
-    [loadCategories],
+    [],
   );
 
   const updateCategory = useCallback(
     async (id: string, name: string, color: string) => {
+      const oldCategory = categories.find((c) => c.id === id);
+      if (!oldCategory) {
+        throw new Error("Category not found");
+      }
+
+      // Optimistic update
+      const updatedCategory = { ...oldCategory, name, color };
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? updatedCategory : c)).sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         await db.runAsync(
           "UPDATE categories SET name = ?, color = ? WHERE id = ?",
           [name, color, id],
         );
-        await loadCategories();
       } catch (err) {
+        // Rollback
+        setCategories((prev) => prev.map((c) => (c.id === id ? oldCategory : c)));
         const message =
           err instanceof Error ? err.message : "Failed to update category";
         setError(message);
         throw err;
       }
     },
-    [loadCategories],
+    [categories],
   );
 
   const deleteCategory = useCallback(
     async (id: string) => {
+      // Optimistic update - remove from UI immediately
+      const previousCategories = [...categories];
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
         await db.runAsync("DELETE FROM categories WHERE id = ?", [id]);
-        await loadCategories();
       } catch (err) {
+        // Rollback on error
+        setCategories(previousCategories);
         const message =
           err instanceof Error ? err.message : "Failed to delete category";
         setError(message);
         throw err;
       }
     },
-    [loadCategories],
+    [categories],
   );
 
   const getCategory = useCallback(

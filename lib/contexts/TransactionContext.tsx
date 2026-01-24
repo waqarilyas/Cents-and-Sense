@@ -113,9 +113,24 @@ export function TransactionProvider({
       accountId?: string,
       currency: string = "USD",
     ) => {
+      const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newTransaction: Transaction = {
+        id,
+        accountId,
+        categoryId,
+        amount,
+        currency,
+        description,
+        date,
+        type,
+        createdAt: Date.now(),
+      };
+
+      // Optimistic update - add to UI immediately
+      setTransactions((prev) => [newTransaction, ...prev]);
+      setError(null);
+
       try {
-        setError(null);
-        const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -136,16 +151,16 @@ export function TransactionProvider({
         if (accountId) {
           await updateAccountBalance(accountId, amount, type, "add");
         }
-
-        await loadTransactions();
       } catch (err) {
+        // Rollback on error - remove the transaction
+        setTransactions((prev) => prev.filter((t) => t.id !== id));
         const message =
           err instanceof Error ? err.message : "Failed to add transaction";
         setError(message);
         throw err;
       }
     },
-    [loadTransactions],
+    [],
   );
 
   const updateTransaction = useCallback(
@@ -159,15 +174,35 @@ export function TransactionProvider({
       accountId?: string,
       currency: string = "USD",
     ) => {
+      // Get the old transaction for rollback
+      const oldTx = transactions.find((t) => t.id === id);
+      if (!oldTx) {
+        throw new Error("Transaction not found");
+      }
+
+      // Create updated transaction
+      const updatedTx: Transaction = {
+        ...oldTx,
+        categoryId,
+        amount,
+        currency,
+        description,
+        date,
+        type,
+        accountId,
+      };
+
+      // Optimistic update - update in UI immediately
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === id ? updatedTx : t)),
+      );
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
 
-        // Get the old transaction to revert its balance impact
-        const oldTx = transactions.find((t) => t.id === id);
-
         // Revert old transaction's balance impact
-        if (oldTx?.accountId) {
+        if (oldTx.accountId) {
           await updateAccountBalance(
             oldTx.accountId,
             oldTx.amount,
@@ -195,31 +230,39 @@ export function TransactionProvider({
         if (accountId) {
           await updateAccountBalance(accountId, amount, type, "add");
         }
-
-        await loadTransactions();
       } catch (err) {
+        // Rollback on error - restore old transaction
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === id ? oldTx : t)),
+        );
         const message =
           err instanceof Error ? err.message : "Failed to update transaction";
         setError(message);
         throw err;
       }
     },
-    [loadTransactions, transactions],
+    [transactions],
   );
 
   const deleteTransaction = useCallback(
     async (id: string) => {
+      // Get the transaction to revert its balance impact
+      const tx = transactions.find((t) => t.id === id);
+      if (!tx) {
+        throw new Error("Transaction not found");
+      }
+
+      // Optimistic update - remove from UI immediately
+      const previousTransactions = [...transactions];
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      setError(null);
+
       try {
-        setError(null);
         const db = await getDatabase();
-
-        // Get the transaction to revert its balance impact
-        const tx = transactions.find((t) => t.id === id);
-
         await db.runAsync("DELETE FROM transactions WHERE id = ?", [id]);
 
         // Revert the transaction's balance impact
-        if (tx?.accountId) {
+        if (tx.accountId) {
           await updateAccountBalance(
             tx.accountId,
             tx.amount,
@@ -227,16 +270,16 @@ export function TransactionProvider({
             "remove",
           );
         }
-
-        await loadTransactions();
       } catch (err) {
+        // Rollback on error
+        setTransactions(previousTransactions);
         const message =
           err instanceof Error ? err.message : "Failed to delete transaction";
         setError(message);
         throw err;
       }
     },
-    [loadTransactions, transactions],
+    [transactions],
   );
 
   const getTransaction = useCallback(
