@@ -19,6 +19,7 @@ import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
+import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import {
   spacing,
   borderRadius,
@@ -27,6 +28,21 @@ import {
 } from "../../lib/theme";
 import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
+
+// Format currency with abbreviations for compact display
+const formatCompactCurrency = (amount: number, currencySymbol: string = "$"): string => {
+  const absAmount = Math.abs(amount);
+  const sign = amount < 0 ? "-" : "";
+  
+  if (absAmount >= 1000000) {
+    return `${sign}${currencySymbol}${(absAmount / 1000000).toFixed(1)}M`;
+  } else if (absAmount >= 1000) {
+    return `${sign}${currencySymbol}${(absAmount / 1000).toFixed(1)}K`;
+  } else {
+    return `${sign}${currencySymbol}${absAmount.toFixed(0)}`;
+  }
+};
+import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph } from "react-native-chart-kit";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -52,6 +68,7 @@ export default function AnalysisScreen() {
   const router = useRouter();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { currencySymbol } = useCurrency();
   const {
     transactions,
     loading: txLoading,
@@ -1102,106 +1119,125 @@ export default function AnalysisScreen() {
         transparent
         onRequestClose={() => setShowRangeModal(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Custom Range</Text>
-            <Text style={styles.modalSubtitle}>Select start and end dates</Text>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowRangeModal(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Custom Range</Text>
+                <Text style={styles.modalSubtitle}>Select start and end dates</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowRangeModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
 
-            {Platform.OS === "web" ? (
-              <View style={styles.webDateControls}>
-                <View style={styles.webDateRow}>
-                  <Text style={styles.webDateLabel}>Start</Text>
-                  <View style={styles.webDateButtons}>
-                    <TouchableOpacity
-                      style={styles.webDateButton}
-                      onPress={() =>
-                        setCustomRange((prev) => ({
-                          ...prev,
-                          start: prev.start - 24 * 60 * 60 * 1000,
-                        }))
-                      }
-                    >
-                      <Text style={styles.webDateButtonText}>-1d</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.webDateButton}
-                      onPress={() =>
-                        setCustomRange((prev) => ({
-                          ...prev,
-                          start: prev.start + 24 * 60 * 60 * 1000,
-                        }))
-                      }
-                    >
-                      <Text style={styles.webDateButtonText}>+1d</Text>
-                    </TouchableOpacity>
+            <ScrollView 
+              style={styles.modalScrollView}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {Platform.OS === "web" ? (
+                <View style={styles.webDateControls}>
+                  <View style={styles.webDateRow}>
+                    <Text style={styles.webDateLabel}>Start</Text>
+                    <View style={styles.webDateButtons}>
+                      <TouchableOpacity
+                        style={styles.webDateButton}
+                        onPress={() =>
+                          setCustomRange((prev) => ({
+                            ...prev,
+                            start: prev.start - 24 * 60 * 60 * 1000,
+                          }))
+                        }
+                      >
+                        <Text style={styles.webDateButtonText}>-1d</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.webDateButton}
+                        onPress={() =>
+                          setCustomRange((prev) => ({
+                            ...prev,
+                            start: prev.start + 24 * 60 * 60 * 1000,
+                          }))
+                        }
+                      >
+                        <Text style={styles.webDateButtonText}>+1d</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.webDateValue}>
+                      {formatShortDate(customRange.start)}
+                    </Text>
                   </View>
-                  <Text style={styles.webDateValue}>
-                    {formatShortDate(customRange.start)}
-                  </Text>
-                </View>
-                <View style={styles.webDateRow}>
-                  <Text style={styles.webDateLabel}>End</Text>
-                  <View style={styles.webDateButtons}>
-                    <TouchableOpacity
-                      style={styles.webDateButton}
-                      onPress={() =>
-                        setCustomRange((prev) => ({
-                          ...prev,
-                          end: prev.end - 24 * 60 * 60 * 1000,
-                        }))
-                      }
-                    >
-                      <Text style={styles.webDateButtonText}>-1d</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.webDateButton}
-                      onPress={() =>
-                        setCustomRange((prev) => ({
-                          ...prev,
-                          end: prev.end + 24 * 60 * 60 * 1000,
-                        }))
-                      }
-                    >
-                      <Text style={styles.webDateButtonText}>+1d</Text>
-                    </TouchableOpacity>
+                  <View style={styles.webDateRow}>
+                    <Text style={styles.webDateLabel}>End</Text>
+                    <View style={styles.webDateButtons}>
+                      <TouchableOpacity
+                        style={styles.webDateButton}
+                        onPress={() =>
+                          setCustomRange((prev) => ({
+                            ...prev,
+                            end: prev.end - 24 * 60 * 60 * 1000,
+                          }))
+                        }
+                      >
+                        <Text style={styles.webDateButtonText}>-1d</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.webDateButton}
+                        onPress={() =>
+                          setCustomRange((prev) => ({
+                            ...prev,
+                            end: prev.end + 24 * 60 * 60 * 1000,
+                          }))
+                        }
+                      >
+                        <Text style={styles.webDateButtonText}>+1d</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.webDateValue}>
+                      {formatShortDate(customRange.end)}
+                    </Text>
                   </View>
-                  <Text style={styles.webDateValue}>
-                    {formatShortDate(customRange.end)}
-                  </Text>
                 </View>
-              </View>
-            ) : (
-              <View style={styles.datePickerContainer}>
-                <Text style={styles.datePickerLabel}>Start</Text>
-                <DateTimePicker
-                  value={new Date(customRange.start)}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "inline" : "default"}
-                  onChange={(_, date) => {
-                    if (date) {
-                      setCustomRange((prev) => ({
-                        ...prev,
-                        start: date.getTime(),
-                      }));
-                    }
-                  }}
-                />
-                <Text style={styles.datePickerLabel}>End</Text>
-                <DateTimePicker
-                  value={new Date(customRange.end)}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "inline" : "default"}
-                  onChange={(_, date) => {
-                    if (date) {
-                      setCustomRange((prev) => ({
-                        ...prev,
-                        end: date.getTime(),
-                      }));
-                    }
-                  }}
-                />
-              </View>
-            )}
+              ) : (
+                <View style={styles.datePickerContainer}>
+                  <Text style={styles.datePickerLabel}>Start</Text>
+                  <DateTimePicker
+                    value={new Date(customRange.start)}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "default"}
+                    onChange={(_, date) => {
+                      if (date) {
+                        setCustomRange((prev) => ({
+                          ...prev,
+                          start: date.getTime(),
+                        }));
+                      }
+                    }}
+                  />
+                  <Text style={styles.datePickerLabel}>End</Text>
+                  <DateTimePicker
+                    value={new Date(customRange.end)}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "inline" : "default"}
+                    onChange={(_, date) => {
+                      if (date) {
+                        setCustomRange((prev) => ({
+                          ...prev,
+                          end: date.getTime(),
+                        }));
+                      }
+                    }}
+                  />
+                </View>
+              )}
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <Pressable
@@ -1228,8 +1264,8 @@ export default function AnalysisScreen() {
                 <Text style={styles.modalButtonTextPrimary}>Apply</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
@@ -1238,10 +1274,23 @@ export default function AnalysisScreen() {
         transparent
         onRequestClose={() => setShowFilterModal(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Filters</Text>
-            <Text style={styles.modalSubtitle}>Refine analytics</Text>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowFilterModal(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Filters</Text>
+                <Text style={styles.modalSubtitle}>Refine analytics</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.filterSectionTitle}>Type</Text>
             <View style={styles.filterRow}>
@@ -1373,8 +1422,8 @@ export default function AnalysisScreen() {
                 <Text style={styles.modalButtonTextPrimary}>Apply</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <ScrollView
@@ -2164,8 +2213,10 @@ export default function AnalysisScreen() {
               {merchantBreakdown.length > 0 ? (
                 merchantBreakdown.map((merchant) => (
                   <View key={merchant.name} style={styles.listRow}>
-                    <View>
-                      <Text style={styles.listTitle}>{merchant.name}</Text>
+                    <View style={styles.listLeftContent}>
+                      <Text style={styles.listTitle} numberOfLines={1} ellipsizeMode="tail">
+                        {merchant.name}
+                      </Text>
                       <Text style={styles.listSubtitle}>
                         {merchant.count} tx • Avg {formatCurrency(merchant.avg)}
                       </Text>
@@ -2182,13 +2233,23 @@ export default function AnalysisScreen() {
 
             <Card style={styles.summaryCard}>
               <Text style={styles.cardTitle}>Transaction Size</Text>
-              <View style={styles.quickStatsGrid}>
-                {transactionSizeBuckets.map((bucket) => (
-                  <View key={bucket.label} style={styles.quickStatItem}>
-                    <Text style={styles.quickStatValue}>{bucket.count}</Text>
-                    <Text style={styles.quickStatLabel}>{bucket.label}</Text>
-                  </View>
-                ))}
+              <View style={styles.summaryGrid}>
+                {transactionSizeBuckets.map((bucket, index) => {
+                  const iconNames = ['cart-outline', 'restaurant-outline', 'home-outline', 'diamond-outline'];
+                  const bgColors = [colors.primaryLight, colors.incomeLight, colors.warningLight, colors.expenseLight];
+                  const iconColors = [colors.primary, colors.income, colors.warning, colors.expense];
+                  return (
+                    <View key={bucket.label} style={styles.summaryItem}>
+                      <View style={[styles.summaryItemIcon, { backgroundColor: bgColors[index % bgColors.length] }]}>
+                        <Ionicons name={iconNames[index % iconNames.length] as any} size={20} color={iconColors[index % iconColors.length]} />
+                      </View>
+                      <View style={styles.summaryItemContent}>
+                        <Text style={styles.summaryValue}>{bucket.count}</Text>
+                        <Text style={styles.summaryLabel}>{bucket.label}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             </Card>
           </>
@@ -2197,24 +2258,133 @@ export default function AnalysisScreen() {
         {/* INCOME TAB */}
         {activeTab === "income" && (
           <>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Income Overview</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.incomeLight }]}>
+                    <Ionicons name="cash" size={20} color={colors.income} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(stats.income, currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Total Income</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
+                    <Ionicons name="calendar" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(stats.income / Math.max(periodMonths, 1), currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Monthly Avg</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                    <Ionicons name="star" size={20} color={colors.warning} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(incomeBreakdown[0]?.amount || 0, currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Top Source</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                    <Ionicons name="layers" size={20} color={colors.accent} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {incomeBreakdown.length}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Sources</Text>
+                  </View>
+                </View>
+              </View>
+            </Card>
+
+            {incomeBreakdown.length > 0 && (
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.cardTitle}>Income Sources Distribution</Text>
+                  <Text style={styles.chartSubtitle}>Top 5 of {incomeBreakdown.length} sources</Text>
+                </View>
+                <PieChart
+                  data={incomeBreakdown.slice(0, 5).map((source, index) => {
+                    const pieColors = ['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+                    return {
+                      name: source.name.substring(0, 12),
+                      population: Math.round(source.amount),
+                      color: pieColors[index % pieColors.length],
+                      legendFontColor: colors.textSecondary,
+                      legendFontSize: 12,
+                    };
+                  })}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    color: (opacity = 1) => colors.income,
+                  }}
+                  accessor="population"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                />
+              </Card>
+            )}
+
+            {incomeBreakdown.length > 0 && (
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.cardTitle}>Income Trend</Text>
+                  <Text style={styles.chartSubtitle}>
+                    {selectedPeriod === "year" ? "Monthly" : "Last 7 days"} income pattern
+                  </Text>
+                </View>
+                <LineChart
+                  data={{
+                    labels: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => d.label),
+                    datasets: [{
+                      data: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => Math.max(d.income, 1)),
+                    }],
+                  }}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: colors.surface,
+                    backgroundGradientFrom: colors.surface,
+                    backgroundGradientTo: colors.surface,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => colors.income,
+                    labelColor: () => colors.textSecondary,
+                    propsForDots: {
+                      r: '6',
+                      strokeWidth: '2',
+                      stroke: colors.income,
+                    },
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                  fromZero
+                />
+              </Card>
+            )}
+
             <Card style={styles.breakdownCard}>
-              <Text style={styles.cardTitle}>Income Sources</Text>
+              <Text style={styles.cardTitle}>Detailed Breakdown</Text>
               {incomeBreakdown.length > 0 ? (
                 <>
-                  <View style={styles.pieContainer}>
-                    {incomeBreakdown.slice(0, 5).map((source) => (
-                      <View
-                        key={source.id}
-                        style={[
-                          styles.pieSegment,
-                          {
-                            backgroundColor: source.color,
-                            width: `${Math.max(source.percentage, 5)}%`,
-                          },
-                        ]}
-                      />
-                    ))}
-                  </View>
                   {incomeBreakdown.map((source) => (
                     <View key={source.id} style={styles.breakdownItem}>
                       <View style={styles.breakdownLeft}>
@@ -2255,151 +2425,113 @@ export default function AnalysisScreen() {
                 </View>
               )}
             </Card>
-
-            <Card style={styles.chartCard}>
-              <Text style={styles.cardTitle}>Income Trend</Text>
-              <View style={styles.chart}>
-                {dailyTrend
-                  .slice(selectedPeriod === "year" ? 0 : -7)
-                  .map((day, index) => (
-                    <View key={index} style={styles.chartBar}>
-                      <View style={styles.chartBarContainer}>
-                        <View
-                          style={[
-                            styles.chartBarFill,
-                            styles.chartBarIncome,
-                            {
-                              height: `${(day.income / maxTrendValue) * 100}%`,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.chartLabel}>{day.label}</Text>
-                    </View>
-                  ))}
-              </View>
-            </Card>
-
-            <Card style={styles.summaryCard}>
-              <Text style={styles.cardTitle}>Income Stats</Text>
-              <View style={styles.summaryGrid}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {formatCurrency(stats.income)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Total Income</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {formatCurrency(stats.income / Math.max(periodMonths, 1))}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Monthly Avg</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {formatCurrency(incomeBreakdown[0]?.amount || 0)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Top Source</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {incomeBreakdown.length}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Sources</Text>
-                </View>
-              </View>
-            </Card>
           </>
         )}
 
         {/* CASH FLOW TAB */}
         {activeTab === "cashflow" && (
           <>
-            {/* Trend Chart */}
-            <Card style={styles.chartCard}>
-              <Text style={styles.cardTitle}>
-                {selectedPeriod === "year" ? "Monthly" : "Daily"} Trend
-              </Text>
-              <View style={styles.chartLegend}>
-                <View style={styles.legendItem}>
-                  <View
-                    style={[
-                      styles.legendDot,
-                      { backgroundColor: colors.income },
-                    ]}
-                  />
-                  <Text style={styles.legendText}>Income</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View
-                    style={[
-                      styles.legendDot,
-                      { backgroundColor: colors.expense },
-                    ]}
-                  />
-                  <Text style={styles.legendText}>Expenses</Text>
-                </View>
-              </View>
-              <View style={styles.chart}>
-                {dailyTrend
-                  .slice(selectedPeriod === "year" ? 0 : -7)
-                  .map((day, index) => (
-                    <View key={index} style={styles.chartBar}>
-                      <View style={styles.chartBarContainer}>
-                        <View
-                          style={[
-                            styles.chartBarFill,
-                            styles.chartBarIncome,
-                            {
-                              height: `${(day.income / maxTrendValue) * 100}%`,
-                            },
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.chartBarFill,
-                            styles.chartBarExpense,
-                            {
-                              height: `${(day.expense / maxTrendValue) * 100}%`,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.chartLabel}>{day.label}</Text>
-                    </View>
-                  ))}
-              </View>
-            </Card>
-
             <Card style={styles.summaryCard}>
               <Text style={styles.cardTitle}>Cash Flow Summary</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {formatCurrency(cashFlowSummary.net)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Net Flow</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: cashFlowSummary.net >= 0 ? colors.incomeLight : colors.expenseLight }]}>
+                    <Ionicons name="trending-up" size={20} color={cashFlowSummary.net >= 0 ? colors.income : colors.expense} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={[styles.summaryValue, { color: cashFlowSummary.net >= 0 ? colors.income : colors.expense }]}>
+                      {formatCompactCurrency(cashFlowSummary.net, currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Net Flow</Text>
+                  </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {cashFlowSummary.coverage.toFixed(2)}x
-                  </Text>
-                  <Text style={styles.summaryLabel}>Coverage</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
+                    <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {cashFlowSummary.coverage.toFixed(2)}x
+                    </Text>
+                    <Text style={styles.summaryLabel}>Coverage</Text>
+                  </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {accountsSummary.totalBalance >= 0 ? "" : "-"}
-                    {formatCurrency(Math.abs(accountsSummary.totalBalance))}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Net Worth</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                    <Ionicons name="wallet" size={20} color={colors.accent} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(accountsSummary.totalBalance, currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Net Worth</Text>
+                  </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {cashFlowSummary.liquidityRatio.toFixed(1)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Liquidity</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                    <Ionicons name="water" size={20} color={colors.warning} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {cashFlowSummary.liquidityRatio.toFixed(1)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Liquidity</Text>
+                  </View>
                 </View>
               </View>
+            </Card>
+
+            {/* Trend Chart */}
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.cardTitle}>
+                  {selectedPeriod === "year" ? "Monthly" : "Daily"} Trend
+                </Text>
+                <Text style={styles.chartSubtitle}>
+                  Track your income (green) vs expenses (red) over time
+                </Text>
+              </View>
+              <LineChart
+                data={{
+                  labels: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => d.label),
+                  datasets: [
+                    {
+                      data: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => Math.max(d.income, 0)),
+                      color: () => colors.income,
+                      strokeWidth: 3,
+                    },
+                    {
+                      data: dailyTrend.slice(selectedPeriod === "year" ? 0 : -7).map(d => Math.max(d.expense, 0)),
+                      color: () => colors.expense,
+                      strokeWidth: 3,
+                    },
+                  ],
+                  legend: ["Income", "Expenses"],
+                }}
+                width={width - spacing.lg * 4}
+                height={220}
+                chartConfig={{
+                  backgroundColor: colors.surface,
+                  backgroundGradientFrom: colors.surface,
+                  backgroundGradientTo: colors.surface,
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => colors.textMuted,
+                  labelColor: (opacity = 1) => colors.textSecondary,
+                  style: {
+                    borderRadius: borderRadius.md,
+                  },
+                  propsForDots: {
+                    r: "5",
+                    strokeWidth: "2",
+                  },
+                }}
+                bezier
+                style={{
+                  marginVertical: 8,
+                  borderRadius: borderRadius.md,
+                }}
+                fromZero
+              />
             </Card>
 
             <Card style={styles.chartCard}>
@@ -2585,53 +2717,85 @@ export default function AnalysisScreen() {
         {activeTab === "budgets" && (
           <>
             <Card style={styles.budgetUsageCard}>
-              <Text style={styles.cardTitle}>Budget Usage</Text>
+              <Text style={styles.cardTitle}>Budget Overview</Text>
               {budgetsSummary.budgetForPeriod > 0 ? (
                 <>
+                  <View style={styles.budgetProgressGrid}>
+                    {budgetsSummary.budgetUsage.slice(0, 4).map((budget, index) => {
+                      const progress = Math.min(budget.percentage, 100);
+                      const circleColor = budget.percentage > 100 ? colors.expense : 
+                                         budget.percentage > 85 ? colors.warning : colors.income;
+                      const size = 80;
+                      const strokeWidth = 8;
+                      const center = size / 2;
+                      const radius = (size - strokeWidth) / 2;
+                      const circumference = 2 * Math.PI * radius;
+                      const strokeDashoffset = circumference - (progress / 100) * circumference;
+                      
+                      return (
+                        <View key={budget.id} style={styles.budgetProgressItem}>
+                          <View style={{ width: size, height: size, position: 'relative' }}>
+                            {/* Background circle */}
+                            <View style={{
+                              position: 'absolute',
+                              width: size,
+                              height: size,
+                              borderRadius: size / 2,
+                              borderWidth: strokeWidth,
+                              borderColor: colors.border,
+                            }} />
+                            {/* Progress circle */}
+                            <View style={{
+                              position: 'absolute',
+                              width: size,
+                              height: size,
+                              borderRadius: size / 2,
+                              borderWidth: strokeWidth,
+                              borderColor: circleColor,
+                              borderRightColor: 'transparent',
+                              borderTopColor: progress < 25 ? 'transparent' : circleColor,
+                              borderLeftColor: progress < 50 ? 'transparent' : circleColor,
+                              borderBottomColor: progress < 75 ? 'transparent' : circleColor,
+                              transform: [{ rotate: '-90deg' }],
+                            }} />
+                            {/* Percentage text */}
+                            <View style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}>
+                              <Text style={[styles.budgetProgressPercent, { color: circleColor }]}>
+                                {budget.percentage.toFixed(0)}%
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.budgetProgressLabel} numberOfLines={1}>
+                            {budget.name}
+                          </Text>
+                          <Text style={styles.budgetProgressAmount}>
+                            {formatCurrency(budget.spent)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
                       {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
                       {formatCurrency(budgetsSummary.budgetForPeriod)}
                     </Text>
-                    <Text style={styles.budgetUsagePercent}>
+                    <Text style={[styles.budgetUsagePercent, {
+                      color: budgetsSummary.utilization > 100 ? colors.expense : 
+                             budgetsSummary.utilization > 85 ? colors.warning : colors.income
+                    }]}>
                       {budgetsSummary.utilization.toFixed(0)}%
                     </Text>
                   </View>
-                  <View style={styles.budgetUsageBar}>
-                    <View
-                      style={[
-                        styles.budgetUsageBarFill,
-                        {
-                          width: `${Math.min(budgetsSummary.utilization, 100)}%`,
-                          backgroundColor:
-                            budgetsSummary.utilization > 100
-                              ? colors.expense
-                              : budgetsSummary.utilization > 85
-                                ? colors.warning
-                                : colors.income,
-                        },
-                      ]}
-                    />
-                  </View>
-                  {budgetsSummary.budgetUsage.map((budget) => (
-                    <View key={budget.id} style={styles.budgetUsageItem}>
-                      <View style={styles.budgetUsageLeft}>
-                        <View
-                          style={[
-                            styles.budgetUsageDot,
-                            { backgroundColor: budget.color },
-                          ]}
-                        />
-                        <Text style={styles.budgetUsageName}>
-                          {budget.name}
-                        </Text>
-                      </View>
-                      <Text style={styles.budgetUsageValue}>
-                        {formatCurrency(budget.spent)} /{" "}
-                        {formatCurrency(budget.limit)}
-                      </Text>
-                    </View>
-                  ))}
                 </>
               ) : (
                 <View style={styles.emptyState}>
@@ -2644,6 +2808,70 @@ export default function AnalysisScreen() {
                 </View>
               )}
             </Card>
+
+            {budgetsSummary.budgetForPeriod > 0 && (
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.cardTitle}>Budget Distribution</Text>
+                  <Text style={styles.chartSubtitle}>Top 5 of {budgetsSummary.budgetUsage.length} budgets</Text>
+                </View>
+                <PieChart
+                  data={budgetsSummary.budgetUsage.slice(0, 5).map((budget, index) => ({
+                    name: budget.name.substring(0, 12),
+                    population: Math.round(budget.spent),
+                    color: budget.color,
+                    legendFontColor: colors.textSecondary,
+                    legendFontSize: 12,
+                  }))}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    color: (opacity = 1) => colors.primary,
+                  }}
+                  accessor="population"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                />
+              </Card>
+            )}
+
+            {budgetsSummary.budgetForPeriod > 0 && (
+              <Card style={styles.budgetUsageCard}>
+                <Text style={styles.cardTitle}>Detailed Breakdown</Text>
+                {budgetsSummary.budgetUsage.map((budget) => (
+                  <View key={budget.id} style={styles.budgetUsageItem}>
+                    <View style={styles.budgetUsageLeft}>
+                      <View
+                        style={[
+                          styles.budgetUsageDot,
+                          { backgroundColor: budget.color },
+                        ]}
+                      />
+                      <Text style={styles.budgetUsageName}>
+                        {budget.name}
+                      </Text>
+                    </View>
+                    <View style={styles.budgetUsageRight}>
+                      <Text style={styles.budgetUsageValue}>
+                        {formatCurrency(budget.spent)} /{" "}
+                        {formatCurrency(budget.limit)}
+                      </Text>
+                      <Text style={[
+                        styles.budgetUsagePercent,
+                        budget.percentage > 100 && { color: colors.expense },
+                        budget.percentage > 85 && budget.percentage <= 100 && { color: colors.warning },
+                      ]}>
+                        {budget.percentage.toFixed(0)}%
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            )}
           </>
         )}
 
@@ -2654,31 +2882,126 @@ export default function AnalysisScreen() {
               <Text style={styles.cardTitle}>Subscriptions Summary</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {subscriptionsSummary.activeCount}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Active</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {subscriptionsSummary.activeCount}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Active</Text>
+                  </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {formatCurrency(subscriptionsSummary.monthlyTotal)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Monthly</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.expenseLight }]}>
+                    <Ionicons name="calendar-outline" size={20} color={colors.expense} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(subscriptionsSummary.monthlyTotal, currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Monthly</Text>
+                  </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {formatCurrency(subscriptionAnalytics.annualTotal)}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Annual</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                    <Ionicons name="calendar" size={20} color={colors.warning} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(subscriptionAnalytics.annualTotal, currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Annual</Text>
+                  </View>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>
-                    {subscriptionAnalytics.upcoming.length}
-                  </Text>
-                  <Text style={styles.summaryLabel}>Upcoming</Text>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                    <Ionicons name="time-outline" size={20} color={colors.accent} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {subscriptionAnalytics.upcoming.length}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Upcoming</Text>
+                  </View>
                 </View>
               </View>
             </Card>
+
+            {subscriptionAnalytics.active.length > 0 && (
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.cardTitle}>Monthly Cost Breakdown</Text>
+                  <Text style={styles.chartSubtitle}>Top 5 of {subscriptionAnalytics.active.length} subscriptions</Text>
+                </View>
+                <PieChart
+                  data={subscriptionAnalytics.active.slice(0, 5).map((sub, index) => {
+                    const monthlyAmount = sub.frequency === 'daily' ? sub.amount * 30 :
+                                        sub.frequency === 'weekly' ? sub.amount * 4 :
+                                        sub.frequency === 'monthly' ? sub.amount :
+                                        sub.amount / 12;
+                    const pieColors = ['#e91e63', '#2c2c54', '#ff9800', '#f39c12', '#9b59b6'];
+                    return {
+                      name: sub.name.substring(0, 12),
+                      population: Math.round(monthlyAmount * 100) / 100,
+                      color: pieColors[index % pieColors.length],
+                      legendFontColor: colors.textSecondary,
+                      legendFontSize: 12,
+                    };
+                  })}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    color: (opacity = 1) => colors.primary,
+                  }}
+                  accessor="population"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                />
+              </Card>
+            )}
+
+            {subscriptionAnalytics.active.length > 0 && (
+              <Card style={styles.chartCard}>
+                <Text style={styles.cardTitle}>Cost by Frequency</Text>
+                <BarChart
+                  data={{
+                    labels: ['Daily', 'Weekly', 'Monthly', 'Yearly'],
+                    datasets: [{
+                      data: [
+                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'daily').reduce((sum, s) => sum + s.amount * 30, 0) * 100) / 100, 1),
+                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'weekly').reduce((sum, s) => sum + s.amount * 4, 0) * 100) / 100, 1),
+                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'monthly').reduce((sum, s) => sum + s.amount, 0) * 100) / 100, 1),
+                        Math.max(Math.round(subscriptionAnalytics.active.filter(s => s.frequency === 'yearly').reduce((sum, s) => sum + s.amount / 12, 0) * 100) / 100, 1),
+                      ],
+                    }],
+                  }}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: colors.surface,
+                    backgroundGradientFrom: colors.surface,
+                    backgroundGradientTo: colors.surface,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => colors.primary,
+                    labelColor: () => colors.textSecondary,
+                    style: {
+                      borderRadius: borderRadius.md,
+                    },
+                  }}
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                  fromZero
+                  showValuesOnTopOfBars
+                />
+              </Card>
+            )}
 
             <Card style={styles.summaryCard}>
               <Text style={styles.cardTitle}>Upcoming Bills</Text>
@@ -2706,6 +3029,168 @@ export default function AnalysisScreen() {
         {/* GOALS TAB */}
         {activeTab === "goals" && (
           <>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Goals Summary</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.primaryLight }]}>
+                    <Ionicons name="flag" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {goals.length}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Active</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.warningLight }]}>
+                    <Ionicons name="trophy" size={20} color={colors.warning} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(goals.reduce((sum, g) => sum + g.targetAmount, 0), currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Target</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.incomeLight }]}>
+                    <Ionicons name="wallet" size={20} color={colors.income} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {formatCompactCurrency(goals.reduce((sum, g) => sum + g.currentAmount, 0), currencySymbol)}
+                    </Text>
+                    <Text style={styles.summaryLabel}>Saved</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryItem}>
+                  <View style={[styles.summaryItemIcon, { backgroundColor: colors.accentLight }]}>
+                    <Ionicons name="pulse" size={20} color={colors.accent} />
+                  </View>
+                  <View style={styles.summaryItemContent}>
+                    <Text style={styles.summaryValue}>
+                      {goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.currentAmount / g.targetAmount * 100), 0) / goals.length) : 0}%
+                    </Text>
+                    <Text style={styles.summaryLabel}>Progress</Text>
+                  </View>
+                </View>
+              </View>
+            </Card>
+
+            {goals.length > 0 && (
+              <Card style={styles.chartCard}>
+                <Text style={styles.cardTitle}>Goal Progress</Text>
+                <View style={styles.budgetProgressGrid}>
+                  {goals.slice(0, 4).map((goal) => {
+                    const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+                    const circleColor = progress >= 100 ? '#22c55e' : 
+                                       progress >= 75 ? '#3b82f6' : 
+                                       progress >= 50 ? '#f59e0b' : '#ef4444';
+                    const size = 80;
+                    const strokeWidth = 8;
+                    
+                    return (
+                      <View key={goal.id} style={styles.budgetProgressItem}>
+                        <View style={{ width: size, height: size, position: 'relative' }}>
+                          {/* Background circle */}
+                          <View style={{
+                            position: 'absolute',
+                            width: size,
+                            height: size,
+                            borderRadius: size / 2,
+                            borderWidth: strokeWidth,
+                            borderColor: colors.border,
+                          }} />
+                          {/* Progress circle */}
+                          <View style={{
+                            position: 'absolute',
+                            width: size,
+                            height: size,
+                            borderRadius: size / 2,
+                            borderWidth: strokeWidth,
+                            borderColor: circleColor,
+                            borderRightColor: 'transparent',
+                            borderTopColor: progress < 25 ? 'transparent' : circleColor,
+                            borderLeftColor: progress < 50 ? 'transparent' : circleColor,
+                            borderBottomColor: progress < 75 ? 'transparent' : circleColor,
+                            transform: [{ rotate: '-90deg' }],
+                          }} />
+                          {/* Percentage text */}
+                          <View style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                          }}>
+                            <Text style={[styles.budgetProgressPercent, { color: circleColor }]}>
+                              {progress.toFixed(0)}%
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.budgetProgressLabel} numberOfLines={1}>
+                          {goal.name}
+                        </Text>
+                        <Text style={styles.budgetProgressAmount}>
+                          {formatCurrency(goal.currentAmount)}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </Card>
+            )}
+
+            {goals.length > 0 && (
+              <Card style={styles.chartCard}>
+                <Text style={styles.cardTitle}>Savings Projection (12 Months)</Text>
+                <LineChart
+                  data={{
+                    labels: ['Now', '3mo', '6mo', '9mo', '12mo'],
+                    datasets: [{
+                      data: (() => {
+                        const totalCurrent = goals.reduce((sum, g) => sum + g.currentAmount, 0);
+                        const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
+                        const monthlyIncrease = Math.max((totalTarget - totalCurrent) / 12, 0);
+                        return [
+                          Math.max(totalCurrent, 0),
+                          Math.max(totalCurrent + monthlyIncrease * 3, 0),
+                          Math.max(totalCurrent + monthlyIncrease * 6, 0),
+                          Math.max(totalCurrent + monthlyIncrease * 9, 0),
+                          Math.max(Math.min(totalCurrent + monthlyIncrease * 12, totalTarget), 0),
+                        ];
+                      })(),
+                    }],
+                  }}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: colors.surface,
+                    backgroundGradientFrom: colors.surface,
+                    backgroundGradientTo: colors.surface,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => colors.success,
+                    labelColor: () => colors.textSecondary,
+                    propsForDots: {
+                      r: '6',
+                      strokeWidth: '2',
+                      stroke: colors.success,
+                    },
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                  fromZero
+                />
+              </Card>
+            )}
+
             <Card style={styles.summaryCard}>
               <Text style={styles.cardTitle}>Goals Progress</Text>
               {goals.length > 0 ? (
@@ -2836,6 +3321,172 @@ export default function AnalysisScreen() {
                 <Text style={styles.noInsightsText}>
                   Add more transactions to get personalized insights
                 </Text>
+              </Card>
+            )}
+
+            {/* Category Spending Breakdown */}
+            {categories.length > 0 && transactions.length > 0 && (
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.cardTitle}>Top Spending Categories</Text>
+                  <Text style={styles.chartSubtitle}>Top 5 of {
+                    categories.filter(cat => 
+                      transactions.some(t => t.type === 'expense' && t.categoryId === cat.id)
+                    ).length
+                  } categories</Text>
+                </View>
+                <BarChart
+                  data={(() => {
+                    // Calculate spending per category and sort by amount
+                    const categorySpending = categories
+                      .map(cat => ({
+                        name: cat.name,
+                        amount: transactions
+                          .filter(t => t.type === 'expense' && t.categoryId === cat.id)
+                          .reduce((sum, t) => sum + t.amount, 0),
+                      }))
+                      .filter(cat => cat.amount > 0)
+                      .sort((a, b) => b.amount - a.amount)
+                      .slice(0, 5);
+                    
+                    return {
+                      labels: categorySpending.map(cat => cat.name.substring(0, 7)),
+                      datasets: [{
+                        data: categorySpending.length > 0 ? categorySpending.map(cat => Math.round(cat.amount)) : [0],
+                      }],
+                    };
+                  })()}
+                  width={width - spacing.lg * 4}
+                  height={240}
+                  chartConfig={{
+                    backgroundColor: colors.surface,
+                    backgroundGradientFrom: colors.surface,
+                    backgroundGradientTo: colors.surface,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => colors.expense,
+                    labelColor: () => colors.textSecondary,
+                    style: {
+                      borderRadius: borderRadius.md,
+                    },
+                  }}
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                  fromZero
+                />
+              </Card>
+            )}
+
+            {/* Income vs Expenses Trend */}
+            {transactions.length > 0 && (
+              <Card style={styles.chartCard}>
+                <Text style={styles.cardTitle}>Income vs Expenses (7 Days)</Text>
+                <LineChart
+                  data={{
+                    labels: (() => {
+                      const labels = [];
+                      for (let i = 6; i >= 0; i--) {
+                        const date = new Date();
+                        date.setDate(date.getDate() - i);
+                        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+                      }
+                      return labels;
+                    })(),
+                    datasets: [
+                      {
+                        data: (() => {
+                          const incomeData = [];
+                          for (let i = 6; i >= 0; i--) {
+                            const date = new Date();
+                            date.setDate(date.getDate() - i);
+                            const dayStart = new Date(date.setHours(0, 0, 0, 0));
+                            const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+                            const dayIncome = transactions
+                              .filter(t => t.type === 'income' && new Date(t.date) >= dayStart && new Date(t.date) <= dayEnd)
+                              .reduce((sum, t) => sum + t.amount, 0);
+                            incomeData.push(Math.round(dayIncome));
+                          }
+                          return incomeData;
+                        })(),
+                        color: (opacity = 1) => colors.income,
+                        strokeWidth: 3,
+                      },
+                      {
+                        data: (() => {
+                          const expenseData = [];
+                          for (let i = 6; i >= 0; i--) {
+                            const date = new Date();
+                            date.setDate(date.getDate() - i);
+                            const dayStart = new Date(date.setHours(0, 0, 0, 0));
+                            const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+                            const dayExpense = transactions
+                              .filter(t => t.type === 'expense' && new Date(t.date) >= dayStart && new Date(t.date) <= dayEnd)
+                              .reduce((sum, t) => sum + t.amount, 0);
+                            expenseData.push(Math.round(dayExpense));
+                          }
+                          return expenseData;
+                        })(),
+                        color: (opacity = 1) => colors.expense,
+                        strokeWidth: 3,
+                      },
+                    ],
+                    legend: ['Income', 'Expenses'],
+                  }}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: colors.surface,
+                    backgroundGradientFrom: colors.surface,
+                    backgroundGradientTo: colors.surface,
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => colors.primary,
+                    labelColor: () => colors.textSecondary,
+                    propsForDots: {
+                      r: '4',
+                      strokeWidth: '2',
+                    },
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                />
+              </Card>
+            )}
+
+            {/* Account Balances */}
+            {accounts.length > 0 && (
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.cardTitle}>Account Distribution</Text>
+                  <Text style={styles.chartSubtitle}>Top 5 of {accounts.length} accounts</Text>
+                </View>
+                <PieChart
+                  data={accounts.slice(0, 5).map((acc, index) => {
+                    const pieColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+                    return {
+                      name: acc.name.substring(0, 12),
+                      population: Math.round(Math.abs(acc.balance)),
+                      color: pieColors[index % pieColors.length],
+                      legendFontColor: colors.textSecondary,
+                      legendFontSize: 12,
+                    };
+                  })}
+                  width={width - spacing.lg * 4}
+                  height={220}
+                  chartConfig={{
+                    color: (opacity = 1) => colors.primary,
+                  }}
+                  accessor="population"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: borderRadius.md,
+                  }}
+                />
               </Card>
             )}
 
@@ -3016,36 +3667,67 @@ const createStyles = (colors: ThemeColors) =>
     },
     modalBackdrop: {
       flex: 1,
-      backgroundColor: "rgba(0,0,0,0.4)",
+      backgroundColor: "rgba(0,0,0,0.5)",
       justifyContent: "center",
       padding: spacing.lg,
     },
     modalContent: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.lg,
-      padding: spacing.lg,
+      borderRadius: borderRadius.xl,
+      padding: 0,
+      maxHeight: "80%",
+      width: "100%",
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalScrollView: {
+      maxHeight: 500,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+    },
+    modalCloseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceSecondary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: spacing.sm,
     },
     modalTitle: {
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: "700",
       color: colors.textPrimary,
-      marginBottom: spacing.xs,
+      marginBottom: spacing.xxs,
     },
     modalSubtitle: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.textSecondary,
-      marginBottom: spacing.md,
     },
     modalActions: {
       flexDirection: "row",
       justifyContent: "flex-end",
       gap: spacing.sm,
-      marginTop: spacing.md,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xl,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
     modalButton: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
       borderRadius: borderRadius.md,
+      minWidth: 100,
+      alignItems: "center",
     },
     modalButtonPrimary: {
       backgroundColor: colors.primary,
@@ -3065,8 +3747,10 @@ const createStyles = (colors: ThemeColors) =>
       gap: spacing.sm,
     },
     datePickerLabel: {
-      fontSize: 12,
-      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.md,
       marginBottom: spacing.xs,
     },
     webDateControls: {
@@ -3138,6 +3822,11 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      gap: spacing.sm,
+    },
+    listLeftContent: {
+      flex: 1,
+      minWidth: 0,
     },
     listTitle: {
       fontSize: 14,
@@ -3153,6 +3842,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 14,
       fontWeight: "600",
       color: colors.textPrimary,
+      flexShrink: 0,
     },
     goalRow: {
       flexDirection: "row",
@@ -3348,20 +4038,41 @@ const createStyles = (colors: ThemeColors) =>
     summaryGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
+      gap: spacing.sm,
     },
     summaryItem: {
-      width: "50%",
-      paddingVertical: spacing.sm,
+      width: "48%",
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    summaryItemIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    summaryItemContent: {
+      flex: 1,
+      minWidth: 0,
     },
     summaryValue: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: "700",
       color: colors.textPrimary,
+      marginBottom: 2,
     },
     summaryLabel: {
-      fontSize: 12,
+      fontSize: 11,
       color: colors.textSecondary,
-      marginTop: 4,
+      fontWeight: "500",
     },
     emptyInlineText: {
       fontSize: 12,
@@ -3412,6 +4123,9 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: spacing.sm,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
     budgetUsageLabel: {
       fontSize: 12,
@@ -3421,6 +4135,34 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 14,
       fontWeight: "700",
       color: colors.textPrimary,
+    },
+    budgetProgressGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-around",
+      paddingVertical: spacing.md,
+      gap: spacing.md,
+    },
+    budgetProgressItem: {
+      alignItems: "center",
+      width: "45%",
+      marginBottom: spacing.sm,
+    },
+    budgetProgressPercent: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    budgetProgressLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+      textAlign: "center",
+      width: "100%",
+    },
+    budgetProgressAmount: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 2,
     },
     budgetUsageBar: {
       height: 8,
@@ -3452,6 +4194,9 @@ const createStyles = (colors: ThemeColors) =>
     budgetUsageName: {
       fontSize: 13,
       color: colors.textPrimary,
+    },
+    budgetUsageRight: {
+      alignItems: "flex-end",
     },
     budgetUsageValue: {
       fontSize: 12,
@@ -3643,6 +4388,14 @@ const createStyles = (colors: ThemeColors) =>
     chartCard: {
       marginBottom: spacing.md,
     },
+    chartHeader: {
+      marginBottom: spacing.sm,
+    },
+    chartSubtitle: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
     chartLegend: {
       flexDirection: "row",
       marginBottom: spacing.lg,
@@ -3701,6 +4454,8 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "flex-end",
       height: 140,
       justifyContent: "space-around",
+      marginTop: spacing.md,
+      paddingTop: spacing.sm,
     },
     waterfallBarWrapper: {
       flex: 1,
