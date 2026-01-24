@@ -104,7 +104,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         balance,
         ...(currency && { currency }),
       };
-      setAccounts((prev) => prev.map((a) => (a.id === id ? updatedAccount : a)));
+      setAccounts((prev) =>
+        prev.map((a) => (a.id === id ? updatedAccount : a)),
+      );
       setError(null);
 
       try {

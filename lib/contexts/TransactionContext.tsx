@@ -193,9 +193,7 @@ export function TransactionProvider({
       };
 
       // Optimistic update - update in UI immediately
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === id ? updatedTx : t)),
-      );
+      setTransactions((prev) => prev.map((t) => (t.id === id ? updatedTx : t)));
       setError(null);
 
       try {
@@ -232,9 +230,7 @@ export function TransactionProvider({
         }
       } catch (err) {
         // Rollback on error - restore old transaction
-        setTransactions((prev) =>
-          prev.map((t) => (t.id === id ? oldTx : t)),
-        );
+        setTransactions((prev) => prev.map((t) => (t.id === id ? oldTx : t)));
         const message =
           err instanceof Error ? err.message : "Failed to update transaction";
         setError(message);

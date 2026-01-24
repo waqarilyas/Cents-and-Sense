@@ -130,7 +130,9 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       };
 
       // Optimistic update
-      setCategories((prev) => [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+      setCategories((prev) =>
+        [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)),
+      );
       setError(null);
 
       try {
@@ -161,7 +163,9 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update
       const updatedCategory = { ...oldCategory, name, color };
       setCategories((prev) =>
-        prev.map((c) => (c.id === id ? updatedCategory : c)).sort((a, b) => a.name.localeCompare(b.name))
+        prev
+          .map((c) => (c.id === id ? updatedCategory : c))
+          .sort((a, b) => a.name.localeCompare(b.name)),
       );
       setError(null);
 
@@ -173,7 +177,9 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         );
       } catch (err) {
         // Rollback
-        setCategories((prev) => prev.map((c) => (c.id === id ? oldCategory : c)));
+        setCategories((prev) =>
+          prev.map((c) => (c.id === id ? oldCategory : c)),
+        );
         const message =
           err instanceof Error ? err.message : "Failed to update category";
         setError(message);
