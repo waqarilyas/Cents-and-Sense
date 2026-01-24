@@ -5,10 +5,26 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { Budget, MonthlyBudget, getDatabase } from "../database";
+import {
+  Budget,
+  MonthlyBudget,
+  BudgetPeriodSnapshot,
+  getDatabase,
+} from "../database";
+import {
+  getCurrentPeriod,
+  getPreviousPeriod,
+  needsPeriodTransition,
+} from "../utils/periodCalculations";
+
+interface BudgetWithCarryover extends Budget {
+  carryoverAmount: number;
+  availableAmount: number;
+}
 
 interface BudgetContextType {
   budgets: Budget[];
+  budgetsWithCarryover: BudgetWithCarryover[];
   monthlyBudget: MonthlyBudget | null;
   loading: boolean;
   error: string | null;
@@ -17,6 +33,7 @@ interface BudgetContextType {
     amount: number,
     period: "monthly" | "yearly",
     currency?: string,
+    allowCarryover?: boolean,
   ) => Promise<void>;
   updateBudget: (
     id: string,
@@ -24,12 +41,14 @@ interface BudgetContextType {
     period: "monthly" | "yearly",
     currency?: string,
   ) => Promise<void>;
+  toggleBudgetCarryover: (id: string, enabled: boolean) => Promise<void>;
   setMonthlyBudget: (amount: number, currency?: string) => Promise<void>;
   clearMonthlyBudget: () => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
   getBudget: (id: string) => Budget | undefined;
   getBudgetByCategory: (categoryId: string) => Budget | undefined;
   getAllBudgets: () => Budget[];
+  processPeriodTransitions: () => Promise<void>;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -86,15 +105,20 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       amount: number,
       period: "monthly" | "yearly",
       currency: string = "USD",
+      allowCarryover: boolean = true,
     ) => {
       const id = Date.now().toString();
+      const now = Date.now();
       const newBudget: Budget = {
         id,
         categoryId,
         budget_limit: amount,
         period,
         currency,
-        createdAt: Date.now(),
+        allowCarryover,
+        lastCarryoverAmount: 0,
+        lastPeriodEnd: 0,
+        createdAt: now,
       };
 
       // Optimistic update
@@ -104,8 +128,18 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       try {
         const db = await getDatabase();
         await db.runAsync(
-          "INSERT INTO budgets (id, categoryId, budget_limit, period, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
-          [id, categoryId, amount, period, currency, Date.now()],
+          "INSERT INTO budgets (id, categoryId, budget_limit, period, currency, allowCarryover, lastCarryoverAmount, lastPeriodEnd, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            id,
+            categoryId,
+            amount,
+            period,
+            currency,
+            allowCarryover ? 1 : 0,
+            0,
+            0,
+            now,
+          ],
         );
       } catch (err) {
         // Rollback
@@ -260,21 +294,133 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     return budgets;
   }, [budgets]);
 
+  const toggleBudgetCarryover = useCallback(
+    async (id: string, enabled: boolean) => {
+      const oldBudget = budgets.find((b) => b.id === id);
+      if (!oldBudget) {
+        throw new Error("Budget not found");
+      }
+
+      // Optimistic update
+      const updatedBudget = { ...oldBudget, allowCarryover: enabled };
+      setBudgets((prev) => prev.map((b) => (b.id === id ? updatedBudget : b)));
+      setError(null);
+
+      try {
+        const db = await getDatabase();
+        await db.runAsync(
+          "UPDATE budgets SET allowCarryover = ? WHERE id = ?",
+          [enabled ? 1 : 0, id],
+        );
+      } catch (err) {
+        // Rollback
+        setBudgets((prev) => prev.map((b) => (b.id === id ? oldBudget : b)));
+        const message =
+          err instanceof Error ? err.message : "Failed to toggle carryover";
+        setError(message);
+        throw err;
+      }
+    },
+    [budgets],
+  );
+
+  // Process period transitions and create snapshots
+  const processPeriodTransitions = useCallback(async () => {
+    try {
+      const db = await getDatabase();
+
+      // Get settings for period start day
+      const settingsResult = await db.getFirstAsync<any>(
+        "SELECT budgetPeriodStartDay, enableCarryover FROM budget_settings LIMIT 1",
+      );
+      const periodStartDay = settingsResult?.budgetPeriodStartDay || 1;
+      const globalCarryoverEnabled = settingsResult?.enableCarryover !== 0;
+
+      if (!globalCarryoverEnabled) {
+        return; // Carryover disabled globally
+      }
+
+      const currentPeriod = getCurrentPeriod(periodStartDay);
+
+      // Check each budget for period transition
+      for (const budget of budgets) {
+        if (!budget.allowCarryover || budget.period !== "monthly") {
+          continue; // Skip if carryover disabled or not monthly
+        }
+
+        // Check if we need to process transition
+        if (needsPeriodTransition(budget.lastPeriodEnd, periodStartDay)) {
+          const previousPeriod = getPreviousPeriod(periodStartDay);
+
+          // Calculate spending for previous period
+          const transactions = await db.getAllAsync<any>(
+            "SELECT amount FROM transactions WHERE categoryId = ? AND type = 'expense' AND date >= ? AND date <= ?",
+            [budget.categoryId, previousPeriod.start, previousPeriod.end],
+          );
+
+          const spent = transactions.reduce((sum, t) => sum + t.amount, 0);
+          const carryover =
+            budget.budget_limit + budget.lastCarryoverAmount - spent;
+
+          // Create snapshot for previous period
+          await db.runAsync(
+            "INSERT INTO budget_period_snapshots (id, budgetId, periodStart, periodEnd, budgetedAmount, carryoverIn, totalAvailable, spent, carryoverOut, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+              `snap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              budget.id,
+              previousPeriod.start,
+              previousPeriod.end,
+              budget.budget_limit,
+              budget.lastCarryoverAmount,
+              budget.budget_limit + budget.lastCarryoverAmount,
+              spent,
+              carryover,
+              Date.now(),
+            ],
+          );
+
+          // Update budget with new carryover
+          await db.runAsync(
+            "UPDATE budgets SET lastCarryoverAmount = ?, lastPeriodEnd = ? WHERE id = ?",
+            [carryover, currentPeriod.end, budget.id],
+          );
+        }
+      }
+
+      // Reload budgets to get updated carryover amounts
+      await loadBudgets();
+    } catch (err) {
+      console.error("Error processing period transitions:", err);
+    }
+  }, [budgets, loadBudgets]);
+
+  // Compute budgets with carryover information
+  const budgetsWithCarryover = budgets.map(
+    (budget): BudgetWithCarryover => ({
+      ...budget,
+      carryoverAmount: budget.lastCarryoverAmount,
+      availableAmount: budget.budget_limit + budget.lastCarryoverAmount,
+    }),
+  );
+
   return (
     <BudgetContext.Provider
       value={{
         budgets,
+        budgetsWithCarryover,
         monthlyBudget,
         loading,
         error,
         addBudget,
         updateBudget,
+        toggleBudgetCarryover,
         setMonthlyBudget,
         clearMonthlyBudget,
         deleteBudget,
         getBudget,
         getBudgetByCategory,
         getAllBudgets,
+        processPeriodTransitions,
       }}
     >
       {children}

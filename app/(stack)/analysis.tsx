@@ -77,7 +77,8 @@ export default function AnalysisScreen() {
   const router = useRouter();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { currencySymbol } = useCurrency();
+  const { defaultCurrency } = useCurrency();
+  const currencySymbol = defaultCurrency.symbol;
   const {
     transactions,
     loading: txLoading,

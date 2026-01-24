@@ -28,6 +28,10 @@ interface Settings {
 
   // Privacy
   hideBalances: boolean;
+
+  // Budget settings (YNAB-style)
+  budgetPeriodStartDay: number; // 1-28, day of month when budget period starts
+  enableBudgetCarryover: boolean; // Allow unused budget to roll over
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +41,8 @@ const DEFAULT_SETTINGS: Settings = {
   defaultCurrencyCode: "USD",
   hideBalances: false,
   theme: "system",
+  budgetPeriodStartDay: 1, // Start on 1st of month by default
+  enableBudgetCarryover: true, // Enable YNAB-style carryover by default
 };
 
 interface SettingsContextType {

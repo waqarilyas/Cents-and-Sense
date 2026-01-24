@@ -1,7 +1,7 @@
 import * as SQLite from "expo-sqlite";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 8; // Increment this when schema changes
+const SCHEMA_VERSION = 9; // Increment this when schema changes
 
 export interface Account {
   id: string;
@@ -39,6 +39,9 @@ export interface Budget {
   budget_limit: number;
   currency: string;
   period: "monthly" | "yearly";
+  allowCarryover: boolean;
+  lastCarryoverAmount: number;
+  lastPeriodEnd: number;
   createdAt: number;
 }
 
@@ -73,6 +76,27 @@ export interface Subscription {
   isActive: boolean;
   reminderDays: number;
   notes?: string;
+  createdAt: number;
+}
+
+export interface BudgetSettings {
+  id: string;
+  budgetPeriodStartDay: number; // 1-28, day of month when budget period starts
+  enableCarryover: boolean; // Global carryover toggle
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BudgetPeriodSnapshot {
+  id: string;
+  budgetId: string;
+  periodStart: number;
+  periodEnd: number;
+  budgetedAmount: number;
+  carryoverIn: number;
+  totalAvailable: number;
+  spent: number;
+  carryoverOut: number;
   createdAt: number;
 }
 
@@ -205,6 +229,9 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         budget_limit REAL NOT NULL,
         currency TEXT NOT NULL DEFAULT 'USD',
         period TEXT NOT NULL CHECK(period IN ('monthly', 'yearly')),
+        allowCarryover INTEGER NOT NULL DEFAULT 1,
+        lastCarryoverAmount REAL NOT NULL DEFAULT 0,
+        lastPeriodEnd INTEGER NOT NULL DEFAULT 0,
         createdAt INTEGER NOT NULL,
         FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE CASCADE
       );
@@ -229,10 +256,34 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         createdAt INTEGER NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS budget_settings (
+        id TEXT PRIMARY KEY,
+        budgetPeriodStartDay INTEGER NOT NULL DEFAULT 1 CHECK(budgetPeriodStartDay >= 1 AND budgetPeriodStartDay <= 28),
+        enableCarryover INTEGER NOT NULL DEFAULT 1,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS budget_period_snapshots (
+        id TEXT PRIMARY KEY,
+        budgetId TEXT NOT NULL,
+        periodStart INTEGER NOT NULL,
+        periodEnd INTEGER NOT NULL,
+        budgetedAmount REAL NOT NULL,
+        carryoverIn REAL NOT NULL DEFAULT 0,
+        totalAvailable REAL NOT NULL,
+        spent REAL NOT NULL,
+        carryoverOut REAL NOT NULL DEFAULT 0,
+        createdAt INTEGER NOT NULL,
+        FOREIGN KEY(budgetId) REFERENCES budgets(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_transactions_accountId ON transactions(accountId);
       CREATE INDEX IF NOT EXISTS idx_transactions_categoryId ON transactions(categoryId);
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
       CREATE INDEX IF NOT EXISTS idx_transactions_subscriptionId ON transactions(subscriptionId);
+      CREATE INDEX IF NOT EXISTS idx_budget_snapshots_budgetId ON budget_period_snapshots(budgetId);
+      CREATE INDEX IF NOT EXISTS idx_budget_snapshots_period ON budget_period_snapshots(periodStart, periodEnd);
       CREATE INDEX IF NOT EXISTS idx_budgets_categoryId ON budgets(categoryId);
       CREATE INDEX IF NOT EXISTS idx_monthly_budgets_month_year ON monthly_budgets(month, year);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_nextDueDate ON subscriptions(nextDueDate);

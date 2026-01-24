@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
+import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import {
   spacing,
   borderRadius,
@@ -39,6 +40,7 @@ export default function BudgetsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { defaultCurrency } = useCurrency();
   const {
     budgets,
     monthlyBudget,
@@ -166,7 +168,13 @@ export default function BudgetsScreen() {
 
     setIsSubmitting(true);
     try {
-      await addBudget(categoryId, parseFloat(budgetLimit), period);
+      await addBudget(
+        categoryId,
+        parseFloat(budgetLimit),
+        period,
+        defaultCurrency.code,
+        true, // Enable carryover by default
+      );
       setShowAddModal(false);
       resetForm();
       Alert.alert("Success", "Budget created successfully!");
