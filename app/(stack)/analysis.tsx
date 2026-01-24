@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Dimensions,
   RefreshControl,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,11 +29,23 @@ import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { matchMerchant } from "../../lib/smartCategories";
 
 const { width } = Dimensions.get("window");
 
-type Period = "week" | "month" | "quarter" | "year";
-type AnalyticsTab = "overview" | "spending" | "trends" | "insights";
+type Period = "week" | "month" | "quarter" | "year" | "custom";
+type AnalyticsTab =
+  | "overview"
+  | "spending"
+  | "income"
+  | "cashflow"
+  | "budgets"
+  | "subscriptions"
+  | "goals"
+  | "insights";
+type CompareMode = "previous" | "year";
+type TypeFilter = "all" | "income" | "expense";
 
 export default function AnalysisScreen() {
   const insets = useSafeAreaInsets();
@@ -53,6 +67,23 @@ export default function AnalysisScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("month");
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [compareMode, setCompareMode] = useState<CompareMode>("previous");
+  const [showRangeModal, setShowRangeModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [customRange, setCustomRange] = useState(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    start.setHours(0, 0, 0, 0);
+    return { start: start.getTime(), end: end.getTime() };
+  });
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    null,
+  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const hapticFeedback = () => {
     if (Platform.OS !== "web") {
@@ -69,6 +100,13 @@ export default function AnalysisScreen() {
   const periodRange = useMemo(() => {
     const now = new Date();
     const startDate = new Date(now);
+
+    if (selectedPeriod === "custom") {
+      return {
+        start: Math.min(customRange.start, customRange.end),
+        end: Math.max(customRange.start, customRange.end),
+      };
+    }
 
     switch (selectedPeriod) {
       case "week":
@@ -91,30 +129,62 @@ export default function AnalysisScreen() {
       start: startDate.getTime(),
       end: now.getTime(),
     };
-  }, [selectedPeriod]);
+  }, [selectedPeriod, customRange]);
 
   const previousPeriodRange = useMemo(() => {
+    if (compareMode === "year") {
+      const startDate = new Date(periodRange.start);
+      const endDate = new Date(periodRange.end);
+      startDate.setFullYear(startDate.getFullYear() - 1);
+      endDate.setFullYear(endDate.getFullYear() - 1);
+      return { start: startDate.getTime(), end: endDate.getTime() };
+    }
+
     const duration = periodRange.end - periodRange.start;
     const end = periodRange.start;
     const start = end - duration;
 
     return { start, end };
-  }, [periodRange]);
+  }, [periodRange, compareMode]);
 
   // Filter transactions by period
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(
-      (t) => t.date >= periodRange.start && t.date <= periodRange.end,
-    );
-  }, [transactions, periodRange]);
+    return transactions.filter((t) => {
+      const inRange = t.date >= periodRange.start && t.date <= periodRange.end;
+      if (!inRange) return false;
+      if (typeFilter !== "all" && t.type !== typeFilter) return false;
+      if (selectedAccountId && t.accountId !== selectedAccountId) return false;
+      if (selectedCategoryId && t.categoryId !== selectedCategoryId)
+        return false;
+      return true;
+    });
+  }, [
+    transactions,
+    periodRange,
+    typeFilter,
+    selectedAccountId,
+    selectedCategoryId,
+  ]);
 
   // Previous period transactions for comparison
   const previousPeriodTransactions = useMemo(() => {
-    return transactions.filter(
-      (t) =>
-        t.date >= previousPeriodRange.start && t.date < previousPeriodRange.end,
-    );
-  }, [transactions, previousPeriodRange]);
+    return transactions.filter((t) => {
+      const inRange =
+        t.date >= previousPeriodRange.start && t.date < previousPeriodRange.end;
+      if (!inRange) return false;
+      if (typeFilter !== "all" && t.type !== typeFilter) return false;
+      if (selectedAccountId && t.accountId !== selectedAccountId) return false;
+      if (selectedCategoryId && t.categoryId !== selectedCategoryId)
+        return false;
+      return true;
+    });
+  }, [
+    transactions,
+    previousPeriodRange,
+    typeFilter,
+    selectedAccountId,
+    selectedCategoryId,
+  ]);
 
   // Core stats
   const stats = useMemo(() => {
@@ -165,8 +235,12 @@ export default function AnalysisScreen() {
         return 3;
       case "year":
         return 12;
+      case "custom":
+        return (
+          (periodRange.end - periodRange.start) / (1000 * 60 * 60 * 24 * 30.44)
+        );
     }
-  }, [selectedPeriod]);
+  }, [selectedPeriod, periodRange]);
 
   const accountsSummary = useMemo(() => {
     const totalBalance = getTotalBalance();
@@ -342,8 +416,142 @@ export default function AnalysisScreen() {
     stats.expenses,
   ]);
 
+  const incomeBreakdown = useMemo(() => {
+    const incomeByCategory = filteredTransactions
+      .filter((t) => t.type === "income")
+      .reduce(
+        (acc, t) => {
+          const cat = categories.find((c) => c.id === t.categoryId);
+          const catName = cat?.name || "Income";
+          const catColor = cat?.color || colors.income;
+
+          if (!acc[t.categoryId]) {
+            acc[t.categoryId] = {
+              id: t.categoryId,
+              name: catName,
+              amount: 0,
+              color: catColor,
+              count: 0,
+            };
+          }
+          acc[t.categoryId].amount += t.amount;
+          acc[t.categoryId].count += 1;
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            id: string;
+            name: string;
+            amount: number;
+            color: string;
+            count: number;
+          }
+        >,
+      );
+
+    return Object.values(incomeByCategory)
+      .map((item) => ({
+        ...item,
+        percentage: stats.income > 0 ? (item.amount / stats.income) * 100 : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [filteredTransactions, categories, stats.income, colors.income]);
+
+  const merchantBreakdown = useMemo(() => {
+    const expenseTx = filteredTransactions.filter((t) => t.type === "expense");
+    const byMerchant = expenseTx.reduce(
+      (acc, t) => {
+        const normalized = matchMerchant(t.description) || t.description;
+        const merchant = normalized.trim() || "Unknown";
+        if (!acc[merchant]) {
+          acc[merchant] = { name: merchant, amount: 0, count: 0 };
+        }
+        acc[merchant].amount += t.amount;
+        acc[merchant].count += 1;
+        return acc;
+      },
+      {} as Record<string, { name: string; amount: number; count: number }>,
+    );
+
+    return Object.values(byMerchant)
+      .map((item) => ({
+        ...item,
+        avg: item.count > 0 ? item.amount / item.count : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8);
+  }, [filteredTransactions]);
+
+  const transactionSizeBuckets = useMemo(() => {
+    const buckets = [0, 0, 0, 0, 0];
+    const labels = ["<$10", "$10–$50", "$50–$200", "$200–$500", "$500+"];
+    filteredTransactions
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        if (t.amount < 10) buckets[0] += 1;
+        else if (t.amount < 50) buckets[1] += 1;
+        else if (t.amount < 200) buckets[2] += 1;
+        else if (t.amount < 500) buckets[3] += 1;
+        else buckets[4] += 1;
+      });
+    return labels.map((label, index) => ({ label, count: buckets[index] }));
+  }, [filteredTransactions]);
+
+  const cashFlowSummary = useMemo(() => {
+    const net = stats.income - stats.expenses;
+    const coverage = stats.expenses > 0 ? stats.income / stats.expenses : 0;
+    const liquidityRatio =
+      stats.expenses > 0 ? accountsSummary.totalBalance / stats.expenses : 0;
+    return { net, coverage, liquidityRatio };
+  }, [stats, accountsSummary.totalBalance]);
+
+  const subscriptionAnalytics = useMemo(() => {
+    const active = subscriptions.filter((s) => s.isActive);
+    const annualTotal = active.reduce((sum, s) => {
+      const multiplier =
+        s.frequency === "daily"
+          ? 365
+          : s.frequency === "weekly"
+            ? 52
+            : s.frequency === "monthly"
+              ? 12
+              : 1;
+      return sum + s.amount * multiplier;
+    }, 0);
+
+    const upcoming = active
+      .filter(
+        (s) =>
+          s.nextDueDate >= periodRange.start &&
+          s.nextDueDate <= periodRange.end,
+      )
+      .sort((a, b) => a.nextDueDate - b.nextDueDate)
+      .slice(0, 5);
+
+    return { active, annualTotal, upcoming };
+  }, [subscriptions, periodRange]);
+
+  const goalProjection = useMemo(() => {
+    const monthlySavings = stats.savings / Math.max(periodMonths, 1);
+    const nextGoal = goalsSummary.nextGoal;
+    if (!nextGoal || monthlySavings <= 0) {
+      return { monthlySavings, monthsToGoal: null };
+    }
+    const remaining = Math.max(
+      nextGoal.targetAmount - nextGoal.currentAmount,
+      0,
+    );
+    const monthsToGoal = remaining / monthlySavings;
+    return { monthlySavings, monthsToGoal };
+  }, [stats.savings, periodMonths, goalsSummary.nextGoal]);
+
   // Daily spending trend
   const dailyTrend = useMemo(() => {
+    const daysInRange = Math.max(
+      1,
+      Math.ceil((periodRange.end - periodRange.start) / (1000 * 60 * 60 * 24)),
+    );
     const days =
       selectedPeriod === "week"
         ? 7
@@ -351,8 +559,11 @@ export default function AnalysisScreen() {
           ? 30
           : selectedPeriod === "quarter"
             ? 90
-            : 12;
-    const now = new Date();
+            : selectedPeriod === "year"
+              ? 12
+              : daysInRange;
+    const rangeEnd =
+      selectedPeriod === "custom" ? new Date(periodRange.end) : new Date();
     const trend: {
       label: string;
       fullDate: string;
@@ -362,10 +573,10 @@ export default function AnalysisScreen() {
     }[] = [];
 
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
+      const date = new Date(rangeEnd);
 
       if (selectedPeriod === "year") {
-        date.setMonth(now.getMonth() - i);
+        date.setMonth(rangeEnd.getMonth() - i);
         const startOfMonth = new Date(
           date.getFullYear(),
           date.getMonth(),
@@ -399,7 +610,7 @@ export default function AnalysisScreen() {
           net: income - expense,
         });
       } else {
-        date.setDate(now.getDate() - i);
+        date.setDate(rangeEnd.getDate() - i);
         const startOfDay = new Date(
           date.getFullYear(),
           date.getMonth(),
@@ -435,7 +646,7 @@ export default function AnalysisScreen() {
     }
 
     return trend;
-  }, [transactions, selectedPeriod]);
+  }, [transactions, selectedPeriod, periodRange]);
 
   // Spending patterns analysis
   const spendingPatterns = useMemo(() => {
@@ -465,7 +676,15 @@ export default function AnalysisScreen() {
           ? 30
           : selectedPeriod === "quarter"
             ? 90
-            : 365;
+            : selectedPeriod === "year"
+              ? 365
+              : Math.max(
+                  1,
+                  Math.ceil(
+                    (periodRange.end - periodRange.start) /
+                      (1000 * 60 * 60 * 24),
+                  ),
+                );
     const dailyAvg = stats.expenses / daysInPeriod;
     const prevDailyAvg = stats.prevExpenses / daysInPeriod;
 
@@ -482,7 +701,13 @@ export default function AnalysisScreen() {
       topCategories,
       transactionCount: expenseTransactions.length,
     };
-  }, [filteredTransactions, stats, categoryBreakdown, selectedPeriod]);
+  }, [
+    filteredTransactions,
+    stats,
+    categoryBreakdown,
+    selectedPeriod,
+    periodRange,
+  ]);
 
   // Financial health score
   const healthScore = useMemo(() => {
@@ -645,6 +870,27 @@ export default function AnalysisScreen() {
       });
     }
 
+    // Top merchant insight
+    if (merchantBreakdown.length > 0) {
+      const topMerchant = merchantBreakdown[0];
+      result.push({
+        type: "info",
+        title: "Top Merchant",
+        message: `Your highest spending merchant is ${topMerchant.name} at ${formatCurrency(topMerchant.amount)} this period.`,
+        icon: "storefront",
+      });
+    }
+
+    // Cash flow coverage
+    if (cashFlowSummary.coverage > 0) {
+      result.push({
+        type: cashFlowSummary.coverage >= 1.2 ? "success" : "warning",
+        title: "Income Coverage",
+        message: `Your income covers ${cashFlowSummary.coverage.toFixed(2)}× of your expenses this period.`,
+        icon: "swap-vertical",
+      });
+    }
+
     return result;
   }, [
     stats,
@@ -654,6 +900,8 @@ export default function AnalysisScreen() {
     budgetsSummary,
     goalsSummary,
     accountsSummary,
+    merchantBreakdown,
+    cashFlowSummary,
   ]);
 
   const maxTrendValue = useMemo(() => {
@@ -667,6 +915,14 @@ export default function AnalysisScreen() {
     return <LoadingState />;
   }
 
+  const formatShortDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const getPeriodLabel = () => {
     switch (selectedPeriod) {
       case "week":
@@ -677,6 +933,8 @@ export default function AnalysisScreen() {
         return "This Quarter";
       case "year":
         return "This Year";
+      case "custom":
+        return `${formatShortDate(periodRange.start)} – ${formatShortDate(periodRange.end)}`;
     }
   };
 
@@ -708,43 +966,101 @@ export default function AnalysisScreen() {
 
       {/* Period Selector */}
       <View style={styles.periodSelector}>
-        {(["week", "month", "quarter", "year"] as Period[]).map((period) => (
-          <TouchableOpacity
-            key={period}
-            style={[
-              styles.periodButton,
-              selectedPeriod === period && styles.periodButtonActive,
-            ]}
-            onPress={() => {
-              hapticFeedback();
-              setSelectedPeriod(period);
-            }}
-          >
-            <Text
+        {(["week", "month", "quarter", "year", "custom"] as Period[]).map(
+          (period) => (
+            <TouchableOpacity
+              key={period}
               style={[
-                styles.periodButtonText,
-                selectedPeriod === period && styles.periodButtonTextActive,
+                styles.periodButton,
+                selectedPeriod === period && styles.periodButtonActive,
               ]}
+              onPress={() => {
+                hapticFeedback();
+                setSelectedPeriod(period);
+                if (period === "custom") {
+                  setShowRangeModal(true);
+                }
+              }}
             >
-              {period === "week"
-                ? "W"
-                : period === "month"
-                  ? "M"
-                  : period === "quarter"
-                    ? "3M"
-                    : "Y"}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.periodButtonText,
+                  selectedPeriod === period && styles.periodButtonTextActive,
+                ]}
+              >
+                {period === "week"
+                  ? "W"
+                  : period === "month"
+                    ? "M"
+                    : period === "quarter"
+                      ? "3M"
+                      : period === "year"
+                        ? "Y"
+                        : "C"}
+              </Text>
+            </TouchableOpacity>
+          ),
+        )}
+      </View>
+
+      {/* Range + Filters */}
+      <View style={styles.controlsRow}>
+        <TouchableOpacity
+          style={styles.controlChip}
+          onPress={() => {
+            hapticFeedback();
+            setShowRangeModal(true);
+          }}
+        >
+          <Ionicons name="calendar" size={16} color={colors.textSecondary} />
+          <Text style={styles.controlChipText}>{getPeriodLabel()}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.controlChip}
+          onPress={() => {
+            hapticFeedback();
+            setCompareMode(compareMode === "previous" ? "year" : "previous");
+          }}
+        >
+          <Ionicons
+            name="swap-horizontal"
+            size={16}
+            color={colors.textSecondary}
+          />
+          <Text style={styles.controlChipText}>
+            {compareMode === "previous" ? "vs Prev" : "vs Last Year"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.controlChip}
+          onPress={() => {
+            hapticFeedback();
+            setShowFilterModal(true);
+          }}
+        >
+          <Ionicons name="options" size={16} color={colors.textSecondary} />
+          <Text style={styles.controlChipText}>Filters</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tab Navigation */}
-      <View style={styles.tabBar}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.tabBar]}
+        style={{
+          maxHeight: 60,
+        }}
+      >
         {(
           [
             { id: "overview", label: "Overview", icon: "grid" },
             { id: "spending", label: "Spending", icon: "pie-chart" },
-            { id: "trends", label: "Trends", icon: "trending-up" },
+            { id: "income", label: "Income", icon: "cash" },
+            { id: "cashflow", label: "Cash Flow", icon: "swap-vertical" },
+            { id: "budgets", label: "Budgets", icon: "wallet" },
+            { id: "subscriptions", label: "Subs", icon: "repeat" },
+            { id: "goals", label: "Goals", icon: "flag" },
             { id: "insights", label: "Insights", icon: "bulb" },
           ] as {
             id: AnalyticsTab;
@@ -778,7 +1094,288 @@ export default function AnalysisScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
+
+      <Modal
+        visible={showRangeModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowRangeModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Custom Range</Text>
+            <Text style={styles.modalSubtitle}>Select start and end dates</Text>
+
+            {Platform.OS === "web" ? (
+              <View style={styles.webDateControls}>
+                <View style={styles.webDateRow}>
+                  <Text style={styles.webDateLabel}>Start</Text>
+                  <View style={styles.webDateButtons}>
+                    <TouchableOpacity
+                      style={styles.webDateButton}
+                      onPress={() =>
+                        setCustomRange((prev) => ({
+                          ...prev,
+                          start: prev.start - 24 * 60 * 60 * 1000,
+                        }))
+                      }
+                    >
+                      <Text style={styles.webDateButtonText}>-1d</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.webDateButton}
+                      onPress={() =>
+                        setCustomRange((prev) => ({
+                          ...prev,
+                          start: prev.start + 24 * 60 * 60 * 1000,
+                        }))
+                      }
+                    >
+                      <Text style={styles.webDateButtonText}>+1d</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.webDateValue}>
+                    {formatShortDate(customRange.start)}
+                  </Text>
+                </View>
+                <View style={styles.webDateRow}>
+                  <Text style={styles.webDateLabel}>End</Text>
+                  <View style={styles.webDateButtons}>
+                    <TouchableOpacity
+                      style={styles.webDateButton}
+                      onPress={() =>
+                        setCustomRange((prev) => ({
+                          ...prev,
+                          end: prev.end - 24 * 60 * 60 * 1000,
+                        }))
+                      }
+                    >
+                      <Text style={styles.webDateButtonText}>-1d</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.webDateButton}
+                      onPress={() =>
+                        setCustomRange((prev) => ({
+                          ...prev,
+                          end: prev.end + 24 * 60 * 60 * 1000,
+                        }))
+                      }
+                    >
+                      <Text style={styles.webDateButtonText}>+1d</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.webDateValue}>
+                    {formatShortDate(customRange.end)}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.datePickerContainer}>
+                <Text style={styles.datePickerLabel}>Start</Text>
+                <DateTimePicker
+                  value={new Date(customRange.start)}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "inline" : "default"}
+                  onChange={(_, date) => {
+                    if (date) {
+                      setCustomRange((prev) => ({
+                        ...prev,
+                        start: date.getTime(),
+                      }));
+                    }
+                  }}
+                />
+                <Text style={styles.datePickerLabel}>End</Text>
+                <DateTimePicker
+                  value={new Date(customRange.end)}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "inline" : "default"}
+                  onChange={(_, date) => {
+                    if (date) {
+                      setCustomRange((prev) => ({
+                        ...prev,
+                        end: date.getTime(),
+                      }));
+                    }
+                  }}
+                />
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setCustomRange(() => {
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(end.getDate() - 30);
+                    start.setHours(0, 0, 0, 0);
+                    return { start: start.getTime(), end: end.getTime() };
+                  });
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Reset</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={() => {
+                  setSelectedPeriod("custom");
+                  setShowRangeModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Apply</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filters</Text>
+            <Text style={styles.modalSubtitle}>Refine analytics</Text>
+
+            <Text style={styles.filterSectionTitle}>Type</Text>
+            <View style={styles.filterRow}>
+              {(["all", "income", "expense"] as TypeFilter[]).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.filterChip,
+                    typeFilter === type && styles.filterChipActive,
+                  ]}
+                  onPress={() => setTypeFilter(type)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      typeFilter === type && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {type === "all" ? "All" : type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.filterSectionTitle}>Accounts</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  !selectedAccountId && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedAccountId(null)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    !selectedAccountId && styles.filterChipTextActive,
+                  ]}
+                >
+                  All
+                </Text>
+              </TouchableOpacity>
+              {accounts.map((account) => (
+                <TouchableOpacity
+                  key={account.id}
+                  style={[
+                    styles.filterChip,
+                    selectedAccountId === account.id && styles.filterChipActive,
+                  ]}
+                  onPress={() => setSelectedAccountId(account.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedAccountId === account.id &&
+                        styles.filterChipTextActive,
+                    ]}
+                  >
+                    {account.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.filterSectionTitle}>Categories</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  !selectedCategoryId && styles.filterChipActive,
+                ]}
+                onPress={() => setSelectedCategoryId(null)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    !selectedCategoryId && styles.filterChipTextActive,
+                  ]}
+                >
+                  All
+                </Text>
+              </TouchableOpacity>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.filterChip,
+                    selectedCategoryId === category.id &&
+                      styles.filterChipActive,
+                  ]}
+                  onPress={() => setSelectedCategoryId(category.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedCategoryId === category.id &&
+                        styles.filterChipTextActive,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setTypeFilter("all");
+                  setSelectedAccountId(null);
+                  setSelectedCategoryId(null);
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Reset</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Apply</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView
         style={styles.scrollView}
@@ -789,6 +1386,7 @@ export default function AnalysisScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
+            progressViewOffset={0}
           />
         }
       >
@@ -994,6 +1592,208 @@ export default function AnalysisScreen() {
                   <Text style={styles.quickStatLabel}>Budgets</Text>
                 </View>
               </View>
+            </Card>
+
+            {/* Overview Charts */}
+            <Card style={styles.chartCard}>
+              <Text style={styles.cardTitle}>Cash Flow Trend</Text>
+              <View style={styles.chartLegend}>
+                <View style={styles.legendItem}>
+                  <View
+                    style={[
+                      styles.legendDot,
+                      { backgroundColor: colors.income },
+                    ]}
+                  />
+                  <Text style={styles.legendText}>Income</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View
+                    style={[
+                      styles.legendDot,
+                      { backgroundColor: colors.expense },
+                    ]}
+                  />
+                  <Text style={styles.legendText}>Expenses</Text>
+                </View>
+              </View>
+              <View style={styles.chart}>
+                {dailyTrend
+                  .slice(selectedPeriod === "year" ? 0 : -7)
+                  .map((day, index) => (
+                    <View key={index} style={styles.chartBar}>
+                      <View style={styles.chartBarContainer}>
+                        <View
+                          style={[
+                            styles.chartBarFill,
+                            styles.chartBarIncome,
+                            {
+                              height: `${(day.income / maxTrendValue) * 100}%`,
+                            },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.chartBarFill,
+                            styles.chartBarExpense,
+                            {
+                              height: `${(day.expense / maxTrendValue) * 100}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.chartLabel}>{day.label}</Text>
+                    </View>
+                  ))}
+              </View>
+            </Card>
+
+            <Card style={styles.breakdownCard}>
+              <Text style={styles.cardTitle}>Spending Breakdown</Text>
+              {categoryBreakdown.length > 0 ? (
+                <>
+                  <View style={styles.pieContainer}>
+                    {categoryBreakdown.slice(0, 5).map((cat) => (
+                      <View
+                        key={cat.id}
+                        style={[
+                          styles.pieSegment,
+                          {
+                            backgroundColor: cat.color,
+                            width: `${Math.max(cat.percentage, 5)}%`,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  {categoryBreakdown.slice(0, 3).map((cat) => (
+                    <View key={cat.id} style={styles.breakdownItem}>
+                      <View style={styles.breakdownLeft}>
+                        <View
+                          style={[
+                            styles.breakdownDot,
+                            { backgroundColor: cat.color },
+                          ]}
+                        />
+                        <Text style={styles.breakdownName}>{cat.name}</Text>
+                      </View>
+                      <View style={styles.breakdownRight}>
+                        <Text style={styles.breakdownAmount}>
+                          {formatCurrency(cat.amount)}
+                        </Text>
+                        <Text style={styles.breakdownPercentage}>
+                          {cat.percentage.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name="pie-chart-outline"
+                    size={48}
+                    color={colors.textMuted}
+                  />
+                  <Text style={styles.emptyText}>No expenses this period</Text>
+                </View>
+              )}
+            </Card>
+
+            <Card style={styles.budgetUsageCard}>
+              <Text style={styles.cardTitle}>Budget Utilization</Text>
+              {budgetsSummary.budgetForPeriod > 0 ? (
+                <>
+                  <View style={styles.budgetUsageHeader}>
+                    <Text style={styles.budgetUsageLabel}>
+                      {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
+                      {formatCurrency(budgetsSummary.budgetForPeriod)}
+                    </Text>
+                    <Text style={styles.budgetUsagePercent}>
+                      {budgetsSummary.utilization.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.budgetUsageBar}>
+                    <View
+                      style={[
+                        styles.budgetUsageBarFill,
+                        {
+                          width: `${Math.min(budgetsSummary.utilization, 100)}%`,
+                          backgroundColor:
+                            budgetsSummary.utilization > 100
+                              ? colors.expense
+                              : budgetsSummary.utilization > 85
+                                ? colors.warning
+                                : colors.income,
+                        },
+                      ]}
+                    />
+                  </View>
+                  {budgetsSummary.budgetUsage.slice(0, 3).map((budget) => (
+                    <View key={budget.id} style={styles.budgetUsageItem}>
+                      <View style={styles.budgetUsageLeft}>
+                        <View
+                          style={[
+                            styles.budgetUsageDot,
+                            { backgroundColor: budget.color },
+                          ]}
+                        />
+                        <Text style={styles.budgetUsageName}>
+                          {budget.name}
+                        </Text>
+                      </View>
+                      <Text style={styles.budgetUsageValue}>
+                        {formatCurrency(budget.spent)} /{" "}
+                        {formatCurrency(budget.limit)}
+                      </Text>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <Text style={styles.emptyInlineText}>No budgets set yet</Text>
+              )}
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Top Merchants</Text>
+              {merchantBreakdown.length > 0 ? (
+                merchantBreakdown.slice(0, 3).map((merchant) => (
+                  <View key={merchant.name} style={styles.listRow}>
+                    <View>
+                      <Text style={styles.listTitle}>{merchant.name}</Text>
+                      <Text style={styles.listSubtitle}>
+                        {merchant.count} tx • Avg {formatCurrency(merchant.avg)}
+                      </Text>
+                    </View>
+                    <Text style={styles.listValue}>
+                      {formatCurrency(merchant.amount)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyInlineText}>No merchants yet</Text>
+              )}
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Upcoming Bills</Text>
+              {subscriptionAnalytics.upcoming.length > 0 ? (
+                subscriptionAnalytics.upcoming.slice(0, 3).map((sub) => (
+                  <View key={sub.id} style={styles.listRow}>
+                    <View>
+                      <Text style={styles.listTitle}>{sub.name}</Text>
+                      <Text style={styles.listSubtitle}>
+                        Due {formatShortDate(sub.nextDueDate)}
+                      </Text>
+                    </View>
+                    <Text style={styles.listValue}>
+                      {formatCurrency(sub.amount)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyInlineText}>No upcoming bills</Text>
+              )}
             </Card>
 
             {/* Accounts Summary */}
@@ -1358,11 +2158,162 @@ export default function AnalysisScreen() {
                 </View>
               ))}
             </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Top Merchants</Text>
+              {merchantBreakdown.length > 0 ? (
+                merchantBreakdown.map((merchant) => (
+                  <View key={merchant.name} style={styles.listRow}>
+                    <View>
+                      <Text style={styles.listTitle}>{merchant.name}</Text>
+                      <Text style={styles.listSubtitle}>
+                        {merchant.count} tx • Avg {formatCurrency(merchant.avg)}
+                      </Text>
+                    </View>
+                    <Text style={styles.listValue}>
+                      {formatCurrency(merchant.amount)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyInlineText}>No merchants yet</Text>
+              )}
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Transaction Size</Text>
+              <View style={styles.quickStatsGrid}>
+                {transactionSizeBuckets.map((bucket) => (
+                  <View key={bucket.label} style={styles.quickStatItem}>
+                    <Text style={styles.quickStatValue}>{bucket.count}</Text>
+                    <Text style={styles.quickStatLabel}>{bucket.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </Card>
           </>
         )}
 
-        {/* TRENDS TAB */}
-        {activeTab === "trends" && (
+        {/* INCOME TAB */}
+        {activeTab === "income" && (
+          <>
+            <Card style={styles.breakdownCard}>
+              <Text style={styles.cardTitle}>Income Sources</Text>
+              {incomeBreakdown.length > 0 ? (
+                <>
+                  <View style={styles.pieContainer}>
+                    {incomeBreakdown.slice(0, 5).map((source) => (
+                      <View
+                        key={source.id}
+                        style={[
+                          styles.pieSegment,
+                          {
+                            backgroundColor: source.color,
+                            width: `${Math.max(source.percentage, 5)}%`,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  {incomeBreakdown.map((source) => (
+                    <View key={source.id} style={styles.breakdownItem}>
+                      <View style={styles.breakdownLeft}>
+                        <View
+                          style={[
+                            styles.breakdownDot,
+                            { backgroundColor: source.color },
+                          ]}
+                        />
+                        <View>
+                          <Text style={styles.breakdownName}>
+                            {source.name}
+                          </Text>
+                          <Text style={styles.breakdownCount}>
+                            {source.count} transactions
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.breakdownRight}>
+                        <Text style={styles.breakdownAmount}>
+                          {formatCurrency(source.amount)}
+                        </Text>
+                        <Text style={styles.breakdownPercentage}>
+                          {source.percentage.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name="cash-outline"
+                    size={48}
+                    color={colors.textMuted}
+                  />
+                  <Text style={styles.emptyText}>No income recorded</Text>
+                </View>
+              )}
+            </Card>
+
+            <Card style={styles.chartCard}>
+              <Text style={styles.cardTitle}>Income Trend</Text>
+              <View style={styles.chart}>
+                {dailyTrend
+                  .slice(selectedPeriod === "year" ? 0 : -7)
+                  .map((day, index) => (
+                    <View key={index} style={styles.chartBar}>
+                      <View style={styles.chartBarContainer}>
+                        <View
+                          style={[
+                            styles.chartBarFill,
+                            styles.chartBarIncome,
+                            {
+                              height: `${(day.income / maxTrendValue) * 100}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.chartLabel}>{day.label}</Text>
+                    </View>
+                  ))}
+              </View>
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Income Stats</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(stats.income)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Total Income</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(stats.income / Math.max(periodMonths, 1))}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Monthly Avg</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(incomeBreakdown[0]?.amount || 0)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Top Source</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {incomeBreakdown.length}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Sources</Text>
+                </View>
+              </View>
+            </Card>
+          </>
+        )}
+
+        {/* CASH FLOW TAB */}
+        {activeTab === "cashflow" && (
           <>
             {/* Trend Chart */}
             <Card style={styles.chartCard}>
@@ -1417,6 +2368,86 @@ export default function AnalysisScreen() {
                       <Text style={styles.chartLabel}>{day.label}</Text>
                     </View>
                   ))}
+              </View>
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Cash Flow Summary</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(cashFlowSummary.net)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Net Flow</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {cashFlowSummary.coverage.toFixed(2)}x
+                  </Text>
+                  <Text style={styles.summaryLabel}>Coverage</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {accountsSummary.totalBalance >= 0 ? "" : "-"}
+                    {formatCurrency(Math.abs(accountsSummary.totalBalance))}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Net Worth</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {cashFlowSummary.liquidityRatio.toFixed(1)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Liquidity</Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card style={styles.chartCard}>
+              <Text style={styles.cardTitle}>Cash Flow Waterfall</Text>
+              <View style={styles.waterfallChart}>
+                {(() => {
+                  const maxValue = Math.max(
+                    stats.income,
+                    stats.expenses,
+                    Math.abs(cashFlowSummary.net),
+                    1,
+                  );
+                  const items = [
+                    {
+                      label: "Income",
+                      value: stats.income,
+                      color: colors.income,
+                    },
+                    {
+                      label: "Expenses",
+                      value: stats.expenses,
+                      color: colors.expense,
+                    },
+                    {
+                      label: "Net",
+                      value: Math.abs(cashFlowSummary.net),
+                      color:
+                        cashFlowSummary.net >= 0
+                          ? colors.income
+                          : colors.expense,
+                    },
+                  ];
+
+                  return items.map((item) => (
+                    <View key={item.label} style={styles.waterfallBarWrapper}>
+                      <View
+                        style={[
+                          styles.waterfallBar,
+                          {
+                            height: `${(item.value / maxValue) * 100}%`,
+                            backgroundColor: item.color,
+                          },
+                        ]}
+                      />
+                      <Text style={styles.waterfallLabel}>{item.label}</Text>
+                    </View>
+                  ));
+                })()}
               </View>
             </Card>
 
@@ -1499,7 +2530,9 @@ export default function AnalysisScreen() {
                   <Text style={styles.comparisonVsText}>vs</Text>
                 </View>
                 <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Last Period</Text>
+                  <Text style={styles.comparisonLabel}>
+                    {compareMode === "year" ? "Last Year" : "Last Period"}
+                  </Text>
                   <Text style={styles.comparisonValue}>
                     {formatCurrency(stats.prevExpenses)}
                   </Text>
@@ -1543,6 +2576,189 @@ export default function AnalysisScreen() {
                   {stats.expenseChange <= 0 ? " less" : " more"} than last
                   period
                 </Text>
+              </View>
+            </Card>
+          </>
+        )}
+
+        {/* BUDGETS TAB */}
+        {activeTab === "budgets" && (
+          <>
+            <Card style={styles.budgetUsageCard}>
+              <Text style={styles.cardTitle}>Budget Usage</Text>
+              {budgetsSummary.budgetForPeriod > 0 ? (
+                <>
+                  <View style={styles.budgetUsageHeader}>
+                    <Text style={styles.budgetUsageLabel}>
+                      {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
+                      {formatCurrency(budgetsSummary.budgetForPeriod)}
+                    </Text>
+                    <Text style={styles.budgetUsagePercent}>
+                      {budgetsSummary.utilization.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.budgetUsageBar}>
+                    <View
+                      style={[
+                        styles.budgetUsageBarFill,
+                        {
+                          width: `${Math.min(budgetsSummary.utilization, 100)}%`,
+                          backgroundColor:
+                            budgetsSummary.utilization > 100
+                              ? colors.expense
+                              : budgetsSummary.utilization > 85
+                                ? colors.warning
+                                : colors.income,
+                        },
+                      ]}
+                    />
+                  </View>
+                  {budgetsSummary.budgetUsage.map((budget) => (
+                    <View key={budget.id} style={styles.budgetUsageItem}>
+                      <View style={styles.budgetUsageLeft}>
+                        <View
+                          style={[
+                            styles.budgetUsageDot,
+                            { backgroundColor: budget.color },
+                          ]}
+                        />
+                        <Text style={styles.budgetUsageName}>
+                          {budget.name}
+                        </Text>
+                      </View>
+                      <Text style={styles.budgetUsageValue}>
+                        {formatCurrency(budget.spent)} /{" "}
+                        {formatCurrency(budget.limit)}
+                      </Text>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name="wallet-outline"
+                    size={48}
+                    color={colors.textMuted}
+                  />
+                  <Text style={styles.emptyText}>No budgets set</Text>
+                </View>
+              )}
+            </Card>
+          </>
+        )}
+
+        {/* SUBSCRIPTIONS TAB */}
+        {activeTab === "subscriptions" && (
+          <>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Subscriptions Summary</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {subscriptionsSummary.activeCount}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Active</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(subscriptionsSummary.monthlyTotal)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Monthly</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(subscriptionAnalytics.annualTotal)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Annual</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {subscriptionAnalytics.upcoming.length}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Upcoming</Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Upcoming Bills</Text>
+              {subscriptionAnalytics.upcoming.length > 0 ? (
+                subscriptionAnalytics.upcoming.map((sub) => (
+                  <View key={sub.id} style={styles.listRow}>
+                    <View>
+                      <Text style={styles.listTitle}>{sub.name}</Text>
+                      <Text style={styles.listSubtitle}>
+                        Due {formatShortDate(sub.nextDueDate)}
+                      </Text>
+                    </View>
+                    <Text style={styles.listValue}>
+                      {formatCurrency(sub.amount)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyInlineText}>No upcoming bills</Text>
+              )}
+            </Card>
+          </>
+        )}
+
+        {/* GOALS TAB */}
+        {activeTab === "goals" && (
+          <>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Goals Progress</Text>
+              {goals.length > 0 ? (
+                goals.map((goal) => {
+                  const progress =
+                    goal.targetAmount > 0
+                      ? (goal.currentAmount / goal.targetAmount) * 100
+                      : 0;
+                  return (
+                    <View key={goal.id} style={styles.goalRow}>
+                      <View style={styles.goalInfo}>
+                        <Text style={styles.goalTitle}>{goal.name}</Text>
+                        <Text style={styles.goalSubtitle}>
+                          {formatCurrency(goal.currentAmount)} /{" "}
+                          {formatCurrency(goal.targetAmount)}
+                        </Text>
+                        <View style={styles.goalSummaryBar}>
+                          <View
+                            style={[
+                              styles.goalSummaryBarFill,
+                              { width: `${Math.min(progress, 100)}%` },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                      <Text style={styles.goalPercentText}>
+                        {progress.toFixed(0)}%
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={styles.emptyInlineText}>No goals set yet</Text>
+              )}
+            </Card>
+
+            <Card style={styles.summaryCard}>
+              <Text style={styles.cardTitle}>Projection</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {formatCurrency(goalProjection.monthlySavings)}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Monthly Savings</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {goalProjection.monthsToGoal
+                      ? `${goalProjection.monthsToGoal.toFixed(1)} mo`
+                      : "—"}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Next Goal ETA</Text>
+                </View>
               </View>
             </Card>
           </>
@@ -1644,8 +2860,6 @@ export default function AnalysisScreen() {
             </View>
           </>
         )}
-
-        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
@@ -1659,7 +2873,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     header: {
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
+      paddingVertical: spacing.sm,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
@@ -1707,13 +2921,38 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surfaceSecondary,
       borderRadius: borderRadius.lg,
       padding: 4,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    controlsRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+    controlChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.full,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+    },
+    controlChipText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: "500",
     },
     periodButton: {
       flex: 1,
       paddingVertical: spacing.sm,
       alignItems: "center",
       borderRadius: borderRadius.md,
+      minWidth: 0,
     },
     periodButtonActive: {
       backgroundColor: colors.surface,
@@ -1734,27 +2973,33 @@ const createStyles = (colors: ThemeColors) =>
     },
     tabBar: {
       flexDirection: "row",
-      marginHorizontal: spacing.lg,
-      marginBottom: spacing.md,
-      gap: spacing.xs,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      gap: spacing.sm,
+      height: 44,
     },
     tabButton: {
-      flex: 1,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 4,
       paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      minWidth: 110,
+      height: 44,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     tabButtonActive: {
       backgroundColor: colors.primaryLight,
+      borderColor: colors.primaryLight,
     },
     tabButtonText: {
       fontSize: 11,
       fontWeight: "500",
-      color: colors.textMuted,
+      color: colors.textSecondary,
     },
     tabButtonTextActive: {
       color: colors.primary,
@@ -1762,9 +3007,177 @@ const createStyles = (colors: ThemeColors) =>
     },
     scrollView: {
       flex: 1,
+      marginTop: -spacing.lg,
     },
     scrollContent: {
       paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xl,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    modalSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+    },
+    modalActions: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    },
+    modalButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    modalButtonPrimary: {
+      backgroundColor: colors.primary,
+    },
+    modalButtonSecondary: {
+      backgroundColor: colors.surfaceSecondary,
+    },
+    modalButtonTextPrimary: {
+      color: "#FFF",
+      fontWeight: "600",
+    },
+    modalButtonTextSecondary: {
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    datePickerContainer: {
+      gap: spacing.sm,
+    },
+    datePickerLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+    webDateControls: {
+      gap: spacing.md,
+    },
+    webDateRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    webDateLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      width: 50,
+    },
+    webDateButtons: {
+      flexDirection: "row",
+      gap: spacing.xs,
+    },
+    webDateButton: {
+      backgroundColor: colors.surfaceSecondary,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: borderRadius.sm,
+    },
+    webDateButtonText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    webDateValue: {
+      fontSize: 12,
+      color: colors.textPrimary,
+      minWidth: 80,
+      textAlign: "right",
+    },
+    filterSectionTitle: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    filterRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      paddingBottom: spacing.xs,
+    },
+    filterChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surfaceSecondary,
+    },
+    filterChipActive: {
+      backgroundColor: colors.primaryLight,
+    },
+    filterChipText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    filterChipTextActive: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    listRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    listTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    listSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    listValue: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    goalRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    goalInfo: {
+      flex: 1,
+      marginRight: spacing.md,
+    },
+    goalTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    goalSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginVertical: spacing.xs,
+    },
+    goalPercentText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary,
     },
 
     // Health Score Card
@@ -2282,6 +3695,26 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 10,
       color: colors.textMuted,
       marginTop: 4,
+    },
+    waterfallChart: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      height: 140,
+      justifyContent: "space-around",
+    },
+    waterfallBarWrapper: {
+      flex: 1,
+      alignItems: "center",
+    },
+    waterfallBar: {
+      width: 24,
+      borderRadius: 6,
+      minHeight: 6,
+    },
+    waterfallLabel: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
     },
 
     // Net Trend Card
