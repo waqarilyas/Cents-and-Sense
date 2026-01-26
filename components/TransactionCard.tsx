@@ -62,9 +62,23 @@ export function TransactionCard({
             <Text style={styles.title} numberOfLines={1}>
               {transaction.description || category?.name || "Transaction"}
             </Text>
-            <Text style={styles.subtitle}>
-              {category?.name} • {formattedDate}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <Text style={styles.subtitle}>
+                {category?.name} • {formattedDate}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: "#757575",
+                  paddingHorizontal: 5,
+                  paddingVertical: 1,
+                  borderRadius: 3,
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 9, fontWeight: "600" }}>
+                  {transaction.currency}
+                </Text>
+              </View>
+            </View>
           </View>
 
           {/* Amount */}

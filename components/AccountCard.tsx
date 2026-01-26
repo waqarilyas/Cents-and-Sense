@@ -47,18 +47,33 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             >
               {account.name}
             </Text>
-            <View
-              style={{
-                backgroundColor: getTypeColor(account.type),
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 4,
-                alignSelf: "flex-start",
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 12 }}>
-                {getTypeLabel(account.type)}
-              </Text>
+            <View style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}>
+              <View
+                style={{
+                  backgroundColor: getTypeColor(account.type),
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 4,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 12 }}>
+                  {getTypeLabel(account.type)}
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: "#757575",
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 4,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+                  {account.currency}
+                </Text>
+              </View>
             </View>
           </View>
           <View style={{ alignItems: "flex-end" }}>

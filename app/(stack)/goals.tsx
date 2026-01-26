@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useGoals } from "../../lib/contexts/GoalContext";
+import { useUser } from "../../lib/contexts/UserContext";
+import { CurrencySelector } from "../../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -35,6 +37,8 @@ export default function GoalsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { defaultCurrency } = useUser();
+  const [goalCurrency, setGoalCurrency] = useState(defaultCurrency);
   const {
     goals,
     loading,
@@ -79,6 +83,7 @@ export default function GoalsScreen() {
     setCurrentAmount("");
     setDeadline("");
     setContribution("");
+    setGoalCurrency(defaultCurrency);
     setEditingGoal(null);
   };
 
@@ -104,6 +109,7 @@ export default function GoalsScreen() {
         goalName.trim(),
         parseFloat(targetAmount),
         getDefaultDeadline(),
+        goalCurrency,
       );
       setShowAddModal(false);
       resetForm();
@@ -464,6 +470,16 @@ export default function GoalsScreen() {
           placeholder="0.00"
           keyboardType="numeric"
         />
+
+        <View style={{ marginTop: spacing.md }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: spacing.sm }}>
+            Currency
+          </Text>
+          <CurrencySelector
+            selectedCode={goalCurrency}
+            onSelect={(code) => setGoalCurrency(code)}
+          />
+        </View>
 
         <Text style={styles.deadlineNote}>
           Deadline is set to 6 months from today. You can change it later.

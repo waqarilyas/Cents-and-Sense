@@ -26,9 +26,8 @@ import { useTransactions } from "../contexts/TransactionContext";
 import { useCategories } from "../contexts/CategoryContext";
 import { useAccounts } from "../contexts/AccountContext";
 import { useSubscriptions } from "../contexts/SubscriptionContext";
-import { useCurrency } from "../contexts/CurrencyContext";
-import { CurrencyPicker, CurrencySelector } from "./CurrencyPicker";
-import { Currency, getCurrencySymbol } from "../currencies";
+import { useUser } from "../contexts/UserContext";
+import { getCurrencySymbol } from "../currencies";
 import * as Haptics from "expo-haptics";
 import {
   matchCategoryByDescription,
@@ -145,7 +144,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const { expenseCategories, incomeCategories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
   const { addSubscription, refreshSubscriptions } = useSubscriptions();
-  const { defaultCurrency, defaultCurrencyCode } = useCurrency();
+  const { defaultCurrency } = useUser();
 
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("0");
@@ -161,15 +160,14 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     useState<CategoryDefinition | null>(null);
   const [suggestions, setSuggestions] = useState<CategoryDefinition[]>([]);
 
-  // Currency state
-  const [selectedCurrency, setSelectedCurrency] =
-    useState<string>(defaultCurrencyCode);
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-
-  // Account state - default to first account if available
+  // Account state - REQUIRED for all transactions
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );
+
+  // Get currency from selected account
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+  const accountCurrency = selectedAccount?.currency || defaultCurrency;
 
   // Subscription-specific state
   const [subscriptionName, setSubscriptionName] = useState("");
@@ -235,12 +233,12 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       setSubscriptionName("");
       setSubscriptionFrequency("monthly");
       setSubscriptionCategoryId(null);
-      setSelectedCurrency(defaultCurrencyCode);
-      setShowCurrencyPicker(false);
+      // Auto-select the first account if available
+      setSelectedAccountId(accounts.length > 0 ? accounts[0].id : null);
       slideAnim.setValue(0);
       successAnim.setValue(0);
     }
-  }, [visible, defaultCurrencyCode]);
+  }, [visible, accounts]);
 
   const handleClose = useCallback(() => {
     setAmount("0");
@@ -254,10 +252,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setSubscriptionName("");
     setSubscriptionFrequency("monthly");
     setSubscriptionCategoryId(null);
-    setSelectedCurrency(defaultCurrencyCode);
-    setShowCurrencyPicker(false);
     onClose();
-  }, [onClose, defaultCurrencyCode]);
+  }, [onClose]);
 
   const hapticFeedback = () => {
     if (Platform.OS !== "web") {
@@ -369,15 +365,18 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+      const subCurrency = selectedAccount?.currency || accountCurrency;
+      
       await addSubscription(
         subscriptionName.trim(),
         amountNum,
         subscriptionCategoryId,
         subscriptionFrequency,
         Date.now(),
+        subCurrency,
         3,
         undefined,
-        selectedCurrency,
       );
 
       // Refresh immediately after adding
@@ -414,24 +413,22 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     refreshSubscriptions,
     handleClose,
     successAnim,
-    selectedCurrency,
   ]);
 
   const handleSave = useCallback(async () => {
     const amountNum = parseFloat(amount);
-    if (amountNum <= 0 || !selectedCategoryId || isSubmitting) return;
+    if (amountNum <= 0 || !selectedCategoryId || !selectedAccountId || isSubmitting) return;
 
     setIsSubmitting(true);
 
     try {
       await addTransaction(
+        selectedAccountId, // REQUIRED first parameter
         selectedCategoryId,
         amountNum,
         description.trim(),
         Date.now(),
         transactionType,
-        selectedAccountId || undefined,
-        selectedCurrency,
       );
 
       // Refresh immediately after adding
@@ -472,7 +469,6 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     handleClose,
     isSubmitting,
     successAnim,
-    selectedCurrency,
   ]);
 
   const getCategoryIcon = (name: string): keyof typeof Ionicons.glyphMap => {
@@ -629,20 +625,14 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
               {/* Amount Display */}
               <View style={styles.amountDisplay}>
-                <TouchableOpacity
-                  style={styles.currencyButton}
-                  onPress={() => setShowCurrencyPicker(true)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.currencyButtonText}>
-                    {getCurrencySymbol(selectedCurrency)}
+                <View style={styles.currencyDisplay}>
+                  <Text style={styles.currencyDisplayText}>
+                    {getCurrencySymbol(accountCurrency)}
                   </Text>
-                  <Ionicons
-                    name="chevron-down"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
+                  <Text style={styles.currencyCodeText}>
+                    {accountCurrency}
+                  </Text>
+                </View>
                 <Text
                   style={[
                     styles.amountText,
@@ -706,14 +696,16 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           ? colors.expense
                           : colors.income,
                     },
-                    parseFloat(amount) <= 0 && styles.continueButtonDisabled,
+                    (parseFloat(amount) <= 0 || !selectedAccountId) && styles.continueButtonDisabled,
                   ]}
                   onPress={handleContinue}
-                  disabled={parseFloat(amount) <= 0}
+                  disabled={parseFloat(amount) <= 0 || !selectedAccountId}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.continueButtonText}>Next</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                  <Text style={styles.continueButtonText}>
+                    {!selectedAccountId ? "Select Account First" : "Next"}
+                  </Text>
+                  {selectedAccountId && <Ionicons name="arrow-forward" size={20} color="#FFF" />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -769,45 +761,22 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 )}
               </View>
 
-              {/* Account Selector (Optional) */}
-              {accounts.length > 0 && (
+              {/* Account Selector (REQUIRED) */}
+              {accounts.length > 0 ? (
                 <View style={styles.accountSelectorContainer}>
-                  <Text style={styles.accountSelectorLabel}>
-                    Link to Account (optional)
+                  <Text style={[styles.accountSelectorLabel, {fontWeight: "600"}]}>
+                    Select Account *
                   </Text>
+                  {!selectedAccountId && (
+                    <Text style={{color: colors.textSecondary, fontSize: 12, marginBottom: spacing.xs}}>
+                      Choose which account this transaction affects
+                    </Text>
+                  )}
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.accountChipsContainer}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.accountChip,
-                        !selectedAccountId && styles.accountChipSelected,
-                      ]}
-                      onPress={() => {
-                        hapticFeedback();
-                        setSelectedAccountId(null);
-                      }}
-                    >
-                      <Ionicons
-                        name="remove-circle-outline"
-                        size={16}
-                        color={
-                          !selectedAccountId
-                            ? colors.primary
-                            : colors.textSecondary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.accountChipText,
-                          !selectedAccountId && styles.accountChipTextSelected,
-                        ]}
-                      >
-                        None
-                      </Text>
-                    </TouchableOpacity>
                     {accounts.map((account) => {
                       const isSelected = selectedAccountId === account.id;
                       const iconName =
@@ -844,6 +813,14 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           >
                             {account.name}
                           </Text>
+                          <Text
+                            style={[
+                              styles.accountCurrencyText,
+                              isSelected && {color: colors.primary},
+                            ]}
+                          >
+                            {account.currency}
+                          </Text>
                           {isSelected && (
                             <Ionicons
                               name="checkmark-circle"
@@ -855,6 +832,21 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       );
                     })}
                   </ScrollView>
+                </View>
+              ) : (
+                <View style={styles.noAccountsContainer}>
+                  <Ionicons name="wallet-outline" size={32} color={colors.textSecondary} />
+                  <Text style={styles.noAccountsText}>No accounts found</Text>
+                  <Text style={styles.noAccountsSubtext}>Create an account first</Text>
+                  <TouchableOpacity
+                    style={styles.createAccountButton}
+                    onPress={() => {
+                      handleClose();
+                      router.push("/(stack)/accounts");
+                    }}
+                  >
+                    <Text style={styles.createAccountButtonText}>Go to Accounts</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -1243,17 +1235,6 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
-
-      {/* Currency Picker Modal */}
-      <CurrencyPicker
-        visible={showCurrencyPicker}
-        onClose={() => setShowCurrencyPicker(false)}
-        onSelect={(currency) => {
-          setSelectedCurrency(currency.code);
-          setShowCurrencyPicker(false);
-        }}
-        selectedCode={selectedCurrency}
-      />
     </Modal>
   );
 };
@@ -1358,6 +1339,25 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: spacing.xl,
       paddingHorizontal: spacing.lg,
       gap: spacing.sm,
+    },
+    currencyDisplay: {
+      flexDirection: "column",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.lg,
+      gap: 2,
+    },
+    currencyDisplayText: {
+      fontSize: 20,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    currencyCodeText: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontWeight: "500",
     },
     currencyButton: {
       flexDirection: "row",
@@ -1484,6 +1484,44 @@ const createStyles = (colors: ThemeColors) =>
     accountChipTextSelected: {
       color: colors.primary,
       fontWeight: "600",
+    },
+    accountCurrencyText: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    noAccountsContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: spacing.xl * 2,
+      paddingHorizontal: spacing.lg,
+      marginHorizontal: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      gap: spacing.sm,
+    },
+    noAccountsText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginTop: spacing.sm,
+    },
+    noAccountsSubtext: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    createAccountButton: {
+      marginTop: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.lg,
+    },
+    createAccountButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#FFFFFF",
     },
     smartMatchBanner: {
       flexDirection: "row",

@@ -25,9 +25,9 @@ interface SubscriptionContextType {
     categoryId: string,
     frequency: "daily" | "weekly" | "monthly" | "yearly",
     startDate: number,
+    currency: string,
     reminderDays?: number,
     notes?: string,
-    currency?: string,
   ) => Promise<string>;
   updateSubscription: (
     id: string,
@@ -117,9 +117,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       categoryId: string,
       frequency: "daily" | "weekly" | "monthly" | "yearly",
       startDate: number,
+      currency: string,
       reminderDays: number = 3,
       notes?: string,
-      currency: string = "USD",
     ): Promise<string> => {
       const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const now = Date.now();

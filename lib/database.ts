@@ -1,7 +1,16 @@
 import * as SQLite from "expo-sqlite";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 9; // Increment this when schema changes
+const SCHEMA_VERSION = 10; // Increment this when schema changes
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  defaultCurrency: string;
+  onboardingCompleted: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface Account {
   id: string;
@@ -22,7 +31,7 @@ export interface Category {
 
 export interface Transaction {
   id: string;
-  accountId?: string;
+  accountId: string;
   categoryId: string;
   amount: number;
   currency: string;
@@ -260,6 +269,15 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         id TEXT PRIMARY KEY,
         budgetPeriodStartDay INTEGER NOT NULL DEFAULT 1 CHECK(budgetPeriodStartDay >= 1 AND budgetPeriodStartDay <= 28),
         enableCarryover INTEGER NOT NULL DEFAULT 1,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS user_profile (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        defaultCurrency TEXT NOT NULL DEFAULT 'USD',
+        onboardingCompleted INTEGER NOT NULL DEFAULT 0,
         createdAt INTEGER NOT NULL,
         updatedAt INTEGER NOT NULL
       );

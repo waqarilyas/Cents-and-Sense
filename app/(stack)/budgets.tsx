@@ -15,6 +15,8 @@ import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCurrency } from "../../lib/contexts/CurrencyContext";
+import { useUser } from "../../lib/contexts/UserContext";
+import { CurrencySelector } from "../../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -41,6 +43,8 @@ export default function BudgetsScreen() {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { defaultCurrency } = useCurrency();
+  const { defaultCurrency: userDefaultCurrency } = useUser();
+  const [budgetCurrency, setBudgetCurrency] = useState(userDefaultCurrency);
   const {
     budgets,
     monthlyBudget,
@@ -98,6 +102,7 @@ export default function BudgetsScreen() {
     setCategoryId("");
     setBudgetLimit("");
     setPeriod("monthly");
+    setBudgetCurrency(userDefaultCurrency);
     setEditingBudget(null);
   };
 
@@ -172,7 +177,7 @@ export default function BudgetsScreen() {
         categoryId,
         parseFloat(budgetLimit),
         period,
-        defaultCurrency.code,
+        budgetCurrency,
         true, // Enable carryover by default
       );
       setShowAddModal(false);
@@ -579,6 +584,16 @@ export default function BudgetsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={{ marginTop: spacing.md }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: spacing.sm }}>
+            Currency
+          </Text>
+          <CurrencySelector
+            selectedCode={budgetCurrency}
+            onSelect={(code) => setBudgetCurrency(code)}
+          />
         </View>
 
         <Button

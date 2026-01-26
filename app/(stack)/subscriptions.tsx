@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
+import { useUser } from "../../lib/contexts/UserContext";
+import { CurrencySelector } from "../../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -66,6 +68,8 @@ export default function SubscriptionsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { defaultCurrency } = useUser();
+  const [subCurrency, setSubCurrency] = useState(defaultCurrency);
   const {
     subscriptions,
     activeSubscriptions,
@@ -144,6 +148,7 @@ export default function SubscriptionsScreen() {
     setCategoryId(expenseCategories[0]?.id || "");
     setFrequency("monthly");
     setNotes("");
+    setSubCurrency(defaultCurrency);
     setEditingId(null);
   };
 
@@ -176,6 +181,7 @@ export default function SubscriptionsScreen() {
         categoryId,
         frequency,
         Date.now(),
+        subCurrency,
         3,
         notes.trim() || undefined,
       );
@@ -528,6 +534,15 @@ export default function SubscriptionsScreen() {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+            </View>
+
+            {/* Currency Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Currency</Text>
+              <CurrencySelector
+                selectedCode={subCurrency}
+                onSelect={(code) => setSubCurrency(code)}
+              />
             </View>
 
             {/* Notes Input */}

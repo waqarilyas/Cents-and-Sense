@@ -55,19 +55,33 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
             >
               {goal.name}
             </Text>
-            <Text
-              variant="labelSmall"
-              style={{
-                color: completed ? "#2e7d32" : isOverdue ? "#d32f2f" : "#999",
-                fontWeight: "500",
-              }}
-            >
-              {completed
-                ? "Goal Reached"
-                : isOverdue
-                  ? `Overdue by ${Math.abs(daysLeft)} days`
-                  : `${daysLeft} days left`}
-            </Text>
+            <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <Text
+                variant="labelSmall"
+                style={{
+                  color: completed ? "#2e7d32" : isOverdue ? "#d32f2f" : "#999",
+                  fontWeight: "500",
+                }}
+              >
+                {completed
+                  ? "Goal Reached"
+                  : isOverdue
+                    ? `Overdue by ${Math.abs(daysLeft)} days`
+                    : `${daysLeft} days left`}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: "#757575",
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 3,
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
+                  {goal.currency}
+                </Text>
+              </View>
+            </View>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View, StatusBar } from "react-native";
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { initializeDatabase } from "../lib/database";
+import { UserProvider, useUser } from "../lib/contexts/UserContext";
 import { AccountProvider } from "../lib/contexts/AccountContext";
 import { CategoryProvider } from "../lib/contexts/CategoryContext";
 import { TransactionProvider } from "../lib/contexts/TransactionContext";
@@ -51,7 +52,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <SettingsProvider>
-        <ThemedApp />
+        <UserProvider>
+          <ThemedApp />
+        </UserProvider>
       </SettingsProvider>
     </SafeAreaProvider>
   );
@@ -59,6 +62,10 @@ export default function RootLayout() {
 
 function ThemedApp() {
   const { colors, activeTheme } = useThemeColors();
+  const { isOnboardingComplete, loading } = useUser();
+  const router = useRouter();
+  const segments = useSegments();
+
   const paperTheme = useMemo(() => {
     const base = activeTheme === "dark" ? MD3DarkTheme : MD3LightTheme;
     return {
@@ -73,6 +80,37 @@ function ThemedApp() {
       },
     };
   }, [activeTheme, colors]);
+
+  // Handle onboarding navigation
+  useEffect(() => {
+    if (loading) return;
+
+    const inOnboarding = segments[0] === "onboarding";
+
+    if (!isOnboardingComplete && !inOnboarding) {
+      // User hasn't completed onboarding, redirect to onboarding
+      router.replace("/onboarding");
+    } else if (isOnboardingComplete && inOnboarding) {
+      // User has completed onboarding but is on onboarding screen, redirect to main app
+      router.replace("/(tabs)");
+    }
+  }, [isOnboardingComplete, loading, segments]);
+
+  // Show loading while checking onboarding status
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -89,6 +127,7 @@ function ThemedApp() {
                   <GoalProvider>
                     <SubscriptionProvider>
                       <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="onboarding" />
                         <Stack.Screen name="(tabs)" />
                         <Stack.Screen name="(stack)" />
                       </Stack>

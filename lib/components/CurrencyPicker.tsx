@@ -260,7 +260,7 @@ export const CurrencyPicker: React.FC<CurrencyPickerProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -331,7 +331,11 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   }
 
   return (
-    <TouchableOpacity style={styles.selector} onPress={onPress}>
+    <TouchableOpacity 
+      style={styles.selector} 
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <Text style={styles.selectorFlag}>{currency?.flag}</Text>
       <Text style={styles.selectorCode}>{selectedCode}</Text>
       <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
@@ -503,6 +507,8 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
       gap: spacing.sm,
     },
     selectorFlag: {

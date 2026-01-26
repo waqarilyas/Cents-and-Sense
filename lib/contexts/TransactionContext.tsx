@@ -5,33 +5,33 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { Transaction, getDatabase } from "../database";
+import { Transaction, getDatabase, Account } from "../database";
+import { getMonthlyStatsByCurrency } from "../utils/currencyHelpers";
 
 interface TransactionContextType {
   transactions: Transaction[];
   loading: boolean;
   error: string | null;
   addTransaction: (
+    accountId: string,
     categoryId: string,
     amount: number,
     description: string,
     date: number,
     type: "income" | "expense",
-    accountId?: string,
-    currency?: string,
   ) => Promise<void>;
   updateTransaction: (
     id: string,
+    accountId: string,
     categoryId: string,
     amount: number,
     description: string,
     date: number,
     type: "income" | "expense",
-    accountId?: string,
-    currency?: string,
   ) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   getTransaction: (id: string) => Transaction | undefined;
+  getTransactionsByAccount: (accountId: string) => Transaction[];
   getTransactionsByCategory: (categoryId: string) => Transaction[];
   getTransactionsByDateRange: (
     startDate: number,
@@ -39,6 +39,7 @@ interface TransactionContextType {
   ) => Transaction[];
   getTransactionsByType: (type: "income" | "expense") => Transaction[];
   getMonthlyStats: () => { income: number; expense: number; balance: number };
+  getMonthlyStatsByCurrency: () => Record<string, { income: number; expense: number; balance: number }>;
   refreshTransactions: () => Promise<void>;
 }
 
@@ -105,14 +106,25 @@ export function TransactionProvider({
 
   const addTransaction = useCallback(
     async (
+      accountId: string,
       categoryId: string,
       amount: number,
       description: string,
       date: number,
       type: "income" | "expense",
-      accountId?: string,
-      currency: string = "USD",
     ) => {
+      // Get currency from account
+      const db = await getDatabase();
+      const account = await db.getFirstAsync<Account>(
+        "SELECT * FROM accounts WHERE id = ? LIMIT 1",
+        [accountId],
+      );
+
+      if (!account) {
+        throw new Error("Account not found");
+      }
+
+      const currency = account.currency;
       const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const newTransaction: Transaction = {
         id,
@@ -131,12 +143,11 @@ export function TransactionProvider({
       setError(null);
 
       try {
-        const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             id,
-            accountId || null,
+            accountId,
             categoryId,
             amount,
             currency,
@@ -147,10 +158,8 @@ export function TransactionProvider({
           ],
         );
 
-        // Update account balance if accountId is provided
-        if (accountId) {
-          await updateAccountBalance(accountId, amount, type, "add");
-        }
+        // Update account balance (accountId is always provided)
+        await updateAccountBalance(accountId, amount, type, "add");
       } catch (err) {
         // Rollback on error - remove the transaction
         setTransactions((prev) => prev.filter((t) => t.id !== id));
@@ -166,19 +175,31 @@ export function TransactionProvider({
   const updateTransaction = useCallback(
     async (
       id: string,
+      accountId: string,
       categoryId: string,
       amount: number,
       description: string,
       date: number,
       type: "income" | "expense",
-      accountId?: string,
-      currency: string = "USD",
     ) => {
       // Get the old transaction for rollback
       const oldTx = transactions.find((t) => t.id === id);
       if (!oldTx) {
         throw new Error("Transaction not found");
       }
+
+      // Get currency from account
+      const db = await getDatabase();
+      const account = await db.getFirstAsync<Account>(
+        "SELECT * FROM accounts WHERE id = ? LIMIT 1",
+        [accountId],
+      );
+
+      if (!account) {
+        throw new Error("Account not found");
+      }
+
+      const currency = account.currency;
 
       // Create updated transaction
       const updatedTx: Transaction = {
@@ -197,9 +218,7 @@ export function TransactionProvider({
       setError(null);
 
       try {
-        const db = await getDatabase();
-
-        // Revert old transaction's balance impact
+        // Revert old transaction's balance impact (oldTx always has accountId now)
         if (oldTx.accountId) {
           await updateAccountBalance(
             oldTx.accountId,
@@ -213,7 +232,7 @@ export function TransactionProvider({
         await db.runAsync(
           "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, currency = ?, description = ?, date = ?, type = ? WHERE id = ?",
           [
-            accountId || null,
+            accountId,
             categoryId,
             amount,
             currency,
@@ -224,10 +243,8 @@ export function TransactionProvider({
           ],
         );
 
-        // Apply new transaction's balance impact
-        if (accountId) {
-          await updateAccountBalance(accountId, amount, type, "add");
-        }
+        // Apply new transaction's balance impact (accountId is always provided)
+        await updateAccountBalance(accountId, amount, type, "add");
       } catch (err) {
         // Rollback on error - restore old transaction
         setTransactions((prev) => prev.map((t) => (t.id === id ? oldTx : t)));
@@ -301,6 +318,13 @@ export function TransactionProvider({
     [transactions],
   );
 
+  const getTransactionsByAccount = useCallback(
+    (accountId: string) => {
+      return transactions.filter((t) => t.accountId === accountId);
+    },
+    [transactions],
+  );
+
   const getTransactionsByType = useCallback(
     (type: "income" | "expense") => {
       return transactions.filter((t) => t.type === type);
@@ -333,6 +357,10 @@ export function TransactionProvider({
     return { income, expense, balance: income - expense };
   }, [transactions]);
 
+  const getMonthlyStatsByCurrencyMethod = useCallback(() => {
+    return getMonthlyStatsByCurrency(transactions);
+  }, [transactions]);
+
   return (
     <TransactionContext.Provider
       value={{
@@ -343,10 +371,12 @@ export function TransactionProvider({
         updateTransaction,
         deleteTransaction,
         getTransaction,
+        getTransactionsByAccount,
         getTransactionsByCategory,
         getTransactionsByDateRange,
         getTransactionsByType,
         getMonthlyStats,
+        getMonthlyStatsByCurrency: getMonthlyStatsByCurrencyMethod,
         refreshTransactions: loadTransactions,
       }}
     >

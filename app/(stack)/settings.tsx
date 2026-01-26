@@ -22,6 +22,8 @@ import { useGoals } from "../../lib/contexts/GoalContext";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
+import { useUser } from "../../lib/contexts/UserContext";
+import { CurrencyPicker } from "../../lib/components/CurrencyPicker";
 import { useMemo, useState } from "react";
 
 interface MenuItem {
@@ -45,8 +47,10 @@ export default function SettingsScreen() {
   const { budgets } = useBudgets();
   const { transactions } = useTransactions();
   const { categories } = useCategories();
+  const { userName, defaultCurrency, updateDefaultCurrency } = useUser();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   // Calculate some stats for display
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
@@ -108,10 +112,9 @@ export default function SettingsScreen() {
         },
         {
           icon: "cash-outline",
-          label: "Currency",
-          subtitle: "USD ($)",
-          onPress: () =>
-            Alert.alert("Currency", "Currency settings coming soon!"),
+          label: "Default Currency",
+          subtitle: `${defaultCurrency} - Tap to change`,
+          onPress: () => setShowCurrencyPicker(true),
           showArrow: true,
         },
         {
@@ -232,7 +235,12 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Settings</Text>
+          {userName && (
+            <Text style={styles.headerSubtitle}>Hello, {userName}!</Text>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -335,6 +343,17 @@ export default function SettingsScreen() {
         {/* Bottom Spacing for Tab Bar */}
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* Currency Picker Modal */}
+      <CurrencyPicker
+        visible={showCurrencyPicker}
+        selectedCode={defaultCurrency}
+        onSelect={async (currency) => {
+          await updateDefaultCurrency(currency.code);
+          setShowCurrencyPicker(false);
+        }}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
     </View>
   );
 }
@@ -367,6 +386,11 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 28,
       fontWeight: "700",
       color: colors.textPrimary,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 2,
     },
     scrollView: {
       flex: 1,

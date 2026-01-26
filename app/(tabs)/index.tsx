@@ -19,6 +19,12 @@ import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useSettings } from "../../lib/contexts/SettingsContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
+import { useUser } from "../../lib/contexts/UserContext";
+import {
+  getTotalBalanceByCurrency,
+  getMonthlyStatsByCurrency,
+  formatCurrencyAmount,
+} from "../../lib/utils/currencyHelpers";
 import {
   spacing,
   borderRadius,
@@ -34,7 +40,9 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [refreshing, setRefreshing] = useState(false);
   const {
+    accounts,
     getTotalBalance,
     loading: accountsLoading,
     refreshAccounts,
@@ -45,22 +53,24 @@ export default function HomeScreen() {
     getMonthlyStats,
     refreshTransactions,
   } = useTransactions();
-  const { budgets } = useBudgets();
-  const { getCategory } = useCategories();
   const {
     getUpcomingSubscriptions,
     processDueSubscriptions,
     refreshSubscriptions,
-    pendingSubscriptions,
     approvePendingSubscription,
     skipPendingSubscription,
+    pendingSubscriptions,
     approveAllPending,
   } = useSubscriptions();
-  const { settings } = useSettings();
+  const { budgets } = useBudgets();
+  const { getCategory } = useCategories();
   const { goals } = useGoals();
-  const [refreshing, setRefreshing] = useState(false);
+  const { settings } = useSettings();
+  const { userProfile } = useUser();
 
+  const balancesByCurrency = getTotalBalanceByCurrency(accounts);
   const monthlyStats = getMonthlyStats();
+  const monthlyStatsByCurrency = getMonthlyStatsByCurrency(transactions);
   const upcomingSubscriptions = getUpcomingSubscriptions(7);
 
   // Process due subscriptions on mount based on settings
@@ -291,7 +301,9 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.headerGreeting}>{getGreeting()}</Text>
-            <Text style={styles.headerTitle}>Your Finances</Text>
+            <Text style={styles.headerTitle}>
+              {userProfile?.name ? userProfile.name : "Your Finances"}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.profileButton}
@@ -305,55 +317,52 @@ export default function HomeScreen() {
 
         {/* Balance Card */}
         <Card style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>
-            {formatCurrency(totalBalance)}
-          </Text>
-          <View style={styles.balanceBreakdown}>
-            <Text style={styles.balanceBreakdownText}>
-              Accounts: {formatCurrency(accountBalance)}
-            </Text>
-            <Text style={styles.balanceBreakdownSeparator}>•</Text>
-            <Text style={styles.balanceBreakdownText}>
-              Unlinked: {formatCurrency(unlinkedBalance)}
-            </Text>
+          <Text style={styles.balanceLabel}>Your Balances</Text>
+          
+          {/* Per-Currency Balances */}
+          <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+            {Object.entries(balancesByCurrency).map(([currency, balance]) => (
+              <View key={currency} style={styles.currencyBalanceRow}>
+                <View style={styles.currencyBadge}>
+                  <Text style={styles.currencyBadgeText}>{currency}</Text>
+                </View>
+                <Text style={styles.currencyBalanceAmount}>
+                  {formatCurrencyAmount(balance, currency)}
+                </Text>
+              </View>
+            ))}
+            {Object.keys(balancesByCurrency).length === 0 && (
+              <Text style={styles.noBalanceText}>No accounts yet</Text>
+            )}
           </View>
 
-          {/* Income/Expense Row */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <View
-                style={[
-                  styles.statIcon,
-                  { backgroundColor: "rgba(255,255,255,0.2)" },
-                ]}
-              >
-                <Ionicons name="arrow-down" size={18} color="#FFFFFF" />
+          {/* Income/Expense Per Currency */}
+          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+            <Text style={[styles.balanceLabel, { fontSize: 14 }]}>This Month</Text>
+            {Object.entries(monthlyStatsByCurrency).map(([currency, stats]) => (
+              <View key={currency} style={styles.monthlyStatsRow}>
+                <View style={styles.currencyBadgeSmall}>
+                  <Text style={styles.currencyBadgeTextSmall}>{currency}</Text>
+                </View>
+                <View style={styles.statsInlineRow}>
+                  <View style={styles.statInline}>
+                    <Ionicons name="arrow-down" size={14} color={colors.income} />
+                    <Text style={[styles.statInlineText, { color: colors.income }]}>
+                      {formatCurrencyAmount(stats.income, currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.statInline}>
+                    <Ionicons name="arrow-up" size={14} color={colors.expense} />
+                    <Text style={[styles.statInlineText, { color: colors.expense }]}>
+                      {formatCurrencyAmount(stats.expense, currency)}
+                    </Text>
+                  </View>
+                </View>
               </View>
-              <View>
-                <Text style={styles.statLabel}>Income</Text>
-                <Text style={styles.statValueLight}>
-                  +{formatCurrency(monthlyStats.income)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <View
-                style={[
-                  styles.statIcon,
-                  { backgroundColor: "rgba(255,255,255,0.2)" },
-                ]}
-              >
-                <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.statLabel}>Expenses</Text>
-                <Text style={styles.statValueLight}>
-                  -{formatCurrency(monthlyStats.expense)}
-                </Text>
-              </View>
-            </View>
+            ))}
+            {Object.keys(monthlyStatsByCurrency).length === 0 && (
+              <Text style={styles.noDataText}>No transactions this month</Text>
+            )}
           </View>
         </Card>
 
@@ -771,11 +780,79 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 14,
       color: "rgba(255,255,255,0.8)",
       marginBottom: spacing.xs,
+      fontWeight: "600",
+    },
+    currencyBalanceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: spacing.xs,
+    },
+    currencyBadge: {
+      backgroundColor: "rgba(255,255,255,0.2)",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    currencyBadgeText: {
+      color: colors.textInverse,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    currencyBalanceAmount: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.textInverse,
+    },
+    noBalanceText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingVertical: spacing.md,
+    },
+    monthlyStatsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: 4,
+    },
+    currencyBadgeSmall: {
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      minWidth: 40,
+      alignItems: "center",
+    },
+    currencyBadgeTextSmall: {
+      color: colors.textInverse,
+      fontSize: 10,
+      fontWeight: "600",
+    },
+    statsInlineRow: {
+      flexDirection: "row",
+      gap: spacing.md,
+      flex: 1,
+    },
+    statInline: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    statInlineText: {
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    noDataText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingVertical: spacing.sm,
     },
     balanceAmount: {
       fontSize: 40,
       fontWeight: "700",
-      color: "#FFFFFF",
+      color: colors.textInverse,
       marginBottom: spacing.lg,
     },
     balanceBreakdown: {
@@ -821,12 +898,12 @@ const createStyles = (colors: ThemeColors) =>
     statValueLight: {
       fontSize: 16,
       fontWeight: "600",
-      color: "#FFFFFF",
+      color: colors.textInverse,
     },
     statDivider: {
       width: 1,
       height: 36,
-      backgroundColor: "rgba(255,255,255,0.2)",
+      backgroundColor: colors.border,
       marginHorizontal: spacing.md,
     },
     quickAccessRow: {
@@ -870,14 +947,14 @@ const createStyles = (colors: ThemeColors) =>
     alertCard: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: "#FEF3C7",
+      backgroundColor: colors.warning + "20",
       padding: spacing.md,
       borderRadius: borderRadius.md,
       marginBottom: spacing.lg,
       gap: spacing.md,
     },
     alertCardDanger: {
-      backgroundColor: "#FEE2E2",
+      backgroundColor: colors.expense + "20",
     },
     alertContent: {
       flex: 1,
@@ -890,7 +967,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     alertProgressBg: {
       height: 4,
-      backgroundColor: "rgba(0,0,0,0.1)",
+      backgroundColor: colors.border,
       borderRadius: 2,
     },
     alertProgress: {
@@ -898,12 +975,12 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 2,
     },
     pendingSection: {
-      backgroundColor: "#FEF3C7",
+      backgroundColor: colors.warning + "20",
       borderRadius: borderRadius.lg,
       padding: spacing.md,
       marginBottom: spacing.lg,
       borderWidth: 1,
-      borderColor: "#F59E0B",
+      borderColor: colors.warning,
     },
     pendingHeader: {
       flexDirection: "row",
@@ -920,14 +997,14 @@ const createStyles = (colors: ThemeColors) =>
       width: 28,
       height: 28,
       borderRadius: 14,
-      backgroundColor: "#F59E0B",
+      backgroundColor: colors.warning,
       alignItems: "center",
       justifyContent: "center",
     },
     pendingTitle: {
       fontSize: 15,
       fontWeight: "600",
-      color: "#92400E",
+      color: colors.textPrimary,
     },
     approveAllButton: {
       backgroundColor: colors.primary,
@@ -938,12 +1015,12 @@ const createStyles = (colors: ThemeColors) =>
     approveAllText: {
       fontSize: 13,
       fontWeight: "600",
-      color: "#FFF",
+      color: colors.textInverse,
     },
     pendingItem: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: "#FFF",
+      backgroundColor: colors.surface,
       padding: spacing.sm,
       borderRadius: borderRadius.md,
       marginTop: spacing.xs,
@@ -953,7 +1030,7 @@ const createStyles = (colors: ThemeColors) =>
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: "#FEF3C7",
+      backgroundColor: colors.warning + "20",
       alignItems: "center",
       justifyContent: "center",
     },

@@ -27,6 +27,7 @@ import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useCurrency } from "../../lib/contexts/CurrencyContext";
+import { useUser } from "../../lib/contexts/UserContext";
 import {
   useSettings,
   SubscriptionProcessingMode,
@@ -66,6 +67,7 @@ export default function ProfileScreen() {
   const { defaultCurrency, defaultCurrencyCode, setDefaultCurrency } =
     useCurrency();
   const { settings, updateSetting } = useSettings();
+  const { userProfile } = useUser();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -339,7 +341,9 @@ export default function ProfileScreen() {
           <View style={styles.profileAvatar}>
             <Ionicons name="person" size={36} color={colors.primary} />
           </View>
-          <Text style={styles.profileName}>Budget Tracker User</Text>
+          <Text style={styles.profileName}>
+            {userProfile?.name || "Budget Tracker User"}
+          </Text>
           <Text style={styles.profileEmail}>Manage your finances wisely</Text>
 
           <View style={styles.profileStats}>

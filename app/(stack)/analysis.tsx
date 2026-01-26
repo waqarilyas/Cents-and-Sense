@@ -75,10 +75,10 @@ type TypeFilter = "all" | "income" | "expense";
 export default function AnalysisScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors } = useThemeColors();
+  const { colors, activeTheme } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { defaultCurrency } = useCurrency();
-  const currencySymbol = defaultCurrency.symbol;
+  const currencySymbol = defaultCurrency?.symbol || "$";
   const {
     transactions,
     loading: txLoading,
@@ -1227,6 +1227,7 @@ export default function AnalysisScreen() {
                     value={new Date(customRange.start)}
                     mode="date"
                     display={Platform.OS === "ios" ? "inline" : "default"}
+                    themeVariant={activeTheme}
                     onChange={(_, date) => {
                       if (date) {
                         setCustomRange((prev) => ({
@@ -1241,6 +1242,7 @@ export default function AnalysisScreen() {
                     value={new Date(customRange.end)}
                     mode="date"
                     display={Platform.OS === "ios" ? "inline" : "default"}
+                    themeVariant={activeTheme}
                     onChange={(_, date) => {
                       if (date) {
                         setCustomRange((prev) => ({
@@ -3977,7 +3979,7 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
-      backgroundColor: "#1A1A2E",
+      backgroundColor: colors.surfaceSecondary,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
       borderRadius: borderRadius.full,
@@ -3985,7 +3987,7 @@ const createStyles = (colors: ThemeColors) =>
     premiumBadgeText: {
       fontSize: 10,
       fontWeight: "700",
-      color: "#FFD700",
+      color: colors.warning,
     },
     headerSubtitle: {
       fontSize: 14,
@@ -4162,7 +4164,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surfaceSecondary,
     },
     modalButtonTextPrimary: {
-      color: "#FFF",
+      color: colors.textInverse,
       fontWeight: "600",
     },
     modalButtonTextSecondary: {
@@ -4310,7 +4312,7 @@ const createStyles = (colors: ThemeColors) =>
     healthScoreTitle: {
       fontSize: 16,
       fontWeight: "600",
-      color: "#FFF",
+      color: colors.textInverse,
     },
     healthScoreBadge: {
       flexDirection: "row",
@@ -4319,15 +4321,15 @@ const createStyles = (colors: ThemeColors) =>
     healthScoreValue: {
       fontSize: 32,
       fontWeight: "700",
-      color: "#FFF",
+      color: colors.textInverse,
     },
     healthScoreMax: {
       fontSize: 14,
-      color: "rgba(255,255,255,0.7)",
+      color: colors.textSecondary,
     },
     healthScoreBar: {
       height: 8,
-      backgroundColor: "rgba(255,255,255,0.3)",
+      backgroundColor: colors.border,
       borderRadius: 4,
       overflow: "hidden",
       marginBottom: spacing.sm,
@@ -4338,7 +4340,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     healthScoreLabel: {
       fontSize: 13,
-      color: "rgba(255,255,255,0.8)",
+      color: colors.textSecondary,
     },
 
     // Overview Grid
@@ -4782,7 +4784,7 @@ const createStyles = (colors: ThemeColors) =>
     topCategoryRankText: {
       fontSize: 12,
       fontWeight: "700",
-      color: "#FFF",
+      color: colors.textInverse,
     },
     topCategoryInfo: {
       flex: 1,

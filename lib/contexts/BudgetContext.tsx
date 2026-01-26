@@ -16,6 +16,7 @@ import {
   getPreviousPeriod,
   needsPeriodTransition,
 } from "../utils/periodCalculations";
+import { groupBudgetsByCurrency } from "../utils/currencyHelpers";
 
 interface BudgetWithCarryover extends Budget {
   carryoverAmount: number;
@@ -47,6 +48,7 @@ interface BudgetContextType {
   deleteBudget: (id: string) => Promise<void>;
   getBudget: (id: string) => Budget | undefined;
   getBudgetByCategory: (categoryId: string) => Budget | undefined;
+  getBudgetsByCurrency: (currency: string) => Budget[];
   getAllBudgets: () => Budget[];
   processPeriodTransitions: () => Promise<void>;
 }
@@ -290,6 +292,13 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     [budgets],
   );
 
+  const getBudgetsByCurrency = useCallback(
+    (currency: string) => {
+      return budgets.filter((b) => b.currency === currency);
+    },
+    [budgets],
+  );
+
   const getAllBudgets = useCallback(() => {
     return budgets;
   }, [budgets]);
@@ -352,10 +361,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         if (needsPeriodTransition(budget.lastPeriodEnd, periodStartDay)) {
           const previousPeriod = getPreviousPeriod(periodStartDay);
 
-          // Calculate spending for previous period
+          // Calculate spending for previous period (currency-aware)
           const transactions = await db.getAllAsync<any>(
-            "SELECT amount FROM transactions WHERE categoryId = ? AND type = 'expense' AND date >= ? AND date <= ?",
-            [budget.categoryId, previousPeriod.start, previousPeriod.end],
+            "SELECT amount FROM transactions WHERE categoryId = ? AND currency = ? AND type = 'expense' AND date >= ? AND date <= ?",
+            [budget.categoryId, budget.currency, previousPeriod.start, previousPeriod.end],
           );
 
           const spent = transactions.reduce((sum, t) => sum + t.amount, 0);
@@ -419,6 +428,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         deleteBudget,
         getBudget,
         getBudgetByCategory,
+        getBudgetsByCurrency,
         getAllBudgets,
         processPeriodTransitions,
       }}

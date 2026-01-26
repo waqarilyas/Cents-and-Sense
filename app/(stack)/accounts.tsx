@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAccounts } from "../../lib/contexts/AccountContext";
+import { useUser } from "../../lib/contexts/UserContext";
+import { getCurrency } from "../../lib/currencies";
 import {
   spacing,
   borderRadius,
@@ -49,6 +51,7 @@ export default function AccountsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { defaultCurrency } = useUser();
   const {
     accounts,
     loading,
@@ -61,6 +64,8 @@ export default function AccountsScreen() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCurrencyList, setShowCurrencyList] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -68,6 +73,7 @@ export default function AccountsScreen() {
   const [accountName, setAccountName] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("checking");
   const [accountBalance, setAccountBalance] = useState("");
+  const [accountCurrency, setAccountCurrency] = useState(defaultCurrency);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -80,8 +86,20 @@ export default function AccountsScreen() {
     setAccountName("");
     setAccountType("checking");
     setAccountBalance("");
+    setAccountCurrency(defaultCurrency);
     setEditingAccount(null);
+    setShowCurrencyList(false);
+    setCurrencySearch("");
   };
+
+  // Filter currencies based on search
+  const filteredCurrencies = useMemo(() => {
+    const allCurrencies = require('../../lib/currencies').CURRENCIES;
+    if (!currencySearch.trim()) {
+      return require('../../lib/currencies').getPopularCurrencies();
+    }
+    return require('../../lib/currencies').searchCurrencies(currencySearch);
+  }, [currencySearch]);
 
   const handleAddAccount = async () => {
     if (!accountName.trim()) {
@@ -91,7 +109,7 @@ export default function AccountsScreen() {
 
     setIsSubmitting(true);
     try {
-      await addAccount(accountName.trim(), accountType);
+      await addAccount(accountName.trim(), accountType, accountCurrency);
       setShowAddModal(false);
       resetForm();
       Alert.alert("Success", "Account added successfully!");
@@ -112,7 +130,7 @@ export default function AccountsScreen() {
 
     setIsSubmitting(true);
     try {
-      await updateAccount(editingAccount.id, accountName.trim(), balance);
+      await updateAccount(editingAccount.id, accountName.trim(), balance, accountCurrency);
       setShowEditModal(false);
       resetForm();
       Alert.alert("Success", "Account updated successfully!");
@@ -124,6 +142,16 @@ export default function AccountsScreen() {
   };
 
   const handleDeleteAccount = (account: Account) => {
+    // Prevent deleting the last account
+    if (accounts.length <= 1) {
+      Alert.alert(
+        "Cannot Delete",
+        "You must have at least one account. This is your last account and cannot be deleted.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     Alert.alert(
       "Delete Account",
       `Are you sure you want to delete "${account.name}"? This will also delete all associated transactions.`,
@@ -137,7 +165,8 @@ export default function AccountsScreen() {
               await deleteAccount(account.id);
               Alert.alert("Success", "Account deleted successfully");
             } catch (error) {
-              Alert.alert("Error", "Failed to delete account");
+              const errorMessage = error instanceof Error ? error.message : "Failed to delete account";
+              Alert.alert("Error", errorMessage);
             }
           },
         },
@@ -149,6 +178,7 @@ export default function AccountsScreen() {
     setEditingAccount(account);
     setAccountName(account.name);
     setAccountBalance(account.balance.toString());
+    setAccountCurrency(account.currency);
     setShowEditModal(true);
   };
 
@@ -333,6 +363,61 @@ export default function AccountsScreen() {
           placeholder="Select account type"
         />
 
+        <View style={{ marginTop: spacing.md }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.sm }}>
+            Currency
+          </Text>
+          <TouchableOpacity
+            style={[styles.currencyButton, showCurrencyList && styles.currencyButtonActive]}
+            onPress={() => setShowCurrencyList(!showCurrencyList)}
+          >
+            <Text style={styles.currencyButtonText}>
+              {getCurrency(accountCurrency)?.flag} {accountCurrency} - {getCurrency(accountCurrency)?.name}
+            </Text>
+            <Ionicons
+              name={showCurrencyList ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+
+          {showCurrencyList && (
+            <View style={styles.currencyListContainer}>
+              <Input
+                value={currencySearch}
+                onChangeText={setCurrencySearch}
+                placeholder="Search currencies..."
+                style={{ marginBottom: spacing.sm }}
+              />
+              <ScrollView style={styles.currencyScrollView} nestedScrollEnabled>
+                {filteredCurrencies.map((currency: any) => (
+                  <TouchableOpacity
+                    key={currency.code}
+                    style={[
+                      styles.currencyOption,
+                      currency.code === accountCurrency && styles.currencyOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setAccountCurrency(currency.code);
+                      setShowCurrencyList(false);
+                      setCurrencySearch("");
+                    }}
+                  >
+                    <Text style={styles.currencyFlag}>{currency.flag}</Text>
+                    <View style={styles.currencyInfo}>
+                      <Text style={styles.currencyCode}>{currency.code}</Text>
+                      <Text style={styles.currencyName}>{currency.name}</Text>
+                    </View>
+                    {currency.code === accountCurrency && (
+                      <Ionicons name="checkmark" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
         <Button
           title={isSubmitting ? "Adding..." : "Add Account"}
           onPress={handleAddAccount}
@@ -366,6 +451,61 @@ export default function AccountsScreen() {
           placeholder="0.00"
           keyboardType="numeric"
         />
+
+        <View style={{ marginTop: spacing.md }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.sm }}>
+            Currency
+          </Text>
+          <TouchableOpacity
+            style={[styles.currencyButton, showCurrencyList && styles.currencyButtonActive]}
+            onPress={() => setShowCurrencyList(!showCurrencyList)}
+          >
+            <Text style={styles.currencyButtonText}>
+              {getCurrency(accountCurrency)?.flag} {accountCurrency} - {getCurrency(accountCurrency)?.name}
+            </Text>
+            <Ionicons
+              name={showCurrencyList ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
+
+          {showCurrencyList && (
+            <View style={styles.currencyListContainer}>
+              <Input
+                value={currencySearch}
+                onChangeText={setCurrencySearch}
+                placeholder="Search currencies..."
+                style={{ marginBottom: spacing.sm }}
+              />
+              <ScrollView style={styles.currencyScrollView} nestedScrollEnabled>
+                {filteredCurrencies.map((currency: any) => (
+                  <TouchableOpacity
+                    key={currency.code}
+                    style={[
+                      styles.currencyOption,
+                      currency.code === accountCurrency && styles.currencyOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setAccountCurrency(currency.code);
+                      setShowCurrencyList(false);
+                      setCurrencySearch("");
+                    }}
+                  >
+                    <Text style={styles.currencyFlag}>{currency.flag}</Text>
+                    <View style={styles.currencyInfo}>
+                      <Text style={styles.currencyCode}>{currency.code}</Text>
+                      <Text style={styles.currencyName}>{currency.name}</Text>
+                    </View>
+                    {currency.code === accountCurrency && (
+                      <Ionicons name="checkmark" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
 
         <View style={styles.editActions}>
           <Button
@@ -555,5 +695,61 @@ const createStyles = (colors: ThemeColors) =>
     editActions: {
       flexDirection: "row",
       marginTop: spacing.lg,
+    },
+    currencyButton: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+    },
+    currencyButtonActive: {
+      borderColor: colors.primary,
+    },
+    currencyButtonText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    currencyListContainer: {
+      marginTop: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      padding: spacing.sm,
+    },
+    currencyScrollView: {
+      maxHeight: 250,
+    },
+    currencyOption: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+      borderRadius: borderRadius.sm,
+      marginBottom: spacing.xs,
+    },
+    currencyOptionSelected: {
+      backgroundColor: colors.primary + "15",
+    },
+    currencyFlag: {
+      fontSize: 24,
+      marginRight: spacing.sm,
+    },
+    currencyInfo: {
+      flex: 1,
+    },
+    currencyCode: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    currencyName: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
     },
   });

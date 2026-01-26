@@ -15,7 +15,7 @@ interface GoalContextType {
     name: string,
     targetAmount: number,
     deadline: number,
-    currency?: string,
+    currency: string,
   ) => Promise<void>;
   updateGoal: (
     id: string,

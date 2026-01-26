@@ -97,16 +97,20 @@ export default function TransactionsScreen() {
       Alert.alert("Error", "Please select a category");
       return;
     }
+    if (!accountId) {
+      Alert.alert("Error", "Please select an account");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await addTransaction(
+        accountId,
         categoryId,
         parseFloat(amount),
         description,
         Date.now(),
         transactionType,
-        accountId || undefined,
       );
       // Refresh accounts in background to show updated balance
       refreshAccounts(); // Non-blocking
@@ -130,17 +134,21 @@ export default function TransactionsScreen() {
       Alert.alert("Error", "Please select a category");
       return;
     }
+    if (!accountId) {
+      Alert.alert("Error", "Please select an account");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await updateTransaction(
         editingTransaction.id,
+        accountId,
         categoryId,
         parseFloat(amount),
         description,
         editingTransaction.date,
         transactionType,
-        accountId || undefined,
       );
       // Refresh accounts in background to show updated balance
       refreshAccounts(); // Non-blocking
@@ -592,7 +600,7 @@ export default function TransactionsScreen() {
           />
 
           <Select
-            label="Account (optional)"
+            label="Account *"
             value={accountId}
             options={getAccountOptions()}
             onSelect={setAccountId}
@@ -702,7 +710,7 @@ export default function TransactionsScreen() {
           />
 
           <Select
-            label="Account (optional)"
+            label="Account *"
             value={accountId}
             options={getAccountOptions()}
             onSelect={setAccountId}
