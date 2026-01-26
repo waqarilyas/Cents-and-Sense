@@ -279,24 +279,28 @@ export default function TransactionsScreen() {
           >
             <Ionicons name="chevron-back" size={26} color={colors.primary} />
           </TouchableOpacity>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={styles.headerTitle}>Transactions</Text>
             <TouchableOpacity
               onPress={() =>
                 Alert.alert(
                   "About Transactions",
                   "Track all your income and expenses.\\n\\n" +
-                  "\u2022 Income: Money received\n" +
-                  "\u2022 Expense: Money spent\n" +
-                  "\u2022 Assign to categories for organization\n" +
-                  "\u2022 Link to accounts to track balances\n\n" +
-                  "Swipe left on a transaction to delete it.\n" +
-                  "Tap a transaction to edit details.",
-                  [{ text: "Got it!" }]
+                    "\u2022 Income: Money received\n" +
+                    "\u2022 Expense: Money spent\n" +
+                    "\u2022 Assign to categories for organization\n" +
+                    "\u2022 Link to accounts to track balances\n\n" +
+                    "Swipe left on a transaction to delete it.\n" +
+                    "Tap a transaction to edit details.",
+                  [{ text: "Got it!" }],
                 )
               }
             >
-              <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+              <Ionicons
+                name="help-circle-outline"
+                size={20}
+                color={colors.primary}
+              />
             </TouchableOpacity>
           </View>
           <TouchableOpacity

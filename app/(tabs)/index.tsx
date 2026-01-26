@@ -331,7 +331,7 @@ export default function HomeScreen() {
                     {formatCurrencyAmount(balance, currency)}
                   </Text>
                 </View>
-                
+
                 {/* This Month Summary for this currency */}
                 {monthlyStatsByCurrency[currency] && (
                   <View style={styles.monthSummaryRow}>
@@ -343,7 +343,10 @@ export default function HomeScreen() {
                       />
                       <Text style={styles.monthStatLabel}>Income</Text>
                       <Text style={styles.monthStatValue}>
-                        {formatCurrencyAmount(monthlyStatsByCurrency[currency].income, currency)}
+                        {formatCurrencyAmount(
+                          monthlyStatsByCurrency[currency].income,
+                          currency,
+                        )}
                       </Text>
                     </View>
                     <View style={styles.monthStatDivider} />
@@ -355,26 +358,44 @@ export default function HomeScreen() {
                       />
                       <Text style={styles.monthStatLabel}>Expenses</Text>
                       <Text style={styles.monthStatValue}>
-                        {formatCurrencyAmount(monthlyStatsByCurrency[currency].expense, currency)}
+                        {formatCurrencyAmount(
+                          monthlyStatsByCurrency[currency].expense,
+                          currency,
+                        )}
                       </Text>
                     </View>
                     <View style={styles.monthStatDivider} />
                     <View style={styles.monthStat}>
                       <Ionicons
-                        name={monthlyStatsByCurrency[currency].income - monthlyStatsByCurrency[currency].expense >= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
+                        name={
+                          monthlyStatsByCurrency[currency].income -
+                            monthlyStatsByCurrency[currency].expense >=
+                          0
+                            ? "checkmark-circle-outline"
+                            : "alert-circle-outline"
+                        }
                         size={16}
                         color="rgba(255,255,255,0.9)"
                       />
                       <Text style={styles.monthStatLabel}>Net</Text>
-                      <Text style={[
-                        styles.monthStatValue,
-                        {
-                          color: monthlyStatsByCurrency[currency].income - monthlyStatsByCurrency[currency].expense >= 0 
-                            ? '#4ade80' 
-                            : '#f87171'
-                        }
-                      ]}>
-                        {formatCurrencyAmount(monthlyStatsByCurrency[currency].income - monthlyStatsByCurrency[currency].expense, currency)}
+                      <Text
+                        style={[
+                          styles.monthStatValue,
+                          {
+                            color:
+                              monthlyStatsByCurrency[currency].income -
+                                monthlyStatsByCurrency[currency].expense >=
+                              0
+                                ? "#4ade80"
+                                : "#f87171",
+                          },
+                        ]}
+                      >
+                        {formatCurrencyAmount(
+                          monthlyStatsByCurrency[currency].income -
+                            monthlyStatsByCurrency[currency].expense,
+                          currency,
+                        )}
                       </Text>
                     </View>
                   </View>

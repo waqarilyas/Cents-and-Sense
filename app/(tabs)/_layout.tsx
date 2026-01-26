@@ -208,7 +208,11 @@ export default function TabLayout() {
           pointerEvents="box-none"
           style={[styles.fabContainer, { bottom: bottomPadding + 26 }]}
         >
-          <FloatingActionButton onPress={handleFabPress} styles={styles} colors={colors} />
+          <FloatingActionButton
+            onPress={handleFabPress}
+            styles={styles}
+            colors={colors}
+          />
         </View>
       )}
 

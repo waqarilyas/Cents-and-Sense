@@ -1465,7 +1465,9 @@ export default function AnalysisScreen() {
             {/* Financial Health Score */}
             <Card style={styles.healthScoreCard}>
               <View style={styles.healthScoreHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
                   <Text style={styles.healthScoreTitle}>
                     Financial Health Score
                   </Text>
@@ -1474,19 +1476,23 @@ export default function AnalysisScreen() {
                       Alert.alert(
                         "Health Score",
                         "Your financial health score (0-100) is calculated based on:\n\n" +
-                        "• Savings Rate (up to 30 pts)\n" +
-                        "  - 30%+ savings = 30 pts\n" +
-                        "  - 20%+ savings = 25 pts\n" +
-                        "  - 10%+ savings = 15 pts\n\n" +
-                        "• Budget Adherence (up to 20 pts)\n" +
-                        "  - Based on staying within budgets\n\n" +
-                        "Base score: 50 points\n" +
-                        "Aim for 70+ for excellent financial health!",
-                        [{ text: "Got it!" }]
+                          "• Savings Rate (up to 30 pts)\n" +
+                          "  - 30%+ savings = 30 pts\n" +
+                          "  - 20%+ savings = 25 pts\n" +
+                          "  - 10%+ savings = 15 pts\n\n" +
+                          "• Budget Adherence (up to 20 pts)\n" +
+                          "  - Based on staying within budgets\n\n" +
+                          "Base score: 50 points\n" +
+                          "Aim for 70+ for excellent financial health!",
+                        [{ text: "Got it!" }],
                       )
                     }
                   >
-                    <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.healthScoreBadge}>

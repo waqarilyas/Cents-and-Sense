@@ -237,23 +237,27 @@ export default function SubscriptionsScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text style={styles.headerTitle}>Subscriptions</Text>
           <TouchableOpacity
             onPress={() =>
               Alert.alert(
                 "About Subscriptions",
                 "Track recurring payments automatically.\\n\\n" +
-                "\u2022 Daily/Weekly/Monthly/Yearly frequencies\n" +
-                "\u2022 Auto-renewal reminders\n" +
-                "\u2022 Approve renewals before they're charged\n" +
-                "\u2022 Track total monthly subscription cost\n\n" +
-                "Pending subscriptions need your approval!",
-                [{ text: "Got it!" }]
+                  "\u2022 Daily/Weekly/Monthly/Yearly frequencies\n" +
+                  "\u2022 Auto-renewal reminders\n" +
+                  "\u2022 Approve renewals before they're charged\n" +
+                  "\u2022 Track total monthly subscription cost\n\n" +
+                  "Pending subscriptions need your approval!",
+                [{ text: "Got it!" }],
               )
             }
           >
-            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+            <Ionicons
+              name="help-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={openAddModal}>

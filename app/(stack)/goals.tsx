@@ -242,24 +242,28 @@ export default function GoalsScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text style={styles.headerTitle}>Goals</Text>
           <TouchableOpacity
             onPress={() =>
               Alert.alert(
                 "About Goals",
                 "Set savings goals to track your financial objectives.\\n\\n" +
-                "\u2022 Target Amount: Your goal amount\n" +
-                "\u2022 Current Amount: How much you've saved\n" +
-                "\u2022 Deadline: When you want to reach it\n" +
-                "\u2022 Add contributions to track progress\n\n" +
-                "Goals marked complete when target is reached!\n\n" +
-                "Tap a goal to contribute, long-press to delete.",
-                [{ text: "Got it!" }]
+                  "\u2022 Target Amount: Your goal amount\n" +
+                  "\u2022 Current Amount: How much you've saved\n" +
+                  "\u2022 Deadline: When you want to reach it\n" +
+                  "\u2022 Add contributions to track progress\n\n" +
+                  "Goals marked complete when target is reached!\n\n" +
+                  "Tap a goal to contribute, long-press to delete.",
+                [{ text: "Got it!" }],
               )
             }
           >
-            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+            <Ionicons
+              name="help-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
           </TouchableOpacity>
         </View>
         <TouchableOpacity

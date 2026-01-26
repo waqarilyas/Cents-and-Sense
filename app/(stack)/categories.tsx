@@ -179,24 +179,28 @@ export default function CategoriesScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text style={styles.headerTitle}>Categories</Text>
           <TouchableOpacity
             onPress={() =>
               Alert.alert(
                 "About Categories",
                 "Organize your income and expenses into categories.\\n\\n" +
-                "\u2022 Expense Categories: Where money goes out\n" +
-                "\u2022 Income Categories: Where money comes in\n" +
-                "\u2022 Each category shows monthly totals\n" +
-                "\u2022 Use categories to set budgets\n\n" +
-                "Tap to add, long-press a category to delete.\n\n" +
-                "Note: Categories with transactions cannot be deleted.",
-                [{ text: "Got it!" }]
+                  "\u2022 Expense Categories: Where money goes out\n" +
+                  "\u2022 Income Categories: Where money comes in\n" +
+                  "\u2022 Each category shows monthly totals\n" +
+                  "\u2022 Use categories to set budgets\n\n" +
+                  "Tap to add, long-press a category to delete.\n\n" +
+                  "Note: Categories with transactions cannot be deleted.",
+                [{ text: "Got it!" }],
               )
             }
           >
-            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+            <Ionicons
+              name="help-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
           </TouchableOpacity>
         </View>
         <TouchableOpacity

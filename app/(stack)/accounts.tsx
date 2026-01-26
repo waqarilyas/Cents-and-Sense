@@ -207,23 +207,27 @@ export default function AccountsScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text style={styles.headerTitle}>Accounts</Text>
           <TouchableOpacity
             onPress={() =>
               Alert.alert(
                 "About Accounts",
                 "Manage your bank accounts and cards.\\n\\n" +
-                "\u2022 Track multiple accounts separately\n" +
-                "\u2022 Each account can have its own currency\n" +
-                "\u2022 View balances across all accounts\n" +
-                "\u2022 Cannot delete your last account\n\n" +
-                "Tap an account to edit, long-press to delete.",
-                [{ text: "Got it!" }]
+                  "\u2022 Track multiple accounts separately\n" +
+                  "\u2022 Each account can have its own currency\n" +
+                  "\u2022 View balances across all accounts\n" +
+                  "\u2022 Cannot delete your last account\n\n" +
+                  "Tap an account to edit, long-press to delete.",
+                [{ text: "Got it!" }],
               )
             }
           >
-            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+            <Ionicons
+              name="help-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
           </TouchableOpacity>
         </View>
         <TouchableOpacity
