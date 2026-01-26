@@ -70,7 +70,9 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                   alignSelf: "flex-start",
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+                <Text
+                  style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}
+                >
                   {account.currency}
                 </Text>
               </View>

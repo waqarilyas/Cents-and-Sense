@@ -42,6 +42,10 @@ export const lightColors = {
   incomeLight: "#DCFCE7",
   expense: "#EF4444",
   expenseLight: "#FEE2E2",
+
+  // Overlays and shadows
+  overlay: "rgba(0, 0, 0, 0.5)",
+  shadow: "#000000",
 } as const;
 
 export const darkColors = {
@@ -82,6 +86,10 @@ export const darkColors = {
   incomeLight: "#064E3B",
   expense: "#FB7185",
   expenseLight: "#7F1D1D",
+
+  // Overlays and shadows
+  overlay: "rgba(0, 0, 0, 0.7)",
+  shadow: "#000000",
 } as const;
 
 export type ThemeColors = typeof lightColors | typeof darkColors;

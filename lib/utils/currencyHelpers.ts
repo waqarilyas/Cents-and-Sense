@@ -67,7 +67,10 @@ export function getMonthlyStatsByCurrency(
           acc[t.currency].income - acc[t.currency].expense;
         return acc;
       },
-      {} as Record<string, { income: number; expense: number; balance: number }>,
+      {} as Record<
+        string,
+        { income: number; expense: number; balance: number }
+      >,
     );
 }
 

@@ -49,7 +49,10 @@ export function BudgetCard({
               {category?.name || "Unknown"}
             </Text>
             <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-              <Text variant="labelSmall" style={{ color: colors.textSecondary }}>
+              <Text
+                variant="labelSmall"
+                style={{ color: colors.textSecondary }}
+              >
                 {budget.period === "monthly" ? "Monthly" : "Yearly"} Budget
               </Text>
               <View
@@ -60,7 +63,9 @@ export function BudgetCard({
                   borderRadius: 3,
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
+                <Text
+                  style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}
+                >
                   {budget.currency}
                 </Text>
               </View>

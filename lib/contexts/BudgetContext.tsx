@@ -364,7 +364,12 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           // Calculate spending for previous period (currency-aware)
           const transactions = await db.getAllAsync<any>(
             "SELECT amount FROM transactions WHERE categoryId = ? AND currency = ? AND type = 'expense' AND date >= ? AND date <= ?",
-            [budget.categoryId, budget.currency, previousPeriod.start, previousPeriod.end],
+            [
+              budget.categoryId,
+              budget.currency,
+              previousPeriod.start,
+              previousPeriod.end,
+            ],
           );
 
           const spent = transactions.reduce((sum, t) => sum + t.amount, 0);

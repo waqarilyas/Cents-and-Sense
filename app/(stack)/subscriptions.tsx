@@ -237,7 +237,25 @@ export default function SubscriptionsScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subscriptions</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.headerTitle}>Subscriptions</Text>
+          <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "About Subscriptions",
+                "Track recurring payments automatically.\\n\\n" +
+                "\u2022 Daily/Weekly/Monthly/Yearly frequencies\n" +
+                "\u2022 Auto-renewal reminders\n" +
+                "\u2022 Approve renewals before they're charged\n" +
+                "\u2022 Track total monthly subscription cost\n\n" +
+                "Pending subscriptions need your approval!",
+                [{ text: "Got it!" }]
+              )
+            }
+          >
+            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
           <Ionicons name="add" size={28} color={colors.primary} />
         </TouchableOpacity>
@@ -335,7 +353,7 @@ export default function SubscriptionsScreen() {
                 style={styles.emptyButton}
                 onPress={openAddModal}
               >
-                <Ionicons name="add" size={20} color="#FFF" />
+                <Ionicons name="add" size={20} color={colors.textInverse} />
                 <Text style={styles.emptyButtonText}>Add Subscription</Text>
               </TouchableOpacity>
             </View>

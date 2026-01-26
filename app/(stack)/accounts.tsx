@@ -94,11 +94,11 @@ export default function AccountsScreen() {
 
   // Filter currencies based on search
   const filteredCurrencies = useMemo(() => {
-    const allCurrencies = require('../../lib/currencies').CURRENCIES;
+    const allCurrencies = require("../../lib/currencies").CURRENCIES;
     if (!currencySearch.trim()) {
-      return require('../../lib/currencies').getPopularCurrencies();
+      return require("../../lib/currencies").getPopularCurrencies();
     }
-    return require('../../lib/currencies').searchCurrencies(currencySearch);
+    return require("../../lib/currencies").searchCurrencies(currencySearch);
   }, [currencySearch]);
 
   const handleAddAccount = async () => {
@@ -130,7 +130,12 @@ export default function AccountsScreen() {
 
     setIsSubmitting(true);
     try {
-      await updateAccount(editingAccount.id, accountName.trim(), balance, accountCurrency);
+      await updateAccount(
+        editingAccount.id,
+        accountName.trim(),
+        balance,
+        accountCurrency,
+      );
       setShowEditModal(false);
       resetForm();
       Alert.alert("Success", "Account updated successfully!");
@@ -147,7 +152,7 @@ export default function AccountsScreen() {
       Alert.alert(
         "Cannot Delete",
         "You must have at least one account. This is your last account and cannot be deleted.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return;
     }
@@ -165,7 +170,10 @@ export default function AccountsScreen() {
               await deleteAccount(account.id);
               Alert.alert("Success", "Account deleted successfully");
             } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : "Failed to delete account";
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete account";
               Alert.alert("Error", errorMessage);
             }
           },
@@ -199,7 +207,25 @@ export default function AccountsScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Accounts</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.headerTitle}>Accounts</Text>
+          <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "About Accounts",
+                "Manage your bank accounts and cards.\\n\\n" +
+                "\u2022 Track multiple accounts separately\n" +
+                "\u2022 Each account can have its own currency\n" +
+                "\u2022 View balances across all accounts\n" +
+                "\u2022 Cannot delete your last account\n\n" +
+                "Tap an account to edit, long-press to delete.",
+                [{ text: "Got it!" }]
+              )
+            }
+          >
+            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
@@ -364,15 +390,26 @@ export default function AccountsScreen() {
         />
 
         <View style={{ marginTop: spacing.md }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.sm }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: colors.textPrimary,
+              marginBottom: spacing.sm,
+            }}
+          >
             Currency
           </Text>
           <TouchableOpacity
-            style={[styles.currencyButton, showCurrencyList && styles.currencyButtonActive]}
+            style={[
+              styles.currencyButton,
+              showCurrencyList && styles.currencyButtonActive,
+            ]}
             onPress={() => setShowCurrencyList(!showCurrencyList)}
           >
             <Text style={styles.currencyButtonText}>
-              {getCurrency(accountCurrency)?.flag} {accountCurrency} - {getCurrency(accountCurrency)?.name}
+              {getCurrency(accountCurrency)?.flag} {accountCurrency} -{" "}
+              {getCurrency(accountCurrency)?.name}
             </Text>
             <Ionicons
               name={showCurrencyList ? "chevron-up" : "chevron-down"}
@@ -395,7 +432,8 @@ export default function AccountsScreen() {
                     key={currency.code}
                     style={[
                       styles.currencyOption,
-                      currency.code === accountCurrency && styles.currencyOptionSelected,
+                      currency.code === accountCurrency &&
+                        styles.currencyOptionSelected,
                     ]}
                     onPress={() => {
                       setAccountCurrency(currency.code);
@@ -409,7 +447,11 @@ export default function AccountsScreen() {
                       <Text style={styles.currencyName}>{currency.name}</Text>
                     </View>
                     {currency.code === accountCurrency && (
-                      <Ionicons name="checkmark" size={20} color={colors.primary} />
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={colors.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -453,15 +495,26 @@ export default function AccountsScreen() {
         />
 
         <View style={{ marginTop: spacing.md }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.sm }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: colors.textPrimary,
+              marginBottom: spacing.sm,
+            }}
+          >
             Currency
           </Text>
           <TouchableOpacity
-            style={[styles.currencyButton, showCurrencyList && styles.currencyButtonActive]}
+            style={[
+              styles.currencyButton,
+              showCurrencyList && styles.currencyButtonActive,
+            ]}
             onPress={() => setShowCurrencyList(!showCurrencyList)}
           >
             <Text style={styles.currencyButtonText}>
-              {getCurrency(accountCurrency)?.flag} {accountCurrency} - {getCurrency(accountCurrency)?.name}
+              {getCurrency(accountCurrency)?.flag} {accountCurrency} -{" "}
+              {getCurrency(accountCurrency)?.name}
             </Text>
             <Ionicons
               name={showCurrencyList ? "chevron-up" : "chevron-down"}
@@ -484,7 +537,8 @@ export default function AccountsScreen() {
                     key={currency.code}
                     style={[
                       styles.currencyOption,
-                      currency.code === accountCurrency && styles.currencyOptionSelected,
+                      currency.code === accountCurrency &&
+                        styles.currencyOptionSelected,
                     ]}
                     onPress={() => {
                       setAccountCurrency(currency.code);
@@ -498,7 +552,11 @@ export default function AccountsScreen() {
                       <Text style={styles.currencyName}>{currency.name}</Text>
                     </View>
                     {currency.code === accountCurrency && (
-                      <Ionicons name="checkmark" size={20} color={colors.primary} />
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={colors.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -578,7 +636,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     balanceLabel: {
       fontSize: 14,
-      color: "rgba(255,255,255,0.8)",
+      color: colors.textInverse + "CC",
       marginBottom: spacing.xs,
     },
     balanceAmount: {
@@ -597,7 +655,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     balanceStatLabel: {
       fontSize: 12,
-      color: "rgba(255,255,255,0.7)",
+      color: colors.textInverse + "B3",
       marginBottom: 4,
     },
     balanceStatValue: {
@@ -608,7 +666,7 @@ const createStyles = (colors: ThemeColors) =>
     balanceStatDivider: {
       width: 1,
       height: 30,
-      backgroundColor: "rgba(255,255,255,0.2)",
+      backgroundColor: colors.textInverse + "33",
     },
     scrollView: {
       flex: 1,

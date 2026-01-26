@@ -317,51 +317,72 @@ export default function HomeScreen() {
 
         {/* Balance Card */}
         <Card style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Your Balances</Text>
-          
+          <Text style={styles.balanceLabel}>Total Balance</Text>
+
           {/* Per-Currency Balances */}
-          <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+          <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
             {Object.entries(balancesByCurrency).map(([currency, balance]) => (
-              <View key={currency} style={styles.currencyBalanceRow}>
-                <View style={styles.currencyBadge}>
-                  <Text style={styles.currencyBadgeText}>{currency}</Text>
+              <View key={currency}>
+                <View style={styles.currencyBalanceRow}>
+                  <View style={styles.currencyBadge}>
+                    <Text style={styles.currencyBadgeText}>{currency}</Text>
+                  </View>
+                  <Text style={styles.currencyBalanceAmount}>
+                    {formatCurrencyAmount(balance, currency)}
+                  </Text>
                 </View>
-                <Text style={styles.currencyBalanceAmount}>
-                  {formatCurrencyAmount(balance, currency)}
-                </Text>
+                
+                {/* This Month Summary for this currency */}
+                {monthlyStatsByCurrency[currency] && (
+                  <View style={styles.monthSummaryRow}>
+                    <View style={styles.monthStat}>
+                      <Ionicons
+                        name="trending-up-outline"
+                        size={16}
+                        color="rgba(255,255,255,0.9)"
+                      />
+                      <Text style={styles.monthStatLabel}>Income</Text>
+                      <Text style={styles.monthStatValue}>
+                        {formatCurrencyAmount(monthlyStatsByCurrency[currency].income, currency)}
+                      </Text>
+                    </View>
+                    <View style={styles.monthStatDivider} />
+                    <View style={styles.monthStat}>
+                      <Ionicons
+                        name="trending-down-outline"
+                        size={16}
+                        color="rgba(255,255,255,0.9)"
+                      />
+                      <Text style={styles.monthStatLabel}>Expenses</Text>
+                      <Text style={styles.monthStatValue}>
+                        {formatCurrencyAmount(monthlyStatsByCurrency[currency].expense, currency)}
+                      </Text>
+                    </View>
+                    <View style={styles.monthStatDivider} />
+                    <View style={styles.monthStat}>
+                      <Ionicons
+                        name={monthlyStatsByCurrency[currency].income - monthlyStatsByCurrency[currency].expense >= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
+                        size={16}
+                        color="rgba(255,255,255,0.9)"
+                      />
+                      <Text style={styles.monthStatLabel}>Net</Text>
+                      <Text style={[
+                        styles.monthStatValue,
+                        {
+                          color: monthlyStatsByCurrency[currency].income - monthlyStatsByCurrency[currency].expense >= 0 
+                            ? '#4ade80' 
+                            : '#f87171'
+                        }
+                      ]}>
+                        {formatCurrencyAmount(monthlyStatsByCurrency[currency].income - monthlyStatsByCurrency[currency].expense, currency)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
             ))}
             {Object.keys(balancesByCurrency).length === 0 && (
               <Text style={styles.noBalanceText}>No accounts yet</Text>
-            )}
-          </View>
-
-          {/* Income/Expense Per Currency */}
-          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-            <Text style={[styles.balanceLabel, { fontSize: 14 }]}>This Month</Text>
-            {Object.entries(monthlyStatsByCurrency).map(([currency, stats]) => (
-              <View key={currency} style={styles.monthlyStatsRow}>
-                <View style={styles.currencyBadgeSmall}>
-                  <Text style={styles.currencyBadgeTextSmall}>{currency}</Text>
-                </View>
-                <View style={styles.statsInlineRow}>
-                  <View style={styles.statInline}>
-                    <Ionicons name="arrow-down" size={14} color={colors.income} />
-                    <Text style={[styles.statInlineText, { color: colors.income }]}>
-                      {formatCurrencyAmount(stats.income, currency)}
-                    </Text>
-                  </View>
-                  <View style={styles.statInline}>
-                    <Ionicons name="arrow-up" size={14} color={colors.expense} />
-                    <Text style={[styles.statInlineText, { color: colors.expense }]}>
-                      {formatCurrencyAmount(stats.expense, currency)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-            {Object.keys(monthlyStatsByCurrency).length === 0 && (
-              <Text style={styles.noDataText}>No transactions this month</Text>
             )}
           </View>
         </Card>
@@ -476,7 +497,7 @@ export default function HomeScreen() {
             <Ionicons
               name={budgetAlert.isOver ? "alert-circle" : "warning"}
               size={24}
-              color={budgetAlert.isOver ? colors.expense : "#F59E0B"}
+              color={budgetAlert.isOver ? colors.expense : colors.warning}
             />
             <View style={styles.alertContent}>
               <Text style={styles.alertTitle}>
@@ -492,7 +513,7 @@ export default function HomeScreen() {
                       width: `${Math.min(budgetAlert.percentage, 100)}%`,
                       backgroundColor: budgetAlert.isOver
                         ? colors.expense
-                        : "#F59E0B",
+                        : colors.warning,
                     },
                   ]}
                 />
@@ -512,7 +533,7 @@ export default function HomeScreen() {
             <View style={styles.pendingHeader}>
               <View style={styles.pendingTitleRow}>
                 <View style={styles.pendingIconBadge}>
-                  <Ionicons name="time" size={18} color="#FFF" />
+                  <Ionicons name="time" size={18} color={colors.textInverse} />
                 </View>
                 <Text style={styles.pendingTitle}>
                   {pendingSubscriptions.length} Subscription
@@ -777,16 +798,18 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: spacing.lg,
     },
     balanceLabel: {
-      fontSize: 14,
-      color: "rgba(255,255,255,0.8)",
+      fontSize: 13,
+      color: "rgba(255,255,255,0.75)",
       marginBottom: spacing.xs,
       fontWeight: "600",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
     currencyBalanceRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: spacing.xs,
+      marginBottom: spacing.sm,
     },
     currencyBadge: {
       backgroundColor: "rgba(255,255,255,0.2)",
@@ -800,54 +823,45 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "700",
     },
     currencyBalanceAmount: {
-      fontSize: 24,
+      fontSize: 32,
+      fontWeight: "700",
+      color: colors.textInverse,
+    },
+    monthSummaryRow: {
+      flexDirection: "row",
+      backgroundColor: "rgba(255,255,255,0.1)",
+      borderRadius: borderRadius.md,
+      padding: spacing.sm,
+      marginTop: spacing.xs,
+      alignItems: "center",
+    },
+    monthStat: {
+      flex: 1,
+      alignItems: "center",
+      gap: 2,
+    },
+    monthStatDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: "rgba(255,255,255,0.2)",
+    },
+    monthStatLabel: {
+      fontSize: 10,
+      color: "rgba(255,255,255,0.7)",
+      fontWeight: "500",
+      textTransform: "uppercase",
+      letterSpacing: 0.3,
+    },
+    monthStatValue: {
+      fontSize: 14,
       fontWeight: "700",
       color: colors.textInverse,
     },
     noBalanceText: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: "rgba(255,255,255,0.6)",
       textAlign: "center",
       paddingVertical: spacing.md,
-    },
-    monthlyStatsRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingVertical: 4,
-    },
-    currencyBadgeSmall: {
-      backgroundColor: "rgba(255,255,255,0.15)",
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
-      minWidth: 40,
-      alignItems: "center",
-    },
-    currencyBadgeTextSmall: {
-      color: colors.textInverse,
-      fontSize: 10,
-      fontWeight: "600",
-    },
-    statsInlineRow: {
-      flexDirection: "row",
-      gap: spacing.md,
-      flex: 1,
-    },
-    statInline: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    statInlineText: {
-      fontSize: 13,
-      fontWeight: "600",
-    },
-    noDataText: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      textAlign: "center",
-      paddingVertical: spacing.sm,
     },
     balanceAmount: {
       fontSize: 40,

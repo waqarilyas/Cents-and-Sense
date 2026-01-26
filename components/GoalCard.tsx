@@ -55,7 +55,14 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
             >
               {goal.name}
             </Text>
-            <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 6,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
               <Text
                 variant="labelSmall"
                 style={{
@@ -77,7 +84,9 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
                   borderRadius: 3,
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
+                <Text
+                  style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}
+                >
                   {goal.currency}
                 </Text>
               </View>

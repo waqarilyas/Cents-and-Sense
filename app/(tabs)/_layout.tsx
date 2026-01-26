@@ -81,9 +81,11 @@ const TabBarButton = (props: BottomTabBarButtonProps) => {
 const FloatingActionButton = ({
   onPress,
   styles,
+  colors,
 }: {
   onPress: () => void;
   styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -114,7 +116,7 @@ const FloatingActionButton = ({
       <Animated.View
         style={[styles.fab, { transform: [{ scale: scaleAnim }] }]}
       >
-        <Ionicons name="add" size={32} color="#FFFFFF" />
+        <Ionicons name="add" size={32} color={colors.textInverse} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -206,7 +208,7 @@ export default function TabLayout() {
           pointerEvents="box-none"
           style={[styles.fabContainer, { bottom: bottomPadding + 26 }]}
         >
-          <FloatingActionButton onPress={handleFabPress} styles={styles} />
+          <FloatingActionButton onPress={handleFabPress} styles={styles} colors={colors} />
         </View>
       )}
 

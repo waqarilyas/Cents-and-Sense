@@ -166,7 +166,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   );
 
   // Get currency from selected account
-  const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   const accountCurrency = selectedAccount?.currency || defaultCurrency;
 
   // Subscription-specific state
@@ -365,9 +365,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+      const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
       const subCurrency = selectedAccount?.currency || accountCurrency;
-      
+
       await addSubscription(
         subscriptionName.trim(),
         amountNum,
@@ -417,7 +417,13 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
   const handleSave = useCallback(async () => {
     const amountNum = parseFloat(amount);
-    if (amountNum <= 0 || !selectedCategoryId || !selectedAccountId || isSubmitting) return;
+    if (
+      amountNum <= 0 ||
+      !selectedCategoryId ||
+      !selectedAccountId ||
+      isSubmitting
+    )
+      return;
 
     setIsSubmitting(true);
 
@@ -629,9 +635,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   <Text style={styles.currencyDisplayText}>
                     {getCurrencySymbol(accountCurrency)}
                   </Text>
-                  <Text style={styles.currencyCodeText}>
-                    {accountCurrency}
-                  </Text>
+                  <Text style={styles.currencyCodeText}>{accountCurrency}</Text>
                 </View>
                 <Text
                   style={[
@@ -696,7 +700,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           ? colors.expense
                           : colors.income,
                     },
-                    (parseFloat(amount) <= 0 || !selectedAccountId) && styles.continueButtonDisabled,
+                    (parseFloat(amount) <= 0 || !selectedAccountId) &&
+                      styles.continueButtonDisabled,
                   ]}
                   onPress={handleContinue}
                   disabled={parseFloat(amount) <= 0 || !selectedAccountId}
@@ -705,7 +710,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   <Text style={styles.continueButtonText}>
                     {!selectedAccountId ? "Select Account First" : "Next"}
                   </Text>
-                  {selectedAccountId && <Ionicons name="arrow-forward" size={20} color="#FFF" />}
+                  {selectedAccountId && (
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -764,11 +771,19 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
               {/* Account Selector (REQUIRED) */}
               {accounts.length > 0 ? (
                 <View style={styles.accountSelectorContainer}>
-                  <Text style={[styles.accountSelectorLabel, {fontWeight: "600"}]}>
+                  <Text
+                    style={[styles.accountSelectorLabel, { fontWeight: "600" }]}
+                  >
                     Select Account *
                   </Text>
                   {!selectedAccountId && (
-                    <Text style={{color: colors.textSecondary, fontSize: 12, marginBottom: spacing.xs}}>
+                    <Text
+                      style={{
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                        marginBottom: spacing.xs,
+                      }}
+                    >
                       Choose which account this transaction affects
                     </Text>
                   )}
@@ -816,7 +831,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           <Text
                             style={[
                               styles.accountCurrencyText,
-                              isSelected && {color: colors.primary},
+                              isSelected && { color: colors.primary },
                             ]}
                           >
                             {account.currency}
@@ -835,9 +850,15 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 </View>
               ) : (
                 <View style={styles.noAccountsContainer}>
-                  <Ionicons name="wallet-outline" size={32} color={colors.textSecondary} />
+                  <Ionicons
+                    name="wallet-outline"
+                    size={32}
+                    color={colors.textSecondary}
+                  />
                   <Text style={styles.noAccountsText}>No accounts found</Text>
-                  <Text style={styles.noAccountsSubtext}>Create an account first</Text>
+                  <Text style={styles.noAccountsSubtext}>
+                    Create an account first
+                  </Text>
                   <TouchableOpacity
                     style={styles.createAccountButton}
                     onPress={() => {
@@ -845,7 +866,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       router.push("/(stack)/accounts");
                     }}
                   >
-                    <Text style={styles.createAccountButtonText}>Go to Accounts</Text>
+                    <Text style={styles.createAccountButtonText}>
+                      Go to Accounts
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}

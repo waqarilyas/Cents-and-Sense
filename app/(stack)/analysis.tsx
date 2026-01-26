@@ -984,7 +984,7 @@ export default function AnalysisScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Analytics</Text>
           <View style={styles.premiumBadge}>
-            <Ionicons name="diamond" size={12} color="#FFD700" />
+            <Ionicons name="diamond" size={12} color={colors.warning} />
             <Text style={styles.premiumBadgeText}>PRO</Text>
           </View>
         </View>
@@ -1465,9 +1465,30 @@ export default function AnalysisScreen() {
             {/* Financial Health Score */}
             <Card style={styles.healthScoreCard}>
               <View style={styles.healthScoreHeader}>
-                <Text style={styles.healthScoreTitle}>
-                  Financial Health Score
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.healthScoreTitle}>
+                    Financial Health Score
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Alert.alert(
+                        "Health Score",
+                        "Your financial health score (0-100) is calculated based on:\n\n" +
+                        "• Savings Rate (up to 30 pts)\n" +
+                        "  - 30%+ savings = 30 pts\n" +
+                        "  - 20%+ savings = 25 pts\n" +
+                        "  - 10%+ savings = 15 pts\n\n" +
+                        "• Budget Adherence (up to 20 pts)\n" +
+                        "  - Based on staying within budgets\n\n" +
+                        "Base score: 50 points\n" +
+                        "Aim for 70+ for excellent financial health!",
+                        [{ text: "Got it!" }]
+                      )
+                    }
+                  >
+                    <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.healthScoreBadge}>
                   <Text style={styles.healthScoreValue}>{healthScore}</Text>
                   <Text style={styles.healthScoreMax}>/100</Text>
@@ -2198,10 +2219,10 @@ export default function AnalysisScreen() {
                       {
                         backgroundColor:
                           index === 0
-                            ? "#FFD700"
+                            ? colors.warning
                             : index === 1
-                              ? "#C0C0C0"
-                              : "#CD7F32",
+                              ? colors.textMuted
+                              : colors.expense,
                       },
                     ]}
                   >
@@ -2401,11 +2422,11 @@ export default function AnalysisScreen() {
                 <PieChart
                   data={incomeBreakdown.slice(0, 5).map((source, index) => {
                     const pieColors = [
-                      "#22c55e",
-                      "#10b981",
-                      "#34d399",
-                      "#6ee7b7",
-                      "#a7f3d0",
+                      colors.income,
+                      colors.income + "CC",
+                      colors.income + "99",
+                      colors.income + "66",
+                      colors.income + "33",
                     ];
                     return {
                       name: source.name.substring(0, 12),
@@ -3196,11 +3217,11 @@ export default function AnalysisScreen() {
                               ? sub.amount
                               : sub.amount / 12;
                       const pieColors = [
-                        "#e91e63",
-                        "#2c2c54",
-                        "#ff9800",
-                        "#f39c12",
-                        "#9b59b6",
+                        colors.expense,
+                        colors.primary,
+                        colors.warning,
+                        colors.warning + "CC",
+                        colors.accent,
                       ];
                       return {
                         name: sub.name.substring(0, 12),
@@ -3417,12 +3438,12 @@ export default function AnalysisScreen() {
                     );
                     const circleColor =
                       progress >= 100
-                        ? "#22c55e"
+                        ? colors.income
                         : progress >= 75
-                          ? "#3b82f6"
+                          ? colors.primary
                           : progress >= 50
-                            ? "#f59e0b"
-                            : "#ef4444";
+                            ? colors.warning
+                            : colors.expense;
                     const size = 80;
                     const strokeWidth = 8;
 
@@ -3888,11 +3909,11 @@ export default function AnalysisScreen() {
                 <PieChart
                   data={accounts.slice(0, 5).map((acc, index) => {
                     const pieColors = [
-                      "#3b82f6",
-                      "#22c55e",
-                      "#f59e0b",
-                      "#ef4444",
-                      "#8b5cf6",
+                      colors.primary,
+                      colors.income,
+                      colors.warning,
+                      colors.expense,
+                      colors.accent,
                     ];
                     return {
                       name: acc.name.substring(0, 12),
@@ -4035,7 +4056,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     periodButtonActive: {
       backgroundColor: colors.surface,
-      shadowColor: "#000",
+      shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 2,
@@ -4095,7 +4116,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     modalBackdrop: {
       flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
+      backgroundColor: colors.overlay,
       justifyContent: "center",
       padding: spacing.lg,
     },

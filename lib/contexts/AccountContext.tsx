@@ -138,7 +138,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       // Prevent deleting the last account
       if (accounts.length <= 1) {
-        throw new Error("Cannot delete the last account. You must have at least one account.");
+        throw new Error(
+          "Cannot delete the last account. You must have at least one account.",
+        );
       }
 
       // Optimistic update - remove from UI immediately

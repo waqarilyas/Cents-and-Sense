@@ -11,7 +11,10 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  useSafeAreaInsets,
+  SafeAreaProvider,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../lib/contexts/UserContext";
 import { useAccounts } from "../lib/contexts/AccountContext";
@@ -82,11 +85,7 @@ export default function OnboardingScreen() {
       await setDefaultCurrency(selectedCurrency);
 
       // Create default account automatically
-      await addAccount(
-        "My Account",
-        "checking",
-        selectedCurrency,
-      );
+      await addAccount("My Account", "checking", selectedCurrency);
 
       // Mark onboarding complete
       await completeOnboarding();
@@ -156,15 +155,11 @@ export default function OnboardingScreen() {
         </View>
         <View style={styles.featureItem}>
           <Ionicons name="checkmark-circle" size={24} color={colors.income} />
-          <Text style={styles.featureText}>
-            Manage subscriptions and goals
-          </Text>
+          <Text style={styles.featureText}>Manage subscriptions and goals</Text>
         </View>
         <View style={styles.featureItem}>
           <Ionicons name="checkmark-circle" size={24} color={colors.income} />
-          <Text style={styles.featureText}>
-            Multi-currency support
-          </Text>
+          <Text style={styles.featureText}>Multi-currency support</Text>
         </View>
       </View>
 
@@ -214,7 +209,7 @@ export default function OnboardingScreen() {
           disabled={!userName.trim()}
         >
           <Text style={styles.primaryButtonText}>Next</Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
+          <Ionicons name="arrow-forward" size={20} color={colors.textInverse} />
         </TouchableOpacity>
       </View>
     </View>
@@ -239,9 +234,8 @@ export default function OnboardingScreen() {
         <View style={styles.currencyInfo}>
           <Text style={styles.currencyFlag}>
             {(() => {
-              const curr = require("../lib/currencies").getCurrency(
-                selectedCurrency,
-              );
+              const curr =
+                require("../lib/currencies").getCurrency(selectedCurrency);
               return curr?.flag || "🌍";
             })()}
           </Text>
@@ -249,9 +243,8 @@ export default function OnboardingScreen() {
             <Text style={styles.currencyCode}>{selectedCurrency}</Text>
             <Text style={styles.currencyName}>
               {(() => {
-                const curr = require("../lib/currencies").getCurrency(
-                  selectedCurrency,
-                );
+                const curr =
+                  require("../lib/currencies").getCurrency(selectedCurrency);
                 return curr?.name || "Unknown Currency";
               })()}
             </Text>
@@ -266,12 +259,16 @@ export default function OnboardingScreen() {
           <Text style={styles.secondaryButtonText}>Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.primaryButton} onPress={handleNext} disabled={isSubmitting}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={handleNext}
+          disabled={isSubmitting}
+        >
           <Text style={styles.primaryButtonText}>
             {isSubmitting ? "Setting up..." : "Finish Setup"}
           </Text>
           {!isSubmitting && (
-            <Ionicons name="checkmark" size={20} color="#fff" />
+            <Ionicons name="checkmark" size={20} color={colors.textInverse} />
           )}
         </TouchableOpacity>
       </View>
@@ -477,7 +474,7 @@ const createStyles = (colors: ThemeColors) =>
     primaryButtonText: {
       fontSize: 16,
       fontWeight: "600",
-      color: "#fff",
+      color: colors.textInverse,
     },
     secondaryButton: {
       flex: 1,

@@ -39,7 +39,10 @@ interface TransactionContextType {
   ) => Transaction[];
   getTransactionsByType: (type: "income" | "expense") => Transaction[];
   getMonthlyStats: () => { income: number; expense: number; balance: number };
-  getMonthlyStatsByCurrency: () => Record<string, { income: number; expense: number; balance: number }>;
+  getMonthlyStatsByCurrency: () => Record<
+    string,
+    { income: number; expense: number; balance: number }
+  >;
   refreshTransactions: () => Promise<void>;
 }
 

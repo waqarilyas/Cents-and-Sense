@@ -76,42 +76,39 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setUserProfile = useCallback(
-    async (name: string, currency: string) => {
-      try {
-        const db = await getDatabase();
-        const now = Date.now();
+  const setUserProfile = useCallback(async (name: string, currency: string) => {
+    try {
+      const db = await getDatabase();
+      const now = Date.now();
 
-        // Check if profile exists
-        const existing = await db.getFirstAsync<UserProfile>(
-          "SELECT * FROM user_profile WHERE id = ? LIMIT 1",
-          [USER_PROFILE_ID],
+      // Check if profile exists
+      const existing = await db.getFirstAsync<UserProfile>(
+        "SELECT * FROM user_profile WHERE id = ? LIMIT 1",
+        [USER_PROFILE_ID],
+      );
+
+      if (existing) {
+        // Update existing profile
+        await db.runAsync(
+          "UPDATE user_profile SET name = ?, defaultCurrency = ?, updatedAt = ? WHERE id = ?",
+          [name, currency, now, USER_PROFILE_ID],
         );
-
-        if (existing) {
-          // Update existing profile
-          await db.runAsync(
-            "UPDATE user_profile SET name = ?, defaultCurrency = ?, updatedAt = ? WHERE id = ?",
-            [name, currency, now, USER_PROFILE_ID],
-          );
-        } else {
-          // Create new profile
-          await db.runAsync(
-            "INSERT INTO user_profile (id, name, defaultCurrency, onboardingCompleted, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
-            [USER_PROFILE_ID, name, currency, 0, now, now],
-          );
-        }
-
-        // Update local state
-        setUserName(name);
-        setDefaultCurrency(currency);
-      } catch (error) {
-        console.error("Error setting user profile:", error);
-        throw error;
+      } else {
+        // Create new profile
+        await db.runAsync(
+          "INSERT INTO user_profile (id, name, defaultCurrency, onboardingCompleted, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
+          [USER_PROFILE_ID, name, currency, 0, now, now],
+        );
       }
-    },
-    [],
-  );
+
+      // Update local state
+      setUserName(name);
+      setDefaultCurrency(currency);
+    } catch (error) {
+      console.error("Error setting user profile:", error);
+      throw error;
+    }
+  }, []);
 
   const updateUserName = useCallback(async (name: string) => {
     try {

@@ -331,8 +331,8 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   }
 
   return (
-    <TouchableOpacity 
-      style={styles.selector} 
+    <TouchableOpacity
+      style={styles.selector}
       onPress={onPress}
       activeOpacity={0.7}
     >

@@ -287,7 +287,25 @@ export default function BudgetsScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Budgets</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.headerTitle}>Budgets</Text>
+          <TouchableOpacity
+            onPress={() =>
+              Alert.alert(
+                "About Budgets",
+                "Set spending limits for categories to control your expenses.\n\n" +
+                "• Monthly budgets reset every month\n" +
+                "• Yearly budgets reset every year\n" +
+                "• Enable carryover to roll unused budget to next period\n" +
+                "• Get alerts when you're close to limits\n\n" +
+                "Tap a budget to edit, long-press to delete.",
+                [{ text: "Got it!" }]
+              )
+            }
+          >
+            <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
@@ -587,7 +605,14 @@ export default function BudgetsScreen() {
         </View>
 
         <View style={{ marginTop: spacing.md }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: spacing.sm }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: colors.text,
+              marginBottom: spacing.sm,
+            }}
+          >
             Currency
           </Text>
           <CurrencySelector

@@ -135,7 +135,7 @@ export default function HistoryScreen() {
           ]);
         }}
       >
-        <Ionicons name="trash-outline" size={24} color="#FFF" />
+        <Ionicons name="trash-outline" size={24} color={colors.textInverse} />
       </TouchableOpacity>
     );
   };

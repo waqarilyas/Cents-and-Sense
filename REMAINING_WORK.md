@@ -1,6 +1,7 @@
 # 🔧 Remaining Implementation Steps
 
 ## ✅ COMPLETED SO FAR (7/14 tasks):
+
 1. Database schema with user_profile table
 2. UserContext for profile management
 3. Currency helper utilities
@@ -13,12 +14,15 @@
 ## 🚧 IN PROGRESS - QUICK FIXES NEEDED:
 
 ### **Fix accounts.tsx openEditModal:**
+
 The function exists around line 156. Need to find exact match and add:
+
 ```typescript
 setAccountCurrency(account.currency);
 ```
 
 ### **Add to budgets.tsx:**
+
 1. Import: `import { useUser } from "../../lib/contexts/UserContext";`
 2. Import: `import { CurrencySelector } from "../../lib/components/CurrencyPicker";`
 3. Add state: `const { defaultCurrency } = useUser();`
@@ -26,9 +30,17 @@ setAccountCurrency(account.currency);
 5. Reset in resetForm: `setBudgetCurrency(defaultCurrency);`
 6. In handleAddBudget: Change `defaultCurrency.code` to `budgetCurrency`
 7. In modal, add before button:
+
 ```tsx
 <View style={{ marginTop: spacing.md }}>
-  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: spacing.sm }}>
+  <Text
+    style={{
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: spacing.sm,
+    }}
+  >
     Currency
   </Text>
   <CurrencySelector
@@ -39,15 +51,19 @@ setAccountCurrency(account.currency);
 ```
 
 ### **Add to goals.tsx:**
+
 Same pattern as budgets - add CurrencySelector to add/edit modals
 
 ### **Add to subscriptions.tsx:**
+
 Same pattern - add Currency Selector to the subscription modal
 
 ## 📦 MAJOR UPDATES STILL NEEDED:
 
 ### **1. QuickAddModal.tsx** (CRITICAL)
+
 This is the most used component. Changes:
+
 - Import: `import { useUser } from "../contexts/UserContext";`
 - Make account selection REQUIRED
 - Remove standalone currency picker state
@@ -55,6 +71,7 @@ This is the most used component. Changes:
 - Update flow order: Amount → **Account (Required)** → Category → Description
 
 Current signature:
+
 ```typescript
 await addTransaction(
   categoryId,
@@ -63,27 +80,30 @@ await addTransaction(
   date,
   transactionType,
   selectedAccountId,
-  selectedCurrency
+  selectedCurrency,
 );
 ```
 
 NEW signature (MUST CHANGE ALL CALLS):
+
 ```typescript
 await addTransaction(
-  selectedAccountId!,  // REQUIRED, moved to first
+  selectedAccountId!, // REQUIRED, moved to first
   categoryId,
   amount,
   description,
   date,
-  transactionType
+  transactionType,
   // currency removed
 );
 ```
 
 ### **2. Card Components**
+
 Need to add currency badges to:
 
 **AccountCard.tsx:**
+
 ```tsx
 <View style={styles.currencyBadge}>
   <Text style={styles.currencyText}>{account.currency}</Text>
@@ -100,14 +120,20 @@ Add currency display showing goal.currency
 Show transaction.currency
 
 ### **3. Dashboard (index.tsx)** (HIGH PRIORITY)
+
 Replace:
+
 ```typescript
 const totalBalance = getTotalBalance();
 ```
 
 With:
+
 ```typescript
-import { getTotalBalanceByCurrency, getMonthlyStatsByCurrency } from "../../lib/utils/currencyHelpers";
+import {
+  getTotalBalanceByCurrency,
+  getMonthlyStatsByCurrency,
+} from "../../lib/utils/currencyHelpers";
 
 const { accounts } = useAccounts();
 const { transactions } = useTransactions();
@@ -116,6 +142,7 @@ const monthlyStatsByCurrency = getMonthlyStatsByCurrency(transactions);
 ```
 
 Display:
+
 ```tsx
 <View style={styles.balancesSection}>
   <Text style={styles.sectionTitle}>Your Balances</Text>
@@ -140,7 +167,9 @@ Display:
 ```
 
 ### **4. Analytics (analysis.tsx)**
+
 Add at top of component:
+
 ```typescript
 const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
 const { accounts } = useAccounts();
@@ -148,13 +177,14 @@ const uniqueCurrencies = getUniqueCurrenciesFromAccounts(accounts);
 ```
 
 Add currency filter UI:
+
 ```tsx
 <View style={styles.currencyFilter}>
   <Select
     value={selectedCurrency}
     options={[
       { label: "All Currencies", value: "ALL" },
-      ...uniqueCurrencies.map(c => ({ label: c, value: c }))
+      ...uniqueCurrencies.map((c) => ({ label: c, value: c })),
     ]}
     onSelect={setSelectedCurrency}
   />
@@ -162,14 +192,18 @@ Add currency filter UI:
 ```
 
 Filter transactions before charts:
+
 ```typescript
-const filteredTransactions = selectedCurrency === "ALL"
-  ? transactions
-  : transactions.filter(t => t.currency === selectedCurrency);
+const filteredTransactions =
+  selectedCurrency === "ALL"
+    ? transactions
+    : transactions.filter((t) => t.currency === selectedCurrency);
 ```
 
 ### **5. Settings (settings.tsx)**
+
 Replace placeholder:
+
 ```tsx
 {
   icon: "cash-outline",
@@ -184,6 +218,7 @@ Replace placeholder:
 ```
 
 Add state and modal:
+
 ```tsx
 const { userName, defaultCurrency, updateDefaultCurrency } = useUser();
 const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -206,16 +241,18 @@ subtitle: `Hello, ${userName || "User"}!`
 ## 📝 QUICK REFERENCE - ALL FILES TO UPDATE:
 
 ### DONE:
+
 - ✅ lib/database.ts
 - ✅ lib/contexts/UserContext.tsx
 - ✅ lib/contexts/TransactionContext.tsx
 - ✅ lib/contexts/BudgetContext.tsx
 - ✅ lib/utils/currencyHelpers.ts
 - ✅ app/onboarding.tsx
-- ✅ app/_layout.tsx
+- ✅ app/\_layout.tsx
 - ✅ app/(stack)/accounts.tsx (95% done, needs openEditModal fix)
 
 ### TODO:
+
 - ⏳ app/(stack)/budgets.tsx - Add CurrencySelector
 - ⏳ app/(stack)/goals.tsx - Add CurrencySelector
 - ⏳ app/(stack)/subscriptions.tsx - Add CurrencySelector
@@ -244,6 +281,7 @@ subtitle: `Hello, ${userName || "User"}!`
 ## ⚡ ESTIMATED TIME REMAINING: 2-3 hours
 
 The foundation is solid. Most remaining work is repetitive patterns:
+
 - Add CurrencySelector to forms (same pattern 3x)
 - Add currency display to cards (same pattern 4x)
 - Update Dashboard/Analytics to use currency helpers
@@ -252,6 +290,7 @@ The foundation is solid. Most remaining work is repetitive patterns:
 ## 🔍 TESTING CHECKLIST:
 
 After completion, test:
+
 - [ ] Onboarding creates account with correct currency
 - [ ] Can add account with any currency
 - [ ] Transaction requires account selection
@@ -262,4 +301,3 @@ After completion, test:
 - [ ] Settings allows currency change
 - [ ] All forms show currency selectors
 - [ ] All cards show currency badges
-
