@@ -3,9 +3,9 @@
  * Writes budget data to JSON file for Android widgets to read
  */
 
-import { Platform } from 'react-native';
-import { getDatabase } from '../database';
-import { widgetService } from './WidgetService';
+import { Platform } from "react-native";
+import { getDatabase } from "../database";
+import { widgetService } from "./WidgetService";
 
 interface CategoryData {
   name: string;
@@ -36,40 +36,53 @@ interface WidgetData {
   budget: number;
   currency: string;
   categories: CategoryData[];
-  
+
   // Goals widget data
   goals: GoalData[];
-  
+
   // Accounts widget data
   accounts: AccountData[];
-  
+
   // Category budgets widget data
   categoryBudgets: CategoryBudgetData[];
 }
 
 export class WidgetDataProvider {
-
   /**
    * Calculate comprehensive widget data for all widget types
    */
   private static async calculateWidgetData(): Promise<WidgetData> {
     try {
       const db = await getDatabase();
-      
+
       // Get current month boundaries
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
+      const startOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+      ).getTime();
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      ).getTime();
 
       // --- SPENDING WIDGET DATA ---
       // Get total monthly budget
-      const budgetResult = await db.getFirstAsync<{ total: number | null, currency: string | null }>(
+      const budgetResult = await db.getFirstAsync<{
+        total: number | null;
+        currency: string | null;
+      }>(
         `SELECT SUM(budget_limit) as total, currency 
          FROM budgets 
          WHERE period = 'monthly'
          GROUP BY currency
          ORDER BY total DESC
-         LIMIT 1`
+         LIMIT 1`,
       );
 
       // Get current month spending
@@ -79,11 +92,14 @@ export class WidgetDataProvider {
          WHERE type = 'expense' 
          AND date >= ? 
          AND date <= ?`,
-        [startOfMonth, endOfMonth]
+        [startOfMonth, endOfMonth],
       );
 
       // Get top spending categories
-      const categories = await db.getAllAsync<{ name: string, spending: number }>(
+      const categories = await db.getAllAsync<{
+        name: string;
+        spending: number;
+      }>(
         `SELECT c.name, SUM(t.amount) as spending
          FROM transactions t
          JOIN categories c ON t.categoryId = c.id
@@ -93,7 +109,7 @@ export class WidgetDataProvider {
          GROUP BY c.id, c.name
          ORDER BY spending DESC
          LIMIT 5`,
-        [startOfMonth, endOfMonth]
+        [startOfMonth, endOfMonth],
       );
 
       // --- GOALS WIDGET DATA ---
@@ -102,7 +118,7 @@ export class WidgetDataProvider {
          FROM goals 
          WHERE targetAmount > 0
          ORDER BY (currentAmount * 100.0 / targetAmount) DESC
-         LIMIT 3`
+         LIMIT 3`,
       );
 
       // --- ACCOUNTS WIDGET DATA ---
@@ -110,11 +126,15 @@ export class WidgetDataProvider {
         `SELECT name, type, balance 
          FROM accounts 
          ORDER BY balance DESC
-         LIMIT 3`
+         LIMIT 3`,
       );
 
       // --- CATEGORY BUDGETS WIDGET DATA ---
-      const categoryBudgetsData = await db.getAllAsync<{ category: string, budget_limit: number, spent: number | null }>(
+      const categoryBudgetsData = await db.getAllAsync<{
+        category: string;
+        budget_limit: number;
+        spent: number | null;
+      }>(
         `SELECT c.name as category, b.budget_limit, 
                 COALESCE(SUM(t.amount), 0) as spent
          FROM budgets b
@@ -127,58 +147,58 @@ export class WidgetDataProvider {
          GROUP BY b.id, c.name, b.budget_limit
          ORDER BY (COALESCE(SUM(t.amount), 0) * 100.0 / b.budget_limit) DESC
          LIMIT 3`,
-        [startOfMonth, endOfMonth]
+        [startOfMonth, endOfMonth],
       );
 
       const spending = spendingResult?.total ?? 0;
       const budget = budgetResult?.total ?? 0;
-      const currency = budgetResult?.currency ?? 'USD';
+      const currency = budgetResult?.currency ?? "USD";
 
-      console.log('Widget data calculated:', { 
-        spending, 
-        budget, 
-        currency, 
+      console.log("Widget data calculated:", {
+        spending,
+        budget,
+        currency,
         categoriesCount: categories.length,
         goalsCount: goalsData.length,
         accountsCount: accountsData.length,
-        categoryBudgetsCount: categoryBudgetsData.length
+        categoryBudgetsCount: categoryBudgetsData.length,
       });
 
       return {
         spending,
         budget,
         currency,
-        categories: categories.map(c => ({
+        categories: categories.map((c) => ({
           name: c.name,
-          spending: c.spending
+          spending: c.spending,
         })),
-        goals: goalsData.map(g => ({
+        goals: goalsData.map((g) => ({
           name: g.name,
           currentAmount: g.currentAmount,
-          targetAmount: g.targetAmount
+          targetAmount: g.targetAmount,
         })),
-        accounts: accountsData.map(a => ({
+        accounts: accountsData.map((a) => ({
           name: a.name,
           type: a.type,
-          balance: a.balance
+          balance: a.balance,
         })),
-        categoryBudgets: categoryBudgetsData.map(cb => ({
+        categoryBudgets: categoryBudgetsData.map((cb) => ({
           category: cb.category,
           spent: cb.spent ?? 0,
-          limit: cb.budget_limit
-        }))
+          limit: cb.budget_limit,
+        })),
       };
     } catch (error) {
-      console.error('Error calculating widget data:', error);
+      console.error("Error calculating widget data:", error);
       // Return default values on error
       return {
         spending: 0,
         budget: 0,
-        currency: 'USD',
+        currency: "USD",
         categories: [],
         goals: [],
         accounts: [],
-        categoryBudgets: []
+        categoryBudgets: [],
       };
     }
   }
@@ -187,17 +207,17 @@ export class WidgetDataProvider {
    * Write widget data to JSON file
    */
   static async writeWidgetData(): Promise<void> {
-    if (Platform.OS !== 'android') {
+    if (Platform.OS !== "android") {
       return;
     }
 
     try {
       const widgetData = await this.calculateWidgetData();
-      
+
       // Use native module to write the file (has proper permissions)
       await widgetService.writeWidgetData(widgetData);
     } catch (error) {
-      console.error('Failed to write widget data:', error);
+      console.error("Failed to write widget data:", error);
       throw error;
     }
   }
@@ -206,7 +226,7 @@ export class WidgetDataProvider {
    * Read widget data from JSON file (for debugging)
    */
   static async readWidgetData(): Promise<WidgetData | null> {
-    if (Platform.OS !== 'android') {
+    if (Platform.OS !== "android") {
       return null;
     }
 

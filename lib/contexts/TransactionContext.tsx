@@ -164,11 +164,11 @@ export function TransactionProvider({
 
         // Update account balance (accountId is always provided)
         await updateAccountBalance(accountId, amount, type, "add");
-        
+
         // Update widgets with new transaction data
-        widgetService.updateAllWidgets().catch(err => 
-          console.warn('Failed to update widgets:', err)
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.warn("Failed to update widgets:", err));
       } catch (err) {
         // Rollback on error - remove the transaction
         setTransactions((prev) => prev.filter((t) => t.id !== id));
@@ -254,11 +254,11 @@ export function TransactionProvider({
 
         // Apply new transaction's balance impact (accountId is always provided)
         await updateAccountBalance(accountId, amount, type, "add");
-        
+
         // Update widgets with modified transaction data
-        widgetService.updateAllWidgets().catch(err => 
-          console.warn('Failed to update widgets:', err)
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.warn("Failed to update widgets:", err));
       } catch (err) {
         // Rollback on error - restore old transaction
         setTransactions((prev) => prev.map((t) => (t.id === id ? oldTx : t)));
@@ -297,11 +297,11 @@ export function TransactionProvider({
             "remove",
           );
         }
-        
+
         // Update widgets after deleting transaction
-        widgetService.updateAllWidgets().catch(err => 
-          console.warn('Failed to update widgets:', err)
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.warn("Failed to update widgets:", err));
       } catch (err) {
         // Rollback on error
         setTransactions(previousTransactions);

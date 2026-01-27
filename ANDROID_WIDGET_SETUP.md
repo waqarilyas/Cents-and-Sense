@@ -1,9 +1,11 @@
 # Android Widget Implementation - Setup Guide
 
 ## Overview
+
 This guide explains how to complete the Android widget implementation for the Budget Tracker app. The widget allows users to view their spending and add expenses directly from their home screen.
 
 ## Widget Features
+
 - **Small Widget (2x2)**: Shows current monthly spending and quick add button
 - **Medium Widget (4x2)**: Shows spending, top 3 categories, budget progress, and quick add
 - **Large Widget (4x4)**: Full dashboard with recent transactions, category shortcuts, and quick add
@@ -11,12 +13,14 @@ This guide explains how to complete the Android widget implementation for the Bu
 ## Files Created
 
 ### XML Layouts
+
 - `android/app/src/main/res/layout/widget_small.xml` - Small widget layout
 - `android/app/src/main/res/layout/widget_medium.xml` - Medium widget layout
 - `android/app/src/main/res/layout/widget_large.xml` - Large widget layout
 - `android/app/src/main/res/layout/activity_quick_add.xml` - Quick add activity layout
 
 ### Drawable Resources
+
 - `android/app/src/main/res/drawable/widget_background_small.xml` - Small widget background
 - `android/app/src/main/res/drawable/widget_background_medium.xml` - Medium widget background
 - `android/app/src/main/res/drawable/widget_background_large.xml` - Large widget background
@@ -28,14 +32,17 @@ This guide explains how to complete the Android widget implementation for the Bu
 - `android/app/src/main/res/drawable/button_secondary.xml` - Secondary button background
 
 ### Widget Configuration
+
 - `android/app/src/main/res/xml/widget_info_small.xml` - Small widget metadata
 - `android/app/src/main/res/xml/widget_info_medium.xml` - Medium widget metadata
 - `android/app/src/main/res/xml/widget_info_large.xml` - Large widget metadata
 
 ### String Resources
+
 - `android/app/src/main/res/values/strings.xml` - All widget text strings
 
 ### Kotlin/Java Code
+
 - `android/app/src/main/java/com/budgetplanner/app/widgets/BudgetWidgetProvider.kt` - Main widget logic
 - `android/app/src/main/java/com/budgetplanner/app/widgets/QuickAddActivity.kt` - Quick add expense activity
 - `android/app/src/main/java/com/budgetplanner/app/BudgetWidgetModule.kt` - React Native bridge module
@@ -44,12 +51,15 @@ This guide explains how to complete the Android widget implementation for the Bu
 ## Required Configuration Steps
 
 ### 1. Update AndroidManifest.xml
+
 Since this is an Expo project, the AndroidManifest.xml is auto-generated. You have two options:
 
 #### Option A: Use Expo Config Plugin (Recommended)
+
 Create a config plugin to modify the manifest. This is the cleanest approach for Expo.
 
 #### Option B: Use Bare Workflow
+
 Run `npx expo prebuild` to generate the Android native files, then manually edit the AndroidManifest.xml.
 
 The AndroidManifest.xml needs these additions:
@@ -105,6 +115,7 @@ The AndroidManifest.xml needs these additions:
 ### 2. Register Native Module
 
 #### Option A: Modify MainApplication (for bare workflow)
+
 Add the BudgetWidgetPackage to your MainApplication.java/kt:
 
 ```kotlin
@@ -115,11 +126,13 @@ packages.add(BudgetWidgetPackage())
 ```
 
 #### Option B: Use Expo Modules (for managed workflow)
+
 The native module is already set up as a standard React Native module and should work with Expo's autolinking.
 
 ### 3. Test the Widget
 
 1. Build the app:
+
    ```bash
    npx expo run:android
    ```
@@ -149,21 +162,25 @@ The native module is already set up as a standard React Native module and should
 ## Troubleshooting
 
 ### Widget not appearing in widget list
+
 - Check that widget receivers are registered in AndroidManifest.xml
 - Verify widget_info XML files are in `res/xml/` directory
 - Make sure app is installed (not just running in dev mode)
 
 ### Widget shows default data
+
 - Ensure WidgetDataProvider is saving data to the correct file
 - Check file permissions in AndroidManifest
 - Verify `widget_data.json` is being created in app's files directory
 
 ### Quick Add doesn't work
+
 - Check deep linking is configured in app.json
 - Verify QuickAddActivity is registered in AndroidManifest
 - Test deep link manually: `adb shell am start -a android.intent.action.VIEW -d "budgetplanner://quick-add?amount=10&category=Food"`
 
 ### Widget doesn't update
+
 - Call `WidgetService.updateAllWidgets()` after data changes
 - Check that native module is properly registered
 - Verify broadcast is being sent (check logcat)

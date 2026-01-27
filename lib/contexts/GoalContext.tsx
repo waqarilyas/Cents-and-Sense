@@ -88,7 +88,9 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
           "INSERT INTO goals (id, name, targetAmount, currentAmount, deadline, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
           [id, name, targetAmount, 0, deadline, currency, Date.now()],
         );
-        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         // Rollback
         setGoals((prev) => prev.filter((g) => g.id !== id));
@@ -140,7 +142,9 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
             [name, targetAmount, currentAmount, deadline, id],
           );
         }
-        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         // Rollback
         setGoals((prev) => prev.map((g) => (g.id === id ? oldGoal : g)));
@@ -163,7 +167,9 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       try {
         const db = await getDatabase();
         await db.runAsync("DELETE FROM goals WHERE id = ?", [id]);
-        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         // Rollback on error
         setGoals(previousGoals);
@@ -192,7 +198,9 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
           currentAmount,
           id,
         ]);
-        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
         await loadGoals();
       } catch (err) {
         const message =

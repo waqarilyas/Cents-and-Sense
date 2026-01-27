@@ -133,7 +133,7 @@ export default function TabLayout() {
 
   // Handle deep link to open quick add modal
   useEffect(() => {
-    if (searchParams.openQuickAdd === 'true') {
+    if (searchParams.openQuickAdd === "true") {
       setQuickAddVisible(true);
     }
   }, [searchParams.openQuickAdd]);

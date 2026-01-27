@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { useEffect } from "react";
+import { useRouter } from "expo-router";
+import { View } from "react-native";
 
 // This is a redirect route - when the deep link budgetplanner://quick-add is opened,
 // this route will be loaded and immediately redirect to the home screen where the
@@ -10,7 +10,7 @@ export default function QuickAddRedirect() {
 
   useEffect(() => {
     // Redirect to home with quick-add parameter
-    router.replace('/(tabs)/?openQuickAdd=true');
+    router.replace("/(tabs)/?openQuickAdd=true");
   }, []);
 
   return <View />;

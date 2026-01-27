@@ -417,18 +417,21 @@ export default function HomeScreen() {
             borderRadius: 12,
             marginHorizontal: spacing.lg,
             marginBottom: spacing.md,
-            alignItems: 'center'
+            alignItems: "center",
           }}
           onPress={async () => {
             try {
               await widgetService.writeTestData();
-              Alert.alert('Success', 'Test data written to widget! Check your home screen widget.');
+              Alert.alert(
+                "Success",
+                "Test data written to widget! Check your home screen widget.",
+              );
             } catch (error) {
-              Alert.alert('Error', String(error));
+              Alert.alert("Error", String(error));
             }
           }}
         >
-          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>
+          <Text style={{ color: "#FFF", fontSize: 16, fontWeight: "bold" }}>
             TEST: Write Widget Data
           </Text>
         </TouchableOpacity>

@@ -24,15 +24,15 @@ export default function RootLayout() {
       try {
         await initializeDatabase();
         setDbReady(true);
-        
+
         // Initialize widget data on app start (after a delay to ensure DB is ready)
         setTimeout(async () => {
           try {
-            console.log('Initializing widget data...');
+            console.log("Initializing widget data...");
             await widgetService.updateAllWidgets();
-            console.log('Widget data initialized successfully');
+            console.log("Widget data initialized successfully");
           } catch (err) {
-            console.warn('Initial widget update failed:', err);
+            console.warn("Initial widget update failed:", err);
           }
         }, 2000);
       } catch (error) {

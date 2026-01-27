@@ -144,9 +144,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             now,
           ],
         );
-        widgetService.updateAllWidgets().catch((err) =>
-          console.error("[v0] Widget update failed:", err),
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         // Rollback
         setBudgets((prev) => prev.filter((b) => b.id !== id));
@@ -194,9 +194,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             [amount, period, id],
           );
         }
-        widgetService.updateAllWidgets().catch((err) =>
-          console.error("[v0] Widget update failed:", err),
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         // Rollback
         setBudgets((prev) => prev.map((b) => (b.id === id ? oldBudget : b)));
@@ -233,9 +233,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           );
         }
         await loadMonthlyBudget();
-        widgetService.updateAllWidgets().catch((err) =>
-          console.error("[v0] Widget update failed:", err),
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to set monthly budget";
@@ -276,9 +276,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       try {
         const db = await getDatabase();
         await db.runAsync("DELETE FROM budgets WHERE id = ?", [id]);
-        widgetService.updateAllWidgets().catch((err) =>
-          console.error("[v0] Widget update failed:", err),
-        );
+        widgetService
+          .updateAllWidgets()
+          .catch((err) => console.error("[v0] Widget update failed:", err));
       } catch (err) {
         // Rollback on error
         setBudgets(previousBudgets);
