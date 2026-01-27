@@ -14,6 +14,7 @@ import { SubscriptionProvider } from "../lib/contexts/SubscriptionContext";
 import { CurrencyProvider } from "../lib/contexts/CurrencyContext";
 import { SettingsProvider } from "../lib/contexts/SettingsContext";
 import { useThemeColors } from "../lib/theme";
+import { widgetService } from "../lib/services/WidgetService";
 
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
@@ -23,6 +24,17 @@ export default function RootLayout() {
       try {
         await initializeDatabase();
         setDbReady(true);
+        
+        // Initialize widget data on app start (after a delay to ensure DB is ready)
+        setTimeout(async () => {
+          try {
+            console.log('Initializing widget data...');
+            await widgetService.updateAllWidgets();
+            console.log('Widget data initialized successfully');
+          } catch (err) {
+            console.warn('Initial widget update failed:', err);
+          }
+        }, 2000);
       } catch (error) {
         console.error("Database initialization error:", error);
         setDbReady(true);

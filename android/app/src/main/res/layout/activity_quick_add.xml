@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/dialog_background">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quick Add Expense"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- Amount Input with Currency -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$"
+            android:textSize="28sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp"/>
+
+        <EditText
+            android:id="@+id/amount_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="0.00"
+            android:inputType="numberDecimal"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#555555"
+            android:background="@android:color/transparent"
+            android:padding="0dp"/>
+    </LinearLayout>
+
+    <!-- Description Input -->
+    <EditText
+        android:id="@+id/description_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="What's this for? (optional)"
+        android:inputType="textCapSentences"
+        android:textSize="15sp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888"
+        android:background="@drawable/edittext_background"
+        android:padding="14dp"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- Quick Amount Buttons -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quick Amounts"
+        android:textSize="12sp"
+        android:textColor="#9CA3AF"
+        android:layout_marginBottom="8dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+
+        <Button
+            android:id="@+id/quick_5"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="$5"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/stat_card"
+            android:layout_marginEnd="6dp"/>
+
+        <Button
+            android:id="@+id/quick_10"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="$10"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/stat_card"
+            android:layout_marginEnd="6dp"/>
+
+        <Button
+            android:id="@+id/quick_20"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="$20"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/stat_card"
+            android:layout_marginEnd="6dp"/>
+
+        <Button
+            android:id="@+id/quick_50"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="$50"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/stat_card"/>
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/cancel_button"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:text="Cancel"
+            android:textSize="14sp"
+            android:textColor="#9CA3AF"
+            android:background="@android:color/transparent"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/add_button"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:text="Add Expense"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/button_background"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"/>
+    </LinearLayout>
+</LinearLayout>

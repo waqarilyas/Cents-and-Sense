@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Dark theme widget colors -->
+  <color name="widget_background">#1E1E1E</color>
+  <color name="widget_surface">#27272A</color>
+  <color name="widget_text_primary">#FFFFFF</color>
+  <color name="widget_text_secondary">#9CA3AF</color>
+  <color name="widget_text_tertiary">#6B7280</color>
+  <color name="widget_border">#3F3F46</color>
+  <color name="widget_card_background">#27272A</color>
+  
+  <!-- Status backgrounds (dark theme) -->
+  <color name="widget_success_bg">#10B98130</color>
+  <color name="widget_warning_bg">#F59E0B30</color>
+  <color name="widget_error_bg">#EF444430</color>
+</resources>

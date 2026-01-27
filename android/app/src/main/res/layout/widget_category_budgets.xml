@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Category Budgets"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/widget_text_primary"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Category Budget 1 -->
+    <LinearLayout
+        android:id="@+id/budget1_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/budget1_category"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Food"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/budget1_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="On Track"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#10B981"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/budget1_amounts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0 / $0"
+            android:textSize="12sp"
+            android:textColor="@color/widget_text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <ProgressBar
+            android:id="@+id/budget1_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/progress_bar"/>
+    </LinearLayout>
+
+    <!-- Category Budget 2 -->
+    <LinearLayout
+        android:id="@+id/budget2_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/budget2_category"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Transport"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/budget2_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="On Track"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#10B981"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/budget2_amounts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0 / $0"
+            android:textSize="12sp"
+            android:textColor="@color/widget_text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <ProgressBar
+            android:id="@+id/budget2_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/progress_bar"/>
+    </LinearLayout>
+
+    <!-- Category Budget 3 -->
+    <LinearLayout
+        android:id="@+id/budget3_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/stat_card">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/budget3_category"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Shopping"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/budget3_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="On Track"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#10B981"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/budget3_amounts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0 / $0"
+            android:textSize="12sp"
+            android:textColor="@color/widget_text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <ProgressBar
+            android:id="@+id/budget3_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/progress_bar"/>
+    </LinearLayout>
+
+</LinearLayout>

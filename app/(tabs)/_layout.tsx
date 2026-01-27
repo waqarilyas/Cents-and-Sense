@@ -1,4 +1,4 @@
-import { Tabs, usePathname } from "expo-router";
+import { Tabs, usePathname, useLocalSearchParams } from "expo-router";
 import {
   View,
   StyleSheet,
@@ -10,7 +10,7 @@ import { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { QuickAddModal } from "../../lib/components/QuickAddModal";
 import * as Haptics from "expo-haptics";
 
@@ -127,8 +127,16 @@ export default function TabLayout() {
   const bottomPadding = Math.max(insets.bottom, 12);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
   const pathname = usePathname();
+  const searchParams = useLocalSearchParams();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Handle deep link to open quick add modal
+  useEffect(() => {
+    if (searchParams.openQuickAdd === 'true') {
+      setQuickAddVisible(true);
+    }
+  }, [searchParams.openQuickAdd]);
 
   // Only show FAB on main screens (Home and History)
   const showFab = pathname === "/" || pathname === "/history";

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Savings Goals"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"/>
+
+        <Button
+            android:id="@+id/add_goal_button"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="+ Goal"
+            android:textSize="12sp"
+            android:background="@drawable/button_background"
+            android:textColor="#FFFFFF"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"/>
+    </LinearLayout>
+
+    <!-- Goal 1 -->
+    <LinearLayout
+        android:id="@+id/goal1_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/goal1_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Emergency Fund"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/goal1_percentage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_accent"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/goal1_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0 / $0"
+            android:textSize="12sp"
+            android:textColor="@color/widget_text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <ProgressBar
+            android:id="@+id/goal1_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/progress_bar"/>
+    </LinearLayout>
+
+    <!-- Goal 2 -->
+    <LinearLayout
+        android:id="@+id/goal2_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/goal2_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Vacation"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/goal2_percentage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_accent"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/goal2_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0 / $0"
+            android:textSize="12sp"
+            android:textColor="@color/widget_text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <ProgressBar
+            android:id="@+id/goal2_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/progress_bar"/>
+    </LinearLayout>
+
+    <!-- Goal 3 -->
+    <LinearLayout
+        android:id="@+id/goal3_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/stat_card">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/goal3_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="New Car"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/goal3_percentage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_accent"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/goal3_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0 / $0"
+            android:textSize="12sp"
+            android:textColor="@color/widget_text_secondary"
+            android:layout_marginTop="4dp"/>
+
+        <ProgressBar
+            android:id="@+id/goal3_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/progress_bar"/>
+    </LinearLayout>
+
+</LinearLayout>

@@ -34,6 +34,7 @@ import {
 import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
+import { widgetService } from "../../lib/services/WidgetService";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -407,6 +408,30 @@ export default function HomeScreen() {
             )}
           </View>
         </Card>
+
+        {/* TEMPORARY: Test Widget Button */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: colors.primary,
+            padding: 16,
+            borderRadius: 12,
+            marginHorizontal: spacing.lg,
+            marginBottom: spacing.md,
+            alignItems: 'center'
+          }}
+          onPress={async () => {
+            try {
+              await widgetService.writeTestData();
+              Alert.alert('Success', 'Test data written to widget! Check your home screen widget.');
+            } catch (error) {
+              Alert.alert('Error', String(error));
+            }
+          }}
+        >
+          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>
+            TEST: Write Widget Data
+          </Text>
+        </TouchableOpacity>
 
         {/* Quick Access Shortcuts - Row 1 */}
         <View style={styles.quickAccessRow}>

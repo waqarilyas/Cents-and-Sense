@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Account, getDatabase } from "../database";
+import * as widgetService from "../services/WidgetService";
 
 interface AccountContextType {
   accounts: Account[];
@@ -78,6 +79,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           "INSERT INTO accounts (id, name, type, balance, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
           [id, name, type, 0, currency, Date.now()],
         );
+        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
       } catch (err) {
         // Rollback
         setAccounts((prev) => prev.filter((a) => a.id !== id));
@@ -122,6 +124,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             [name, balance, id],
           );
         }
+        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
       } catch (err) {
         // Rollback
         setAccounts((prev) => prev.map((a) => (a.id === id ? oldAccount : a)));
@@ -151,6 +154,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       try {
         const db = await getDatabase();
         await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
+        widgetService.updateAllWidgets().catch((err) => console.error('[v0] Widget update failed:', err));
       } catch (err) {
         // Rollback on error
         setAccounts(previousAccounts);

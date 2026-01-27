@@ -1,0 +1,10 @@
+<resources>
+  <string name="app_name">Budget Planner</string>
+  <string name="budget_overview">Budget Overview</string>
+  <string name="widget_spending_description">Track monthly spending</string>
+  <string name="widget_goals_description">View savings goals progress</string>
+  <string name="widget_accounts_description">View account balances</string>
+  <string name="widget_category_budgets_description">Monitor category budgets</string>
+  <string name="widget_medium_description">Budget overview with categories</string>
+  <string name="widget_large_description">Detailed budget breakdown</string>
+</resources>

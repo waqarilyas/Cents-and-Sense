@@ -7,14 +7,46 @@
     "userInterfaceStyle": "light",
     "scheme": "budgetplanner",
     "newArchEnabled": true,
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.budgetplanner.app"
     },
     "android": {
-      "package": "com.budgetplanner.app"
+      "package": "com.budgetplanner.app",
+      "permissions": [
+        "android.permission.VIBRATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "budgetplanner"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-sqlite"
+    ]
   }
 }

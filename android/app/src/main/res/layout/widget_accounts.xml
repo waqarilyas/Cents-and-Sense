@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Accounts"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"/>
+
+        <TextView
+            android:id="@+id/total_balance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_accent"/>
+    </LinearLayout>
+
+    <!-- Account 1 -->
+    <LinearLayout
+        android:id="@+id/account1_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/account1_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Main Checking"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/account1_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Checking"
+                android:textSize="11sp"
+                android:textColor="@color/widget_text_secondary"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/account1_balance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"/>
+    </LinearLayout>
+
+    <!-- Account 2 -->
+    <LinearLayout
+        android:id="@+id/account2_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/account2_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Savings"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/account2_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Savings"
+                android:textSize="11sp"
+                android:textColor="@color/widget_text_secondary"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/account2_balance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"/>
+    </LinearLayout>
+
+    <!-- Account 3 -->
+    <LinearLayout
+        android:id="@+id/account3_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="@drawable/stat_card"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/account3_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Credit Card"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"/>
+
+            <TextView
+                android:id="@+id/account3_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Credit Card"
+                android:textSize="11sp"
+                android:textColor="@color/widget_text_secondary"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/account3_balance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"/>
+    </LinearLayout>
+
+</LinearLayout>

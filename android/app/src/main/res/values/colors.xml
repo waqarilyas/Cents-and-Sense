@@ -1,0 +1,26 @@
+<resources>
+  <color name="splashscreen_background">#FFFFFF</color>
+  <color name="colorPrimary">#023c69</color>
+  <color name="colorPrimaryDark">#ffffff</color>
+  
+  <!-- Light theme widget colors -->
+  <color name="widget_background">#F9FAFB</color>
+  <color name="widget_surface">#FFFFFF</color>
+  <color name="widget_text_primary">#111827</color>
+  <color name="widget_text_secondary">#6B7280</color>
+  <color name="widget_text_tertiary">#9CA3AF</color>
+  <color name="widget_border">#E5E7EB</color>
+  <color name="widget_card_background">#F3F4F6</color>
+  
+  <!-- Status colors (same for both themes) -->
+  <color name="widget_success">#10B981</color>
+  <color name="widget_warning">#F59E0B</color>
+  <color name="widget_error">#EF4444</color>
+  <color name="widget_primary">#2196F3</color>
+  <color name="widget_accent">#3B82F6</color>
+  
+  <!-- Status backgrounds (light theme) -->
+  <color name="widget_success_bg">#10B98120</color>
+  <color name="widget_warning_bg">#F59E0B20</color>
+  <color name="widget_error_bg">#EF444420</color>
+</resources>
