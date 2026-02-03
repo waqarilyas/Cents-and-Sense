@@ -2505,6 +2505,8 @@ export default function AnalysisScreen() {
                     marginVertical: 8,
                     borderRadius: borderRadius.md,
                   }}
+                  yAxisLabel="$"
+                  yAxisSuffix=""
                   fromZero
                 />
               </Card>
@@ -2720,6 +2722,8 @@ export default function AnalysisScreen() {
                   marginVertical: 8,
                   borderRadius: borderRadius.md,
                 }}
+                yAxisLabel="$"
+                  fromZero
               />
             </Card>
 

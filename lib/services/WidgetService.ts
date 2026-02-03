@@ -20,26 +20,94 @@ interface WidgetNativeModule {
   writeTestData(): Promise<string>;
 }
 
-const LINKING_ERROR =
-  `The package 'BudgetWidgetModule' doesn't seem to be linked. Make sure: \n\n` +
-  Platform.select({
-    android: "- You have rebuilt the app after installing the package\n",
-    default: "",
-  }) +
-  "- You are not using Expo Go\n" +
-  "- You have run the build command\n";
+// Check if native module is available
+const isNativeModuleAvailable = !!NativeModules.BudgetWidgetModule;
 
-// Native module will be implemented in Android native code
-const WidgetModule: WidgetNativeModule = NativeModules.BudgetWidgetModule
+// Stub module for when native module is not available (Expo Go, web, etc.)
+const StubWidgetModule: WidgetNativeModule = {
+  updateWidgets: async () => {
+    console.log("[WidgetService] Widgets not available - using Expo Go or web");
+  },
+  reloadAllWidgets: async () => {
+    console.log("[WidgetService] Widgets not available - using Expo Go or web");
+  },
+  isWidgetSupported: async () => false,
+  getWidgetDataPath: async () => "",
+  writeWidgetData: async () => "",
+  writeTestData: async () => "",
+};
+
+// Use native module if available, otherwise use stub
+const WidgetModule: WidgetNativeModule = isNativeModuleAvailable
   ? NativeModules.BudgetWidgetModule
-  : new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
-      },
-    );
+  : StubWidgetModule;
+
+/**
+ * Widget Update Queue
+ * Prevents race conditions by queuing widget updates
+ */
+class WidgetUpdateQueue {
+  private isUpdating: boolean = false;
+  private pendingUpdate: boolean = false;
+  private updateTimeout: NodeJS.Timeout | null = null;
+
+  /**
+   * Queue a widget update with debouncing
+   * Prevents rapid successive updates
+   */
+  async updateWidgets(): Promise<void> {
+    // If already updating, mark that another update is needed
+    if (this.isUpdating) {
+      this.pendingUpdate = true;
+      return;
+    }
+
+    // Clear any pending debounce timeout
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
+
+    // Start update
+    this.isUpdating = true;
+    this.pendingUpdate = false;
+
+    try {
+      await WidgetDataProvider.writeWidgetData();
+
+      // If another update was requested while we were updating, do it again
+      if (this.pendingUpdate) {
+        this.pendingUpdate = false;
+        this.isUpdating = false;
+        await this.updateWidgets();
+      }
+    } catch (error) {
+      console.error("Widget update failed:", error);
+      throw error;
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  /**
+   * Debounced update - waits for a quiet period before updating
+   * Useful for rapid successive data changes
+   */
+  async debouncedUpdate(delay: number = 300): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.updateTimeout) {
+        clearTimeout(this.updateTimeout);
+      }
+
+      this.updateTimeout = setTimeout(async () => {
+        await this.updateWidgets();
+        resolve();
+      }, delay);
+    });
+  }
+}
+
+const updateQueue = new WidgetUpdateQueue();
 
 class WidgetService {
   /**
@@ -61,39 +129,55 @@ class WidgetService {
   /**
    * Update all active widgets
    * This triggers all widgets to reload with fresh data
+   * Uses queue to prevent race conditions
    */
   async updateAllWidgets(): Promise<void> {
     if (Platform.OS !== "android") {
-      console.warn("Widgets are only supported on Android");
+      return; // Silently skip on non-Android platforms
+    }
+
+    if (!isNativeModuleAvailable) {
+      return; // Silently skip when native module not available (Expo Go)
+    }
+
+    try {
+      await updateQueue.updateWidgets();
+    } catch (error) {
+      // Just log, don't throw - widgets are optional functionality
+      console.warn("[WidgetService] Widget update failed:", error);
+    }
+  }
+
+  /**
+   * Debounced widget update for rapid successive changes
+   * Waits for quiet period before updating to improve performance
+   */
+  async debouncedUpdate(delay: number = 300): Promise<void> {
+    if (Platform.OS !== "android" || !isNativeModuleAvailable) {
       return;
     }
 
     try {
-      // Write the latest data using native module (which also triggers update)
-      await WidgetDataProvider.writeWidgetData();
-      console.log("Widgets updated successfully");
+      await updateQueue.debouncedUpdate(delay);
     } catch (error) {
-      console.error("Failed to update widgets:", error);
-      throw error;
+      console.warn("[WidgetService] Debounced update failed:", error);
     }
   }
 
   /**
    * Reload all widget instances
    * Forces widgets to refresh immediately
+   * Uses queue to prevent race conditions
    */
   async reloadWidgets(): Promise<void> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== "android" || !isNativeModuleAvailable) {
       return;
     }
 
     try {
-      // Write fresh data (which triggers update automatically)
-      await WidgetDataProvider.writeWidgetData();
-      console.log("Widget instances reloaded");
+      await updateQueue.updateWidgets();
     } catch (error) {
-      console.error("Failed to reload widgets:", error);
-      throw error;
+      console.warn("[WidgetService] Widget reload failed:", error);
     }
   }
 
@@ -101,14 +185,14 @@ class WidgetService {
    * Get widget data file path from native module
    */
   async getWidgetDataPath(): Promise<string | null> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== "android" || !isNativeModuleAvailable) {
       return null;
     }
 
     try {
       return await WidgetModule.getWidgetDataPath();
     } catch (error) {
-      console.error("Failed to get widget data path:", error);
+      console.warn("[WidgetService] Failed to get widget data path:", error);
       return null;
     }
   }
@@ -122,17 +206,14 @@ class WidgetService {
     currency: string;
     categories: Array<{ name: string; spending: number }>;
   }): Promise<void> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== "android" || !isNativeModuleAvailable) {
       return;
     }
 
     try {
-      const path = await WidgetModule.writeWidgetData(data);
-      console.log("Widget data written successfully to:", path);
-      console.log("Widget data:", JSON.stringify(data, null, 2));
+      await WidgetModule.writeWidgetData(data);
     } catch (error) {
-      console.error("Failed to write widget data:", error);
-      throw error;
+      console.warn("[WidgetService] Failed to write widget data:", error);
     }
   }
 
@@ -140,16 +221,14 @@ class WidgetService {
    * Write test data to verify widget is working
    */
   async writeTestData(): Promise<void> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== "android" || !isNativeModuleAvailable) {
       return;
     }
 
     try {
-      const result = await WidgetModule.writeTestData();
-      console.log("Test data written:", result);
+      await WidgetModule.writeTestData();
     } catch (error) {
-      console.error("Failed to write test data:", error);
-      throw error;
+      console.warn("[WidgetService] Failed to write test data:", error);
     }
   }
 }

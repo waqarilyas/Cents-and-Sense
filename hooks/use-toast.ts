@@ -2,7 +2,11 @@
 // Inspired by react-hot-toast library
 import * as React from 'react'
 
-import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
+// TODO: Create toast component or remove this hook
+type ToastActionElement = React.ReactNode
+type ToastProps = {
+  variant?: 'default' | 'destructive'
+}
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -153,10 +157,6 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
     },
   })
 

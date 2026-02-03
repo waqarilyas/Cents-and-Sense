@@ -6,6 +6,12 @@ import React, {
   useState,
 } from "react";
 import { Category, getDatabase } from "../database";
+import {
+  validateString,
+  validateId,
+  ValidationError,
+} from "../utils/validation";
+import { Alert } from "react-native";
 
 interface CategoryContextType {
   categories: Category[];
@@ -71,11 +77,73 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Separate function to fix invalid category IDs - runs independently
+  const fixInvalidCategoryIds = useCallback(async () => {
+    try {
+      const db = await getDatabase();
+      const existingCategories = await db.getAllAsync<Category>(
+        "SELECT * FROM categories"
+      );
+      
+      for (const cat of existingCategories) {
+        // Check if ID contains invalid characters (anything other than alphanumeric, hyphen, underscore)
+        if (!/^[a-zA-Z0-9-_]+$/.test(cat.id)) {
+          console.log(`Fixing invalid category ID: ${cat.id}`);
+          
+          // Generate new valid ID
+          const newId = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          
+          // Update the category with new ID in a transaction
+          await db.execAsync("BEGIN TRANSACTION");
+          try {
+            // Update transactions that reference this category
+            await db.runAsync(
+              "UPDATE transactions SET categoryId = ? WHERE categoryId = ?",
+              [newId, cat.id]
+            );
+            
+            // Update budgets that reference this category
+            await db.runAsync(
+              "UPDATE budgets SET categoryId = ? WHERE categoryId = ?",
+              [newId, cat.id]
+            );
+            
+            // Update subscriptions that reference this category
+            await db.runAsync(
+              "UPDATE subscriptions SET categoryId = ? WHERE categoryId = ?",
+              [newId, cat.id]
+            );
+            
+            // Delete old category
+            await db.runAsync("DELETE FROM categories WHERE id = ?", [cat.id]);
+            
+            // Insert category with new ID
+            await db.runAsync(
+              "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
+              [newId, cat.name, cat.type, cat.color, cat.createdAt]
+            );
+            
+            await db.execAsync("COMMIT");
+            console.log(`✅ Fixed category ID: ${cat.id} -> ${newId}`);
+          } catch (err) {
+            await db.execAsync("ROLLBACK");
+            console.error(`❌ Failed to fix category ID ${cat.id}:`, err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error fixing category IDs:", err);
+    }
+  }, []);
+
   const seedDefaultCategories = useCallback(async () => {
     try {
       const db = await getDatabase();
+      
+      // Seed default categories if they don't exist
       for (const cat of DEFAULT_CATEGORIES) {
-        const id = `cat_${cat.name.toLowerCase().replace(/\s+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        // Replace all non-alphanumeric characters (except hyphens) with underscores
+        const id = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         await db.runAsync(
           "INSERT OR IGNORE INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
           [id, cat.name, cat.type, cat.color, Date.now()],
@@ -91,6 +159,10 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
       const db = await getDatabase();
+      
+      // ALWAYS fix invalid IDs first (runs on every app load)
+      await fixInvalidCategoryIds();
+      
       let result = await db.getAllAsync<Category>(
         "SELECT * FROM categories ORDER BY name ASC",
       );
@@ -120,37 +192,36 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
 
   const addCategory = useCallback(
     async (name: string, type: "income" | "expense", color: string) => {
-      const id = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const newCategory: Category = {
-        id,
-        name,
-        type,
-        color,
-        createdAt: Date.now(),
-      };
-
-      // Optimistic update
-      setCategories((prev) =>
-        [...prev, newCategory].sort((a, b) => a.name.localeCompare(b.name)),
-      );
-      setError(null);
-
       try {
+        // Validate inputs
+        const validName = validateString(name, "category name", {
+          minLength: 1,
+          maxLength: 50,
+        });
+        const validColor = validateString(color, "color", {
+          minLength: 4,
+          maxLength: 9,
+        });
+
+        const id = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-          [id, name, type, color, Date.now()],
+          [id, validName, type, validColor, Date.now()],
         );
-      } catch (err) {
-        // Rollback
-        setCategories((prev) => prev.filter((c) => c.id !== id));
+
+        await loadCategories();
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to add category";
+          error instanceof Error ? error.message : "Failed to add category";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [],
+    [loadCategories],
   );
 
   const updateCategory = useCallback(
@@ -170,23 +241,35 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       setError(null);
 
       try {
+        // Validate inputs
+        const validId = validateId(id, "id");
+        const validName = validateString(name, "category name", {
+          minLength: 1,
+          maxLength: 50,
+        });
+        const validColor = validateString(color, "color", {
+          minLength: 4,
+          maxLength: 9,
+        });
+
         const db = await getDatabase();
         await db.runAsync(
           "UPDATE categories SET name = ?, color = ? WHERE id = ?",
-          [name, color, id],
+          [validName, validColor, validId],
         );
-      } catch (err) {
-        // Rollback
-        setCategories((prev) =>
-          prev.map((c) => (c.id === id ? oldCategory : c)),
-        );
+
+        await loadCategories();
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to update category";
+          error instanceof Error ? error.message : "Failed to update category";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [categories],
+    [loadCategories],
   );
 
   const deleteCategory = useCallback(

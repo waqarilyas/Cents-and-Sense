@@ -217,8 +217,8 @@ export class WidgetDataProvider {
       // Use native module to write the file (has proper permissions)
       await widgetService.writeWidgetData(widgetData);
     } catch (error) {
-      console.error("Failed to write widget data:", error);
-      throw error;
+      // Just log, don't throw - widgets are optional functionality
+      console.warn("[WidgetDataProvider] Failed to write widget data:", error);
     }
   }
 

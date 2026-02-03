@@ -16,6 +16,7 @@ import {
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -417,13 +418,26 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
   const handleSave = useCallback(async () => {
     const amountNum = parseFloat(amount);
-    if (
-      amountNum <= 0 ||
-      !selectedCategoryId ||
-      !selectedAccountId ||
-      isSubmitting
-    )
+    
+    // Validate amount
+    if (amountNum <= 0) {
+      Alert.alert("Invalid Amount", "Please enter an amount greater than 0");
       return;
+    }
+    
+    // Validate category selection
+    if (!selectedCategoryId) {
+      Alert.alert("Category Required", "Please select a category for this transaction");
+      return;
+    }
+    
+    // Validate account selection
+    if (!selectedAccountId) {
+      Alert.alert("Account Required", "Please select an account for this transaction");
+      return;
+    }
+    
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
 
@@ -457,6 +471,10 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
         handleClose();
       });
     } catch (error) {
+      // Show error to user
+      const errorMessage = error instanceof Error ? error.message : "Failed to add transaction";
+      Alert.alert("Error", errorMessage);
+      
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }

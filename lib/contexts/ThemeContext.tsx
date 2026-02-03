@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useColorScheme } from "react-native";
-import { getDatabase, AppSettings } from "../database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -80,13 +80,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const loadTheme = async () => {
     try {
-      const db = await getDatabase();
-      const settings = await db.getFirstAsync<AppSettings>(
-        "SELECT * FROM settings WHERE id = ?",
-        ["default"],
-      );
-      if (settings) {
-        setThemeState(settings.theme);
+      const savedTheme = await AsyncStorage.getItem("theme");
+      if (savedTheme) {
+        setThemeState(savedTheme as ThemeMode);
       }
     } catch (error) {
       console.error("Error loading theme:", error);
@@ -95,11 +91,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = async (newTheme: ThemeMode) => {
     try {
-      const db = await getDatabase();
-      await db.runAsync(
-        "UPDATE settings SET theme = ?, updatedAt = ? WHERE id = ?",
-        [newTheme, Date.now(), "default"],
-      );
+      await AsyncStorage.setItem("theme", newTheme);
       setThemeState(newTheme);
     } catch (error) {
       console.error("Error saving theme:", error);

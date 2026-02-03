@@ -499,7 +499,7 @@ export default function GoalsScreen() {
             style={{
               fontSize: 14,
               fontWeight: "600",
-              color: colors.text,
+              color: colors.textPrimary,
               marginBottom: spacing.sm,
             }}
           >
@@ -507,7 +507,7 @@ export default function GoalsScreen() {
           </Text>
           <CurrencySelector
             selectedCode={goalCurrency}
-            onSelect={(code) => setGoalCurrency(code)}
+            onPress={() => {}}
           />
         </View>
 

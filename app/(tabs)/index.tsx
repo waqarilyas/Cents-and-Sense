@@ -67,7 +67,7 @@ export default function HomeScreen() {
   const { getCategory } = useCategories();
   const { goals } = useGoals();
   const { settings } = useSettings();
-  const { userProfile } = useUser();
+  const { userName } = useUser();
 
   const balancesByCurrency = getTotalBalanceByCurrency(accounts);
   const monthlyStats = getMonthlyStats();
@@ -303,7 +303,7 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.headerGreeting}>{getGreeting()}</Text>
             <Text style={styles.headerTitle}>
-              {userProfile?.name ? userProfile.name : "Your Finances"}
+              {userName || "Your Finances"}
             </Text>
           </View>
           <TouchableOpacity

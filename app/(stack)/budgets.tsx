@@ -613,7 +613,7 @@ export default function BudgetsScreen() {
             style={{
               fontSize: 14,
               fontWeight: "600",
-              color: colors.text,
+              color: colors.textPrimary,
               marginBottom: spacing.sm,
             }}
           >
@@ -621,7 +621,7 @@ export default function BudgetsScreen() {
           </Text>
           <CurrencySelector
             selectedCode={budgetCurrency}
-            onSelect={(code) => setBudgetCurrency(code)}
+            onPress={() => {}}
           />
         </View>
 

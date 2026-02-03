@@ -15,6 +15,7 @@ import { CurrencyProvider } from "../lib/contexts/CurrencyContext";
 import { SettingsProvider } from "../lib/contexts/SettingsContext";
 import { useThemeColors } from "../lib/theme";
 import { widgetService } from "../lib/services/WidgetService";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
@@ -62,13 +63,15 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <SettingsProvider>
-        <UserProvider>
-          <ThemedApp />
-        </UserProvider>
-      </SettingsProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <SettingsProvider>
+          <UserProvider>
+            <ThemedApp />
+          </UserProvider>
+        </SettingsProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

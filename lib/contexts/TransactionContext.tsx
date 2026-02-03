@@ -8,6 +8,15 @@ import React, {
 import { Transaction, getDatabase, Account } from "../database";
 import { getMonthlyStatsByCurrency } from "../utils/currencyHelpers";
 import { widgetService } from "../services/WidgetService";
+import {
+  validateAmount,
+  validateString,
+  validateDate,
+  validateId,
+  validateTransactionType,
+  ValidationError,
+} from "../utils/validation";
+import { Alert } from "react-native";
 
 interface TransactionContextType {
   transactions: Transaction[];
@@ -83,31 +92,6 @@ export function TransactionProvider({
     loadTransactions();
   }, [loadTransactions]);
 
-  // Helper function to update account balance
-  const updateAccountBalance = async (
-    accountId: string,
-    amount: number,
-    type: "income" | "expense",
-    operation: "add" | "remove",
-  ) => {
-    const db = await getDatabase();
-    // For income: add increases balance, remove decreases
-    // For expense: add decreases balance, remove increases
-    const balanceChange =
-      type === "income"
-        ? operation === "add"
-          ? amount
-          : -amount
-        : operation === "add"
-          ? -amount
-          : amount;
-
-    await db.runAsync(
-      "UPDATE accounts SET balance = balance + ? WHERE id = ?",
-      [balanceChange, accountId],
-    );
-  };
-
   const addTransaction = useCallback(
     async (
       accountId: string,
@@ -117,68 +101,99 @@ export function TransactionProvider({
       date: number,
       type: "income" | "expense",
     ) => {
-      // Get currency from account
-      const db = await getDatabase();
-      const account = await db.getFirstAsync<Account>(
-        "SELECT * FROM accounts WHERE id = ? LIMIT 1",
-        [accountId],
-      );
-
-      if (!account) {
-        throw new Error("Account not found");
-      }
-
-      const currency = account.currency;
-      const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const newTransaction: Transaction = {
-        id,
-        accountId,
-        categoryId,
-        amount,
-        currency,
-        description,
-        date,
-        type,
-        createdAt: Date.now(),
-      };
-
-      // Optimistic update - add to UI immediately
-      setTransactions((prev) => [newTransaction, ...prev]);
-      setError(null);
-
       try {
-        await db.runAsync(
-          "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [
-            id,
-            accountId,
-            categoryId,
-            amount,
-            currency,
-            description,
-            date,
-            type,
-            Date.now(),
-          ],
-        );
+        // Validate all inputs
+        const validAccountId = validateId(accountId, "accountId");
+        const validCategoryId = validateId(categoryId, "categoryId");
+        const validAmount = validateAmount(amount, "amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validDescription = validateString(description, "description", {
+          maxLength: 500,
+        });
+        const validDate = validateDate(date, "date");
+        const validType = validateTransactionType(type);
 
-        // Update account balance (accountId is always provided)
-        await updateAccountBalance(accountId, amount, type, "add");
+        const db = await getDatabase();
+        const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Update widgets with new transaction data
-        widgetService
-          .updateAllWidgets()
-          .catch((err) => console.warn("Failed to update widgets:", err));
-      } catch (err) {
-        // Rollback on error - remove the transaction
-        setTransactions((prev) => prev.filter((t) => t.id !== id));
+        // Start database transaction for atomicity
+        await db.execAsync("BEGIN TRANSACTION");
+
+        try {
+          // Verify account exists
+          const account = await db.getFirstAsync<Account>(
+            "SELECT * FROM accounts WHERE id = ?",
+            [validAccountId],
+          );
+          if (!account) {
+            throw new Error("Account not found");
+          }
+
+          // Verify category exists
+          const category = await db.getFirstAsync<{ id: string }>(
+            "SELECT id FROM categories WHERE id = ?",
+            [validCategoryId],
+          );
+          if (!category) {
+            throw new Error("Category not found");
+          }
+
+          const currency = account.currency;
+          const balanceChange =
+            validType === "income" ? validAmount : -validAmount;
+
+          // Insert transaction
+          await db.runAsync(
+            "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+              id,
+              validAccountId,
+              validCategoryId,
+              validAmount,
+              currency,
+              validDescription,
+              validDate,
+              validType,
+              Date.now(),
+            ],
+          );
+
+          // Update account balance in same transaction
+          await db.runAsync(
+            "UPDATE accounts SET balance = balance + ? WHERE id = ?",
+            [balanceChange, validAccountId],
+          );
+
+          // Commit transaction
+          await db.execAsync("COMMIT");
+
+          // Reload data
+          await loadTransactions();
+
+          // Update widgets
+          widgetService
+            .updateAllWidgets()
+            .catch((err) => console.warn("Failed to update widgets:", err));
+        } catch (error) {
+          // Rollback on any error
+          await db.execAsync("ROLLBACK");
+          throw error;
+        }
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+          throw error;
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to add transaction";
+          error instanceof Error ? error.message : "Failed to add transaction";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [],
+    [loadTransactions],
   );
 
   const updateTransaction = useCallback(
@@ -191,127 +206,193 @@ export function TransactionProvider({
       date: number,
       type: "income" | "expense",
     ) => {
-      // Get the old transaction for rollback
-      const oldTx = transactions.find((t) => t.id === id);
-      if (!oldTx) {
-        throw new Error("Transaction not found");
-      }
-
-      // Get currency from account
-      const db = await getDatabase();
-      const account = await db.getFirstAsync<Account>(
-        "SELECT * FROM accounts WHERE id = ? LIMIT 1",
-        [accountId],
-      );
-
-      if (!account) {
-        throw new Error("Account not found");
-      }
-
-      const currency = account.currency;
-
-      // Create updated transaction
-      const updatedTx: Transaction = {
-        ...oldTx,
-        categoryId,
-        amount,
-        currency,
-        description,
-        date,
-        type,
-        accountId,
-      };
-
-      // Optimistic update - update in UI immediately
-      setTransactions((prev) => prev.map((t) => (t.id === id ? updatedTx : t)));
-      setError(null);
-
       try {
-        // Revert old transaction's balance impact (oldTx always has accountId now)
-        if (oldTx.accountId) {
-          await updateAccountBalance(
-            oldTx.accountId,
-            oldTx.amount,
-            oldTx.type,
-            "remove",
+        // Validate all inputs
+        const validId = validateId(id, "id");
+        const validAccountId = validateId(accountId, "accountId");
+        const validCategoryId = validateId(categoryId, "categoryId");
+        const validAmount = validateAmount(amount, "amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validDescription = validateString(description, "description", {
+          maxLength: 500,
+        });
+        const validDate = validateDate(date, "date");
+        const validType = validateTransactionType(type);
+
+        const db = await getDatabase();
+
+        // Start database transaction for atomicity
+        await db.execAsync("BEGIN TRANSACTION");
+
+        try {
+          // Get the old transaction
+          const oldTx = await db.getFirstAsync<Transaction>(
+            "SELECT * FROM transactions WHERE id = ?",
+            [validId],
           );
+          if (!oldTx) {
+            throw new Error("Transaction not found");
+          }
+
+          // Verify new account exists
+          const account = await db.getFirstAsync<Account>(
+            "SELECT * FROM accounts WHERE id = ?",
+            [validAccountId],
+          );
+          if (!account) {
+            throw new Error("Account not found");
+          }
+
+          // Verify new category exists
+          const category = await db.getFirstAsync<{ id: string }>(
+            "SELECT id FROM categories WHERE id = ?",
+            [validCategoryId],
+          );
+          if (!category) {
+            throw new Error("Category not found");
+          }
+
+          const currency = account.currency;
+
+          // Revert old transaction's balance impact
+          if (oldTx.accountId) {
+            const oldBalanceChange =
+              oldTx.type === "income" ? -oldTx.amount : oldTx.amount;
+            await db.runAsync(
+              "UPDATE accounts SET balance = balance + ? WHERE id = ?",
+              [oldBalanceChange, oldTx.accountId],
+            );
+          }
+
+          // Update the transaction
+          await db.runAsync(
+            "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, currency = ?, description = ?, date = ?, type = ? WHERE id = ?",
+            [
+              validAccountId,
+              validCategoryId,
+              validAmount,
+              currency,
+              validDescription,
+              validDate,
+              validType,
+              validId,
+            ],
+          );
+
+          // Apply new transaction's balance impact
+          const newBalanceChange =
+            validType === "income" ? validAmount : -validAmount;
+          await db.runAsync(
+            "UPDATE accounts SET balance = balance + ? WHERE id = ?",
+            [newBalanceChange, validAccountId],
+          );
+
+          // Verify balance is valid for non-credit card accounts
+          const updatedAccount = await db.getFirstAsync<Account>(
+            "SELECT * FROM accounts WHERE id = ?",
+            [validAccountId],
+          );
+          if (
+            updatedAccount &&
+            updatedAccount.type !== "credit_card" &&
+            updatedAccount.balance < 0
+          ) {
+            throw new Error("Insufficient funds");
+          }
+
+          // Commit transaction
+          await db.execAsync("COMMIT");
+
+          // Reload data
+          await loadTransactions();
+
+          // Update widgets
+          widgetService
+            .updateAllWidgets()
+            .catch((err) => console.warn("Failed to update widgets:", err));
+        } catch (error) {
+          // Rollback on any error
+          await db.execAsync("ROLLBACK");
+          throw error;
         }
-
-        // Update the transaction
-        await db.runAsync(
-          "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, currency = ?, description = ?, date = ?, type = ? WHERE id = ?",
-          [
-            accountId,
-            categoryId,
-            amount,
-            currency,
-            description,
-            date,
-            type,
-            id,
-          ],
-        );
-
-        // Apply new transaction's balance impact (accountId is always provided)
-        await updateAccountBalance(accountId, amount, type, "add");
-
-        // Update widgets with modified transaction data
-        widgetService
-          .updateAllWidgets()
-          .catch((err) => console.warn("Failed to update widgets:", err));
-      } catch (err) {
-        // Rollback on error - restore old transaction
-        setTransactions((prev) => prev.map((t) => (t.id === id ? oldTx : t)));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+          throw error;
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to update transaction";
+          error instanceof Error ? error.message : "Failed to update transaction";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [transactions],
+    [loadTransactions],
   );
 
   const deleteTransaction = useCallback(
     async (id: string) => {
-      // Get the transaction to revert its balance impact
-      const tx = transactions.find((t) => t.id === id);
-      if (!tx) {
-        throw new Error("Transaction not found");
-      }
-
-      // Optimistic update - remove from UI immediately
-      const previousTransactions = [...transactions];
-      setTransactions((prev) => prev.filter((t) => t.id !== id));
-      setError(null);
-
       try {
+        const validId = validateId(id, "id");
         const db = await getDatabase();
-        await db.runAsync("DELETE FROM transactions WHERE id = ?", [id]);
 
-        // Revert the transaction's balance impact
-        if (tx.accountId) {
-          await updateAccountBalance(
-            tx.accountId,
-            tx.amount,
-            tx.type,
-            "remove",
+        // Start database transaction for atomicity
+        await db.execAsync("BEGIN TRANSACTION");
+
+        try {
+          // Get the transaction to revert its balance impact
+          const tx = await db.getFirstAsync<Transaction>(
+            "SELECT * FROM transactions WHERE id = ?",
+            [validId],
           );
-        }
+          if (!tx) {
+            throw new Error("Transaction not found");
+          }
 
-        // Update widgets after deleting transaction
-        widgetService
-          .updateAllWidgets()
-          .catch((err) => console.warn("Failed to update widgets:", err));
-      } catch (err) {
-        // Rollback on error
-        setTransactions(previousTransactions);
+          // Delete the transaction
+          await db.runAsync("DELETE FROM transactions WHERE id = ?", [
+            validId,
+          ]);
+
+          // Revert the transaction's balance impact
+          if (tx.accountId) {
+            const balanceChange =
+              tx.type === "income" ? -tx.amount : tx.amount;
+            await db.runAsync(
+              "UPDATE accounts SET balance = balance + ? WHERE id = ?",
+              [balanceChange, tx.accountId],
+            );
+          }
+
+          // Commit transaction
+          await db.execAsync("COMMIT");
+
+          // Reload data
+          await loadTransactions();
+
+          // Update widgets
+          widgetService
+            .updateAllWidgets()
+            .catch((err) => console.warn("Failed to update widgets:", err));
+        } catch (error) {
+          // Rollback on any error
+          await db.execAsync("ROLLBACK");
+          throw error;
+        }
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+          throw error;
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to delete transaction";
+          error instanceof Error ? error.message : "Failed to delete transaction";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [transactions],
+    [loadTransactions],
   );
 
   const getTransaction = useCallback(

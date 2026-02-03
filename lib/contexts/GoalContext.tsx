@@ -6,7 +6,15 @@ import React, {
   useState,
 } from "react";
 import { Goal, getDatabase } from "../database";
-import * as widgetService from "../services/WidgetService";
+import widgetService from "../services/WidgetService";
+import {
+  validateAmount,
+  validateString,
+  validateDate,
+  validateId,
+  ValidationError,
+} from "../utils/validation";
+import { Alert } from "react-native";
 
 interface GoalContextType {
   goals: Goal[];
@@ -67,40 +75,55 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       deadline: number,
       currency: string = "USD",
     ) => {
-      const id = Date.now().toString();
-      const newGoal: Goal = {
-        id,
-        name,
-        targetAmount,
-        currentAmount: 0,
-        deadline,
-        currency,
-        createdAt: Date.now(),
-      };
-
-      // Optimistic update
-      setGoals((prev) => [...prev, newGoal]);
-      setError(null);
-
       try {
+        // Validate inputs
+        const validName = validateString(name, "goal name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+        const validTargetAmount = validateAmount(targetAmount, "target amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validDeadline = validateDate(deadline, "deadline");
+        const validCurrency = validateString(currency, "currency", {
+          minLength: 3,
+          maxLength: 3,
+        });
+
+        const id = Date.now().toString();
+        const newGoal: Goal = {
+          id,
+          name: validName,
+          targetAmount: validTargetAmount,
+          currentAmount: 0,
+          deadline: validDeadline,
+          currency: validCurrency,
+          createdAt: Date.now(),
+        };
+
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO goals (id, name, targetAmount, currentAmount, deadline, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [id, name, targetAmount, 0, deadline, currency, Date.now()],
+          [id, validName, validTargetAmount, 0, validDeadline, validCurrency, Date.now()],
         );
+
+        await loadGoals();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback
-        setGoals((prev) => prev.filter((g) => g.id !== id));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to add goal";
+          error instanceof Error ? error.message : "Failed to add goal";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [],
+    [loadGoals],
   );
 
   const updateGoal = useCallback(
@@ -112,74 +135,86 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       deadline: number,
       currency?: string,
     ) => {
-      const oldGoal = goals.find((g) => g.id === id);
-      if (!oldGoal) {
-        throw new Error("Goal not found");
-      }
-
-      // Optimistic update
-      const updatedGoal = {
-        ...oldGoal,
-        name,
-        targetAmount,
-        currentAmount,
-        deadline,
-        ...(currency && { currency }),
-      };
-      setGoals((prev) => prev.map((g) => (g.id === id ? updatedGoal : g)));
-      setError(null);
-
       try {
+        // Validate inputs
+        const validId = validateId(id, "id");
+        const validName = validateString(name, "goal name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+        const validTargetAmount = validateAmount(targetAmount, "target amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validCurrentAmount = validateAmount(currentAmount, "current amount", {
+          allowZero: true,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validDeadline = validateDate(deadline, "deadline");
+        const validCurrency = currency
+          ? validateString(currency, "currency", {
+              minLength: 3,
+              maxLength: 3,
+            })
+          : undefined;
+
         const db = await getDatabase();
-        if (currency) {
+        if (validCurrency) {
           await db.runAsync(
             "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ?, currency = ? WHERE id = ?",
-            [name, targetAmount, currentAmount, deadline, currency, id],
+            [validName, validTargetAmount, validCurrentAmount, validDeadline, validCurrency, validId],
           );
         } else {
           await db.runAsync(
             "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ? WHERE id = ?",
-            [name, targetAmount, currentAmount, deadline, id],
+            [validName, validTargetAmount, validCurrentAmount, validDeadline, validId],
           );
         }
+
+        await loadGoals();
+        await loadGoals();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback
-        setGoals((prev) => prev.map((g) => (g.id === id ? oldGoal : g)));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to update goal";
+          error instanceof Error ? error.message : "Failed to update goal";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [goals],
+    [loadGoals],
   );
 
   const deleteGoal = useCallback(
     async (id: string) => {
-      // Optimistic update - remove from UI immediately
-      const previousGoals = [...goals];
-      setGoals((prev) => prev.filter((g) => g.id !== id));
-      setError(null);
-
       try {
+        // Validate input
+        const validId = validateId(id, "id");
+
         const db = await getDatabase();
-        await db.runAsync("DELETE FROM goals WHERE id = ?", [id]);
+        await db.runAsync("DELETE FROM goals WHERE id = ?", [validId]);
+
+        await loadGoals();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback on error
-        setGoals(previousGoals);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to delete goal";
+          error instanceof Error ? error.message : "Failed to delete goal";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [goals],
+    [loadGoals],
   );
 
   const getGoal = useCallback(
@@ -192,21 +227,32 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
   const updateGoalProgress = useCallback(
     async (id: string, currentAmount: number) => {
       try {
+        // Validate inputs
+        const validId = validateId(id, "id");
+        const validCurrentAmount = validateAmount(currentAmount, "current amount", {
+          allowZero: true,
+          allowNegative: false,
+          max: 999999999,
+        });
+
         setError(null);
         const db = await getDatabase();
         await db.runAsync("UPDATE goals SET currentAmount = ? WHERE id = ?", [
-          currentAmount,
-          id,
+          validCurrentAmount,
+          validId,
         ]);
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
         await loadGoals();
-      } catch (err) {
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to update goal progress";
+          error instanceof Error ? error.message : "Failed to update goal progress";
         setError(message);
-        throw err;
+        throw error;
       }
     },
     [loadGoals],

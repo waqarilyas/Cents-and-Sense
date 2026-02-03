@@ -7,6 +7,14 @@ import React, {
   ReactNode,
 } from "react";
 import { getDatabase, Subscription } from "../database";
+import {
+  validateAmount,
+  validateString,
+  validateDate,
+  validateId,
+  ValidationError,
+} from "../utils/validation";
+import { Alert } from "react-native";
 
 // Pending subscription that needs user approval
 export interface PendingSubscription {
@@ -121,53 +129,71 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       reminderDays: number = 3,
       notes?: string,
     ): Promise<string> => {
-      const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const now = Date.now();
-      const newSubscription: Subscription = {
-        id,
-        name,
-        amount,
-        currency,
-        categoryId,
-        frequency,
-        startDate,
-        nextDueDate: startDate,
-        isActive: true,
-        reminderDays,
-        notes,
-        createdAt: now,
-      };
-
-      // Optimistic update
-      setSubscriptions((prev) => [...prev, newSubscription]);
-
       try {
+        // Validate inputs
+        const validName = validateString(name, "subscription name", {
+          minLength: 1,
+          maxLength: 100,
+        });
+        const validAmount = validateAmount(amount, "amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validCategoryId = validateId(categoryId, "categoryId");
+        const validStartDate = validateDate(startDate, "start date");
+        const validCurrency = validateString(currency, "currency", {
+          minLength: 3,
+          maxLength: 3,
+        });
+        const validReminderDays = validateAmount(reminderDays, "reminder days", {
+          allowZero: true,
+          allowNegative: false,
+          max: 30,
+        });
+
+        const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const now = Date.now();
+
         const db = await getDatabase();
+
+        // Verify category exists
+        const category = await db.getFirstAsync(
+          "SELECT id FROM categories WHERE id = ?",
+          [validCategoryId],
+        );
+        if (!category) {
+          throw new Error("Category not found");
+        }
+
         await db.runAsync(
           `INSERT INTO subscriptions (id, name, amount, currency, categoryId, frequency, startDate, nextDueDate, isActive, reminderDays, notes, createdAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
           [
             id,
-            name,
-            amount,
-            currency,
-            categoryId,
+            validName,
+            validAmount,
+            validCurrency,
+            validCategoryId,
             frequency,
-            startDate,
-            startDate,
-            reminderDays,
+            validStartDate,
+            validStartDate,
+            validReminderDays,
             notes || null,
             now,
           ],
         );
+
+        await loadSubscriptions();
         return id;
-      } catch (err) {
-        // Rollback
-        setSubscriptions((prev) => prev.filter((s) => s.id !== id));
-        throw err;
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
+        throw error;
       }
     },
-    [],
+    [loadSubscriptions],
   );
 
   const updateSubscription = useCallback(
@@ -292,6 +318,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
 
       try {
+        // Start transaction for atomic subscription processing
+        await db.execAsync("BEGIN TRANSACTION");
+
         const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Create the transaction with currency
@@ -320,8 +349,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           [nextDue, subscription.id],
         );
 
+        // Commit the transaction
+        await db.execAsync("COMMIT");
+
         return true;
       } catch (error) {
+        // Rollback on error
+        try {
+          await db.execAsync("ROLLBACK");
+        } catch (rollbackErr) {
+          console.error("Error rolling back subscription processing:", rollbackErr);
+        }
         console.error(
           `Error processing subscription ${subscription.name}:`,
           error,

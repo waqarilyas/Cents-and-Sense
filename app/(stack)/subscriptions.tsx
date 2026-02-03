@@ -563,7 +563,7 @@ export default function SubscriptionsScreen() {
               <Text style={styles.inputLabel}>Currency</Text>
               <CurrencySelector
                 selectedCode={subCurrency}
-                onSelect={(code) => setSubCurrency(code)}
+                onPress={() => {}}
               />
             </View>
 

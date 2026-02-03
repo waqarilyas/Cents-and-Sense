@@ -5,8 +5,16 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { Alert } from "react-native";
 import { Account, getDatabase } from "../database";
-import * as widgetService from "../services/WidgetService";
+import widgetService from "../services/WidgetService";
+import {
+  validateString,
+  validateAmount,
+  validateId,
+  validateAccountType,
+  ValidationError,
+} from "../utils/validation";
 
 interface AccountContextType {
   accounts: Account[];
@@ -59,86 +67,98 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const addAccount = useCallback(
     async (name: string, type: Account["type"], currency: string = "USD") => {
-      const id = Date.now().toString();
-      const newAccount: Account = {
-        id,
-        name,
-        type,
-        balance: 0,
-        currency,
-        createdAt: Date.now(),
-      };
-
-      // Optimistic update
-      setAccounts((prev) => [newAccount, ...prev]);
-      setError(null);
-
       try {
+        // Validate inputs
+        const validName = validateString(name, "name", {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+        });
+        const validType = validateAccountType(type);
+        const validCurrency = validateString(currency, "currency", {
+          required: true,
+          minLength: 3,
+          maxLength: 3,
+        });
+
+        const id = `account_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const db = await getDatabase();
+
         await db.runAsync(
           "INSERT INTO accounts (id, name, type, balance, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
-          [id, name, type, 0, currency, Date.now()],
+          [id, validName, validType, 0, validCurrency, Date.now()],
         );
+
+        await loadAccounts();
         widgetService
           .updateAllWidgets()
-          .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback
-        setAccounts((prev) => prev.filter((a) => a.id !== id));
+          .catch((err) => console.error("Widget update failed:", err));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+          throw error;
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to add account";
+          error instanceof Error ? error.message : "Failed to add account";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [],
+    [loadAccounts],
   );
 
   const updateAccount = useCallback(
     async (id: string, name: string, balance: number, currency?: string) => {
-      const oldAccount = accounts.find((a) => a.id === id);
-      if (!oldAccount) {
-        throw new Error("Account not found");
-      }
-
-      // Optimistic update
-      const updatedAccount = {
-        ...oldAccount,
-        name,
-        balance,
-        ...(currency && { currency }),
-      };
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === id ? updatedAccount : a)),
-      );
-      setError(null);
-
       try {
+        // Validate inputs
+        const validId = validateId(id, "id");
+        const validName = validateString(name, "name", {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+        });
+        const validBalance = validateAmount(balance, "balance", {
+          allowNegative: true, // Allow negative for credit cards
+          max: 999999999,
+        });
+        const validCurrency = currency
+          ? validateString(currency, "currency", {
+              required: true,
+              minLength: 3,
+              maxLength: 3,
+            })
+          : undefined;
+
         const db = await getDatabase();
-        if (currency) {
+        
+        if (validCurrency) {
           await db.runAsync(
             "UPDATE accounts SET name = ?, balance = ?, currency = ? WHERE id = ?",
-            [name, balance, currency, id],
+            [validName, validBalance, validCurrency, validId],
           );
         } else {
           await db.runAsync(
             "UPDATE accounts SET name = ?, balance = ? WHERE id = ?",
-            [name, balance, id],
+            [validName, validBalance, validId],
           );
         }
+
+        await loadAccounts();
         widgetService
           .updateAllWidgets()
-          .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback
-        setAccounts((prev) => prev.map((a) => (a.id === id ? oldAccount : a)));
+          .catch((err) => console.error("Widget update failed:", err));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+          throw error;
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to update account";
+          error instanceof Error ? error.message : "Failed to update account";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [accounts],
+    [loadAccounts],
   );
 
   const deleteAccount = useCallback(

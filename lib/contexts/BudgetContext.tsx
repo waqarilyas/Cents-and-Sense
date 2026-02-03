@@ -17,7 +17,14 @@ import {
   needsPeriodTransition,
 } from "../utils/periodCalculations";
 import { groupBudgetsByCurrency } from "../utils/currencyHelpers";
-import * as widgetService from "../services/WidgetService";
+import widgetService from "../services/WidgetService";
+import {
+  validateAmount,
+  validateString,
+  validateId,
+  ValidationError,
+} from "../utils/validation";
+import { Alert } from "react-native";
 
 interface BudgetWithCarryover extends Budget {
   carryoverAmount: number;
@@ -110,53 +117,74 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       currency: string = "USD",
       allowCarryover: boolean = true,
     ) => {
-      const id = Date.now().toString();
-      const now = Date.now();
-      const newBudget: Budget = {
-        id,
-        categoryId,
-        budget_limit: amount,
-        period,
-        currency,
-        allowCarryover,
-        lastCarryoverAmount: 0,
-        lastPeriodEnd: 0,
-        createdAt: now,
-      };
-
-      // Optimistic update
-      setBudgets((prev) => [...prev, newBudget]);
-      setError(null);
-
       try {
+        // Validate inputs
+        const validCategoryId = validateId(categoryId, "categoryId");
+        const validAmount = validateAmount(amount, "budget amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validCurrency = validateString(currency, "currency", {
+          minLength: 3,
+          maxLength: 3,
+        });
+
+        const id = Date.now().toString();
+        const now = Date.now();
+        const newBudget: Budget = {
+          id,
+          categoryId: validCategoryId,
+          budget_limit: validAmount,
+          period,
+          currency: validCurrency,
+          allowCarryover,
+          lastCarryoverAmount: 0,
+          lastPeriodEnd: 0,
+          createdAt: now,
+        };
+
         const db = await getDatabase();
+        
+        // Verify category exists
+        const category = await db.getFirstAsync(
+          "SELECT id FROM categories WHERE id = ?",
+          [validCategoryId],
+        );
+        if (!category) {
+          throw new Error("Category not found");
+        }
+
         await db.runAsync(
           "INSERT INTO budgets (id, categoryId, budget_limit, period, currency, allowCarryover, lastCarryoverAmount, lastPeriodEnd, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             id,
-            categoryId,
-            amount,
+            validCategoryId,
+            validAmount,
             period,
-            currency,
+            validCurrency,
             allowCarryover ? 1 : 0,
             0,
             0,
             now,
           ],
         );
+
+        await loadBudgets();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback
-        setBudgets((prev) => prev.filter((b) => b.id !== id));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to add budget";
+          error instanceof Error ? error.message : "Failed to add budget";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [],
+    [loadBudgets],
   );
 
   const updateBudget = useCallback(
@@ -166,52 +194,66 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       period: "monthly" | "yearly",
       currency?: string,
     ) => {
-      const oldBudget = budgets.find((b) => b.id === id);
-      if (!oldBudget) {
-        throw new Error("Budget not found");
-      }
-
-      // Optimistic update
-      const updatedBudget = {
-        ...oldBudget,
-        budget_limit: amount,
-        period,
-        ...(currency && { currency }),
-      };
-      setBudgets((prev) => prev.map((b) => (b.id === id ? updatedBudget : b)));
-      setError(null);
-
       try {
+        // Validate inputs
+        const validId = validateId(id, "id");
+        const validAmount = validateAmount(amount, "budget amount", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validCurrency = currency
+          ? validateString(currency, "currency", {
+              minLength: 3,
+              maxLength: 3,
+            })
+          : undefined;
+
         const db = await getDatabase();
-        if (currency) {
+        if (validCurrency) {
           await db.runAsync(
             "UPDATE budgets SET budget_limit = ?, period = ?, currency = ? WHERE id = ?",
-            [amount, period, currency, id],
+            [validAmount, period, validCurrency, validId],
           );
         } else {
           await db.runAsync(
             "UPDATE budgets SET budget_limit = ?, period = ? WHERE id = ?",
-            [amount, period, id],
+            [validAmount, period, validId],
           );
         }
+
+        await loadBudgets();
+        await loadBudgets();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback
-        setBudgets((prev) => prev.map((b) => (b.id === id ? oldBudget : b)));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to update budget";
+          error instanceof Error ? error.message : "Failed to update budget";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [budgets],
+    [loadBudgets],
   );
 
   const setMonthlyBudget = useCallback(
     async (amount: number, currency: string = "USD") => {
       try {
+        // Validate inputs
+        const validAmount = validateAmount(amount, "monthly budget", {
+          allowZero: false,
+          allowNegative: false,
+          max: 999999999,
+        });
+        const validCurrency = validateString(currency, "currency", {
+          minLength: 3,
+          maxLength: 3,
+        });
+
         setError(null);
         const db = await getDatabase();
         const now = new Date();
@@ -224,23 +266,26 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         if (existing) {
           await db.runAsync(
             "UPDATE monthly_budgets SET amount = ?, currency = ? WHERE id = ?",
-            [amount, currency, existing.id],
+            [validAmount, validCurrency, existing.id],
           );
         } else {
           await db.runAsync(
             "INSERT INTO monthly_budgets (id, amount, currency, month, year, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
-            [Date.now().toString(), amount, currency, month, year, Date.now()],
+            [Date.now().toString(), validAmount, validCurrency, month, year, Date.now()],
           );
         }
         await loadMonthlyBudget();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to set monthly budget";
+          error instanceof Error ? error.message : "Failed to set monthly budget";
         setError(message);
-        throw err;
+        throw error;
       }
     },
     [loadMonthlyBudget],
@@ -268,27 +313,28 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
   const deleteBudget = useCallback(
     async (id: string) => {
-      // Optimistic update - remove from UI immediately
-      const previousBudgets = [...budgets];
-      setBudgets((prev) => prev.filter((b) => b.id !== id));
-      setError(null);
-
       try {
+        // Validate input
+        const validId = validateId(id, "id");
+
         const db = await getDatabase();
-        await db.runAsync("DELETE FROM budgets WHERE id = ?", [id]);
+        await db.runAsync("DELETE FROM budgets WHERE id = ?", [validId]);
+
+        await loadBudgets();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
-      } catch (err) {
-        // Rollback on error
-        setBudgets(previousBudgets);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          Alert.alert("Invalid Input", error.message);
+        }
         const message =
-          err instanceof Error ? err.message : "Failed to delete budget";
+          error instanceof Error ? error.message : "Failed to delete budget";
         setError(message);
-        throw err;
+        throw error;
       }
     },
-    [budgets],
+    [loadBudgets],
   );
 
   const getBudget = useCallback(
@@ -348,8 +394,11 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
   // Process period transitions and create snapshots
   const processPeriodTransitions = useCallback(async () => {
+    const db = await getDatabase();
+    
     try {
-      const db = await getDatabase();
+      // Start transaction for atomic period transitions
+      await db.execAsync("BEGIN TRANSACTION");
 
       // Get settings for period start day
       const settingsResult = await db.getFirstAsync<any>(
@@ -359,6 +408,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       const globalCarryoverEnabled = settingsResult?.enableCarryover !== 0;
 
       if (!globalCarryoverEnabled) {
+        await db.execAsync("COMMIT");
         return; // Carryover disabled globally
       }
 
@@ -414,10 +464,20 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Commit the transaction
+      await db.execAsync("COMMIT");
+
       // Reload budgets to get updated carryover amounts
       await loadBudgets();
     } catch (err) {
+      // Rollback on error
+      try {
+        await db.execAsync("ROLLBACK");
+      } catch (rollbackErr) {
+        console.error("Error rolling back period transition:", rollbackErr);
+      }
       console.error("Error processing period transitions:", err);
+      throw err; // Re-throw to propagate error
     }
   }, [budgets, loadBudgets]);
 

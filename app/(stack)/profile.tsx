@@ -67,7 +67,7 @@ export default function ProfileScreen() {
   const { defaultCurrency, defaultCurrencyCode, setDefaultCurrency } =
     useCurrency();
   const { settings, updateSetting } = useSettings();
-  const { userProfile } = useUser();
+  const { userName } = useUser();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -342,7 +342,7 @@ export default function ProfileScreen() {
             <Ionicons name="person" size={36} color={colors.primary} />
           </View>
           <Text style={styles.profileName}>
-            {userProfile?.name || "Budget Tracker User"}
+            {userName || "Budget Tracker User"}
           </Text>
           <Text style={styles.profileEmail}>Manage your finances wisely</Text>
 
