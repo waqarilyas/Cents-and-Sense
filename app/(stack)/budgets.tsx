@@ -619,10 +619,7 @@ export default function BudgetsScreen() {
           >
             Currency
           </Text>
-          <CurrencySelector
-            selectedCode={budgetCurrency}
-            onPress={() => {}}
-          />
+          <CurrencySelector selectedCode={budgetCurrency} onPress={() => {}} />
         </View>
 
         <Button

@@ -505,10 +505,7 @@ export default function GoalsScreen() {
           >
             Currency
           </Text>
-          <CurrencySelector
-            selectedCode={goalCurrency}
-            onPress={() => {}}
-          />
+          <CurrencySelector selectedCode={goalCurrency} onPress={() => {}} />
         </View>
 
         <Text style={styles.deadlineNote}>

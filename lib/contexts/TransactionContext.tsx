@@ -324,7 +324,9 @@ export function TransactionProvider({
           throw error;
         }
         const message =
-          error instanceof Error ? error.message : "Failed to update transaction";
+          error instanceof Error
+            ? error.message
+            : "Failed to update transaction";
         setError(message);
         throw error;
       }
@@ -352,14 +354,11 @@ export function TransactionProvider({
           }
 
           // Delete the transaction
-          await db.runAsync("DELETE FROM transactions WHERE id = ?", [
-            validId,
-          ]);
+          await db.runAsync("DELETE FROM transactions WHERE id = ?", [validId]);
 
           // Revert the transaction's balance impact
           if (tx.accountId) {
-            const balanceChange =
-              tx.type === "income" ? -tx.amount : tx.amount;
+            const balanceChange = tx.type === "income" ? -tx.amount : tx.amount;
             await db.runAsync(
               "UPDATE accounts SET balance = balance + ? WHERE id = ?",
               [balanceChange, tx.accountId],
@@ -387,7 +386,9 @@ export function TransactionProvider({
           throw error;
         }
         const message =
-          error instanceof Error ? error.message : "Failed to delete transaction";
+          error instanceof Error
+            ? error.message
+            : "Failed to delete transaction";
         setError(message);
         throw error;
       }

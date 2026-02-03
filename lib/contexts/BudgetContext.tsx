@@ -145,7 +145,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         };
 
         const db = await getDatabase();
-        
+
         // Verify category exists
         const category = await db.getFirstAsync(
           "SELECT id FROM categories WHERE id = ?",
@@ -271,7 +271,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         } else {
           await db.runAsync(
             "INSERT INTO monthly_budgets (id, amount, currency, month, year, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
-            [Date.now().toString(), validAmount, validCurrency, month, year, Date.now()],
+            [
+              Date.now().toString(),
+              validAmount,
+              validCurrency,
+              month,
+              year,
+              Date.now(),
+            ],
           );
         }
         await loadMonthlyBudget();
@@ -283,7 +290,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           Alert.alert("Invalid Input", error.message);
         }
         const message =
-          error instanceof Error ? error.message : "Failed to set monthly budget";
+          error instanceof Error
+            ? error.message
+            : "Failed to set monthly budget";
         setError(message);
         throw error;
       }
@@ -395,7 +404,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   // Process period transitions and create snapshots
   const processPeriodTransitions = useCallback(async () => {
     const db = await getDatabase();
-    
+
     try {
       // Start transaction for atomic period transitions
       await db.execAsync("BEGIN TRANSACTION");

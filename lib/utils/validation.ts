@@ -35,11 +35,7 @@ export const validateAmount = (
 
   // Check for special values
   if (isNaN(amount)) {
-    throw new ValidationError(
-      `${fieldName} cannot be NaN`,
-      fieldName,
-      amount,
-    );
+    throw new ValidationError(`${fieldName} cannot be NaN`, fieldName, amount);
   }
 
   if (!isFinite(amount)) {
@@ -52,11 +48,7 @@ export const validateAmount = (
 
   // Check zero
   if (!options.allowZero && amount === 0) {
-    throw new ValidationError(
-      `${fieldName} cannot be zero`,
-      fieldName,
-      amount,
-    );
+    throw new ValidationError(`${fieldName} cannot be zero`, fieldName, amount);
   }
 
   // Check negative
@@ -198,9 +190,7 @@ export const validateId = (value: any, fieldName: string): string => {
   return id;
 };
 
-export const validateTransactionType = (
-  value: any,
-): "income" | "expense" => {
+export const validateTransactionType = (value: any): "income" | "expense" => {
   if (value !== "income" && value !== "expense") {
     throw new ValidationError(
       'Type must be either "income" or "expense"',
@@ -214,11 +204,7 @@ export const validateTransactionType = (
 export const validateAccountType = (
   value: any,
 ): "checking" | "savings" | "credit_card" => {
-  if (
-    value !== "checking" &&
-    value !== "savings" &&
-    value !== "credit_card"
-  ) {
+  if (value !== "checking" && value !== "savings" && value !== "credit_card") {
     throw new ValidationError(
       'Account type must be "checking", "savings", or "credit_card"',
       "type",
@@ -228,9 +214,7 @@ export const validateAccountType = (
   return value;
 };
 
-export const validateBudgetPeriod = (
-  value: any,
-): "monthly" | "yearly" => {
+export const validateBudgetPeriod = (value: any): "monthly" | "yearly" => {
   if (value !== "monthly" && value !== "yearly") {
     throw new ValidationError(
       'Budget period must be "monthly" or "yearly"',

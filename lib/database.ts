@@ -121,9 +121,7 @@ async function migrateDatabase(
   fromVersion: number,
   toVersion: number,
 ): Promise<void> {
-  console.log(
-    `Migrating database from version ${fromVersion} to ${toVersion}`,
-  );
+  console.log(`Migrating database from version ${fromVersion} to ${toVersion}`);
 
   try {
     // Begin transaction
@@ -333,7 +331,9 @@ async function applyMigration(
 
     case 10:
       // Add user_profile and budget_period_snapshots tables
-      console.log("Version 10 - Adding user_profile and budget_period_snapshots");
+      console.log(
+        "Version 10 - Adding user_profile and budget_period_snapshots",
+      );
       await database.execAsync(`
         CREATE TABLE IF NOT EXISTS user_profile (
           id TEXT PRIMARY KEY,
@@ -426,7 +426,9 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         "PRAGMA user_version;",
       );
       const fromVersion = dbVersion?.user_version || 0;
-      console.log(`Running database migration from version ${fromVersion} to ${SCHEMA_VERSION}...`);
+      console.log(
+        `Running database migration from version ${fromVersion} to ${SCHEMA_VERSION}...`,
+      );
       await migrateDatabase(database, fromVersion, SCHEMA_VERSION);
     }
 
@@ -571,7 +573,7 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!db) {
     return initializeDatabase();
   }
-  
+
   // Verify the database connection is still valid
   try {
     await db.getFirstAsync("SELECT 1;");

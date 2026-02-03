@@ -130,7 +130,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           : undefined;
 
         const db = await getDatabase();
-        
+
         if (validCurrency) {
           await db.runAsync(
             "UPDATE accounts SET name = ?, balance = ?, currency = ? WHERE id = ?",

@@ -81,11 +81,15 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
           minLength: 1,
           maxLength: 100,
         });
-        const validTargetAmount = validateAmount(targetAmount, "target amount", {
-          allowZero: false,
-          allowNegative: false,
-          max: 999999999,
-        });
+        const validTargetAmount = validateAmount(
+          targetAmount,
+          "target amount",
+          {
+            allowZero: false,
+            allowNegative: false,
+            max: 999999999,
+          },
+        );
         const validDeadline = validateDate(deadline, "deadline");
         const validCurrency = validateString(currency, "currency", {
           minLength: 3,
@@ -106,7 +110,15 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO goals (id, name, targetAmount, currentAmount, deadline, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [id, validName, validTargetAmount, 0, validDeadline, validCurrency, Date.now()],
+          [
+            id,
+            validName,
+            validTargetAmount,
+            0,
+            validDeadline,
+            validCurrency,
+            Date.now(),
+          ],
         );
 
         await loadGoals();
@@ -142,16 +154,24 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
           minLength: 1,
           maxLength: 100,
         });
-        const validTargetAmount = validateAmount(targetAmount, "target amount", {
-          allowZero: false,
-          allowNegative: false,
-          max: 999999999,
-        });
-        const validCurrentAmount = validateAmount(currentAmount, "current amount", {
-          allowZero: true,
-          allowNegative: false,
-          max: 999999999,
-        });
+        const validTargetAmount = validateAmount(
+          targetAmount,
+          "target amount",
+          {
+            allowZero: false,
+            allowNegative: false,
+            max: 999999999,
+          },
+        );
+        const validCurrentAmount = validateAmount(
+          currentAmount,
+          "current amount",
+          {
+            allowZero: true,
+            allowNegative: false,
+            max: 999999999,
+          },
+        );
         const validDeadline = validateDate(deadline, "deadline");
         const validCurrency = currency
           ? validateString(currency, "currency", {
@@ -164,12 +184,25 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
         if (validCurrency) {
           await db.runAsync(
             "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ?, currency = ? WHERE id = ?",
-            [validName, validTargetAmount, validCurrentAmount, validDeadline, validCurrency, validId],
+            [
+              validName,
+              validTargetAmount,
+              validCurrentAmount,
+              validDeadline,
+              validCurrency,
+              validId,
+            ],
           );
         } else {
           await db.runAsync(
             "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ? WHERE id = ?",
-            [validName, validTargetAmount, validCurrentAmount, validDeadline, validId],
+            [
+              validName,
+              validTargetAmount,
+              validCurrentAmount,
+              validDeadline,
+              validId,
+            ],
           );
         }
 
@@ -229,11 +262,15 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       try {
         // Validate inputs
         const validId = validateId(id, "id");
-        const validCurrentAmount = validateAmount(currentAmount, "current amount", {
-          allowZero: true,
-          allowNegative: false,
-          max: 999999999,
-        });
+        const validCurrentAmount = validateAmount(
+          currentAmount,
+          "current amount",
+          {
+            allowZero: true,
+            allowNegative: false,
+            max: 999999999,
+          },
+        );
 
         setError(null);
         const db = await getDatabase();
@@ -250,7 +287,9 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
           Alert.alert("Invalid Input", error.message);
         }
         const message =
-          error instanceof Error ? error.message : "Failed to update goal progress";
+          error instanceof Error
+            ? error.message
+            : "Failed to update goal progress";
         setError(message);
         throw error;
       }

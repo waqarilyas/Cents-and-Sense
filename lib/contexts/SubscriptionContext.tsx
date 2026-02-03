@@ -146,11 +146,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           minLength: 3,
           maxLength: 3,
         });
-        const validReminderDays = validateAmount(reminderDays, "reminder days", {
-          allowZero: true,
-          allowNegative: false,
-          max: 30,
-        });
+        const validReminderDays = validateAmount(
+          reminderDays,
+          "reminder days",
+          {
+            allowZero: true,
+            allowNegative: false,
+            max: 30,
+          },
+        );
 
         const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const now = Date.now();
@@ -358,7 +362,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         try {
           await db.execAsync("ROLLBACK");
         } catch (rollbackErr) {
-          console.error("Error rolling back subscription processing:", rollbackErr);
+          console.error(
+            "Error rolling back subscription processing:",
+            rollbackErr,
+          );
         }
         console.error(
           `Error processing subscription ${subscription.name}:`,
