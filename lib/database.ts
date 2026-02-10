@@ -1,7 +1,7 @@
 import * as SQLite from "expo-sqlite";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 10; // Increment this when schema changes
+const SCHEMA_VERSION = 11; // Increment this when schema changes
 
 export interface UserProfile {
   id: string;
@@ -18,6 +18,7 @@ export interface Account {
   type: "checking" | "savings" | "credit_card";
   balance: number;
   currency: string;
+  isDefault: boolean;
   createdAt: number;
 }
 
@@ -361,11 +362,17 @@ async function applyMigration(
       break;
 
     case 11:
-      // Example future migration: Add tags to transactions
-      // await database.execAsync(`
-      //   ALTER TABLE transactions ADD COLUMN tags TEXT DEFAULT NULL;
-      // `);
-      console.log("Version 11 migration placeholder");
+      // Add isDefault flag to accounts
+      console.log("Version 11 - Adding isDefault to accounts");
+      await database.execAsync(`
+        ALTER TABLE accounts ADD COLUMN isDefault INTEGER NOT NULL DEFAULT 0;
+      `);
+      // Auto-set the first account as default if any exist
+      await database.execAsync(`
+        UPDATE accounts SET isDefault = 1 WHERE id = (
+          SELECT id FROM accounts ORDER BY createdAt ASC LIMIT 1
+        );
+      `);
       break;
 
     default:
@@ -444,6 +451,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         type TEXT NOT NULL CHECK(type IN ('checking', 'savings', 'credit_card')),
         balance REAL NOT NULL DEFAULT 0,
         currency TEXT NOT NULL DEFAULT 'USD',
+        isDefault INTEGER NOT NULL DEFAULT 0,
         createdAt INTEGER NOT NULL
       );
 
@@ -561,6 +569,7 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
       CREATE INDEX IF NOT EXISTS idx_monthly_budgets_month_year ON monthly_budgets(month, year);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_nextDueDate ON subscriptions(nextDueDate);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_isActive ON subscriptions(isActive);
+      CREATE INDEX IF NOT EXISTS idx_accounts_isDefault ON accounts(isDefault);
     `);
 
     db = database;

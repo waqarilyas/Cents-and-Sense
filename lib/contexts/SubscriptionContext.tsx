@@ -81,7 +81,11 @@ function calculateNextDueDate(
       date.setDate(1); // go to 1st to avoid overflow
       date.setMonth(date.getMonth() + 1);
       // Clamp to the last day of the new month
-      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      const lastDay = new Date(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        0,
+      ).getDate();
       date.setDate(Math.min(originalDay, lastDay));
       break;
     }
@@ -92,7 +96,11 @@ function calculateNextDueDate(
       date.setDate(1);
       date.setFullYear(date.getFullYear() + 1);
       date.setMonth(originalMonth);
-      const lastDay = new Date(date.getFullYear(), originalMonth + 1, 0).getDate();
+      const lastDay = new Date(
+        date.getFullYear(),
+        originalMonth + 1,
+        0,
+      ).getDate();
       date.setDate(Math.min(originalDay, lastDay));
       break;
     }
@@ -448,12 +456,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             );
             if (existing) {
               // Already processed, just advance the date
-              currentDueDate = calculateNextDueDate(currentDueDate, subscription.frequency);
+              currentDueDate = calculateNextDueDate(
+                currentDueDate,
+                subscription.frequency,
+              );
               continue;
             }
 
             // Create a temporary subscription object with the right due date
-            const subForProcessing = { ...subscription, nextDueDate: currentDueDate };
+            const subForProcessing = {
+              ...subscription,
+              nextDueDate: currentDueDate,
+            };
             const success = await processSubscription(subForProcessing);
             if (success) {
               processedCount++;
@@ -461,7 +475,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
               break; // stop on error
             }
 
-            currentDueDate = calculateNextDueDate(currentDueDate, subscription.frequency);
+            currentDueDate = calculateNextDueDate(
+              currentDueDate,
+              subscription.frequency,
+            );
           }
 
           // Make sure the DB next due date is up to date

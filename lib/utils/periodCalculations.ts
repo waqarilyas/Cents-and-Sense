@@ -37,7 +37,15 @@ export function getCurrentPeriod(
     // We're still in the previous month's period
     periodStart = new Date(year, month - 1, safeStartDay, 0, 0, 0, 0);
     // End = day before start of current month's period
-    const currentMonthPeriodStart = new Date(year, month, safeStartDay, 0, 0, 0, 0);
+    const currentMonthPeriodStart = new Date(
+      year,
+      month,
+      safeStartDay,
+      0,
+      0,
+      0,
+      0,
+    );
     periodEnd = new Date(currentMonthPeriodStart.getTime() - 1);
   }
 

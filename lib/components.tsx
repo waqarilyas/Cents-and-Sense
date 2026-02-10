@@ -421,7 +421,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             <View style={styles.bottomSheetHandle} />
             <View style={styles.bottomSheetHeader}>
               <Text style={styles.bottomSheetTitle}>{title}</Text>
-              <TouchableOpacity onPress={onClose} style={styles.bottomSheetClose}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.bottomSheetClose}
+              >
                 <Text style={styles.bottomSheetCloseText}>✕</Text>
               </TouchableOpacity>
             </View>

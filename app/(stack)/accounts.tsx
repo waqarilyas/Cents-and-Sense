@@ -54,11 +54,13 @@ export default function AccountsScreen() {
   const { defaultCurrency } = useUser();
   const {
     accounts,
+    defaultAccount,
     loading,
     getTotalBalance,
     addAccount,
     updateAccount,
     deleteAccount,
+    setDefaultAccount,
     refreshAccounts,
   } = useAccounts();
 
@@ -182,6 +184,35 @@ export default function AccountsScreen() {
     );
   };
 
+  const handleAccountLongPress = (account: Account) => {
+    const actions: { text: string; onPress?: () => void; style?: "cancel" | "destructive" | "default" }[] = [];
+
+    if (!account.isDefault) {
+      actions.push({
+        text: "⭐ Set as Default",
+        onPress: async () => {
+          try {
+            await setDefaultAccount(account.id);
+          } catch (error) {
+            Alert.alert("Error", "Failed to set default account");
+          }
+        },
+      });
+    }
+
+    if (accounts.length > 1) {
+      actions.push({
+        text: "Delete",
+        style: "destructive",
+        onPress: () => handleDeleteAccount(account),
+      });
+    }
+
+    actions.push({ text: "Cancel", style: "cancel" });
+
+    Alert.alert(account.name, account.isDefault ? "This is your default account" : "Choose an action", actions);
+  };
+
   const openEditModal = (account: Account) => {
     setEditingAccount(account);
     setAccountName(account.name);
@@ -217,8 +248,9 @@ export default function AccountsScreen() {
                   "\u2022 Track multiple accounts separately\n" +
                   "\u2022 Each account can have its own currency\n" +
                   "\u2022 View balances across all accounts\n" +
+                  "\u2022 Set a default account for quick transactions\n" +
                   "\u2022 Cannot delete your last account\n\n" +
-                  "Tap an account to edit, long-press to delete.",
+                  "Tap an account to edit, long-press for more options.",
                 [{ text: "Got it!" }],
               )
             }
@@ -284,7 +316,7 @@ export default function AccountsScreen() {
               <TouchableOpacity
                 key={account.id}
                 onPress={() => openEditModal(account)}
-                onLongPress={() => handleDeleteAccount(account)}
+                onLongPress={() => handleAccountLongPress(account)}
                 delayLongPress={500}
               >
                 <Card style={styles.accountCard}>
@@ -302,7 +334,15 @@ export default function AccountsScreen() {
                       />
                     </View>
                     <View style={styles.accountInfo}>
-                      <Text style={styles.accountName}>{account.name}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={styles.accountName}>{account.name}</Text>
+                        {account.isDefault && (
+                          <View style={[styles.defaultBadge, { backgroundColor: colors.primaryLight }]}>
+                            <Ionicons name="star" size={10} color={colors.primary} />
+                            <Text style={[styles.defaultBadgeText, { color: colors.primary }]}>Default</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.accountType}>
                         {ACCOUNT_LABELS[account.type]}
                       </Text>
@@ -359,7 +399,7 @@ export default function AccountsScreen() {
 
         <View style={styles.hintContainer}>
           <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.hint}>Tap to edit, long press to delete.</Text>
+          <Text style={styles.hint}>Tap to edit, long press for options.</Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -701,6 +741,18 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: "600",
       color: colors.textPrimary,
+    },
+    defaultBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 8,
+    },
+    defaultBadgeText: {
+      fontSize: 10,
+      fontWeight: "700",
     },
     accountType: {
       fontSize: 13,

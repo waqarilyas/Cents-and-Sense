@@ -54,7 +54,7 @@ export default function TransactionsScreen() {
     getMonthlyStats,
   } = useTransactions();
   const { categories, expenseCategories, incomeCategories } = useCategories();
-  const { accounts, refreshAccounts } = useAccounts();
+  const { accounts, defaultAccount, refreshAccounts } = useAccounts();
   const { defaultCurrency } = useUser();
 
   const [activeTab, setActiveTab] = useState<TransactionType>("expense");
@@ -85,7 +85,7 @@ export default function TransactionsScreen() {
     setAmount("");
     setDescription("");
     setCategoryId("");
-    setAccountId("");
+    setAccountId(defaultAccount?.id || (accounts.length > 0 ? accounts[0].id : ""));
     setTransactionType("expense");
     setEditingTransaction(null);
   };
@@ -304,7 +304,10 @@ export default function TransactionsScreen() {
           </View>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => setShowAddModal(true)}
+            onPress={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
           >
             <Text style={styles.addButtonText}>+ Add</Text>
           </TouchableOpacity>
@@ -526,6 +529,7 @@ export default function TransactionsScreen() {
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={() => {
+                  resetForm();
                   setTransactionType(activeTab);
                   setShowAddModal(true);
                 }}

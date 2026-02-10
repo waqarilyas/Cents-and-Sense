@@ -18,6 +18,7 @@ import {
 
 interface AccountContextType {
   accounts: Account[];
+  defaultAccount: Account | null;
   loading: boolean;
   error: string | null;
   addAccount: (
@@ -32,6 +33,7 @@ interface AccountContextType {
     currency?: string,
   ) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
+  setDefaultAccount: (id: string) => Promise<void>;
   getAccount: (id: string) => Account | undefined;
   getTotalBalance: () => number;
   refreshAccounts: () => Promise<void>;
@@ -44,15 +46,29 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Derive default account from accounts list
+  const defaultAccount = React.useMemo(() => {
+    const explicit = accounts.find((a) => a.isDefault);
+    if (explicit) return explicit;
+    // Fallback: if only one account, treat it as default
+    if (accounts.length === 1) return accounts[0];
+    return null;
+  }, [accounts]);
+
   const loadAccounts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const db = await getDatabase();
-      const result = await db.getAllAsync<Account>(
+      const result = await db.getAllAsync<any>(
         "SELECT * FROM accounts ORDER BY createdAt DESC",
       );
-      setAccounts(result || []);
+      // Map isDefault from integer to boolean
+      const mapped: Account[] = (result || []).map((r: any) => ({
+        ...r,
+        isDefault: !!r.isDefault,
+      }));
+      setAccounts(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load accounts");
       console.error("[v0] Error loading accounts:", err);
@@ -84,9 +100,15 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         const id = `account_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const db = await getDatabase();
 
+        // Auto-set as default if this is the first account or no default exists
+        const existingDefault = await db.getFirstAsync<any>(
+          "SELECT id FROM accounts WHERE isDefault = 1 LIMIT 1",
+        );
+        const shouldBeDefault = !existingDefault ? 1 : 0;
+
         await db.runAsync(
-          "INSERT INTO accounts (id, name, type, balance, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
-          [id, validName, validType, 0, validCurrency, Date.now()],
+          "INSERT INTO accounts (id, name, type, balance, currency, isDefault, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [id, validName, validType, 0, validCurrency, shouldBeDefault, Date.now()],
         );
 
         await loadAccounts();
@@ -170,6 +192,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
+      const deletedAccount = accounts.find((a) => a.id === id);
+
       // Optimistic update - remove from UI immediately
       const previousAccounts = [...accounts];
       setAccounts((prev) => prev.filter((a) => a.id !== id));
@@ -181,6 +205,19 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [id]);
         // Then delete the account
         await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
+
+        // If the deleted account was the default, reassign to the first remaining account
+        if (deletedAccount?.isDefault) {
+          const remaining = accounts.filter((a) => a.id !== id);
+          if (remaining.length > 0) {
+            await db.runAsync(
+              "UPDATE accounts SET isDefault = 1 WHERE id = ?",
+              [remaining[0].id],
+            );
+          }
+          await loadAccounts(); // Reload to reflect new default
+        }
+
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
@@ -189,6 +226,38 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         setAccounts(previousAccounts);
         const message =
           err instanceof Error ? err.message : "Failed to delete account";
+        setError(message);
+        throw err;
+      }
+    },
+    [accounts, loadAccounts],
+  );
+
+  const setDefaultAccount = useCallback(
+    async (id: string) => {
+      const previousAccounts = [...accounts];
+      // Optimistic update
+      setAccounts((prev) =>
+        prev.map((a) => ({
+          ...a,
+          isDefault: a.id === id,
+        })),
+      );
+
+      try {
+        const db = await getDatabase();
+        // Clear all defaults, then set the new one
+        await db.runAsync("UPDATE accounts SET isDefault = 0");
+        await db.runAsync("UPDATE accounts SET isDefault = 1 WHERE id = ?", [
+          id,
+        ]);
+      } catch (err) {
+        // Rollback on error
+        setAccounts(previousAccounts);
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to set default account";
         setError(message);
         throw err;
       }
@@ -211,11 +280,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     <AccountContext.Provider
       value={{
         accounts,
+        defaultAccount,
         loading,
         error,
         addAccount,
         updateAccount,
         deleteAccount,
+        setDefaultAccount,
         getAccount,
         getTotalBalance,
         refreshAccounts: loadAccounts,

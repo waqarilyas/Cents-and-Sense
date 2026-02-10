@@ -143,7 +143,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { addTransaction, refreshTransactions } = useTransactions();
   const { expenseCategories, incomeCategories } = useCategories();
-  const { accounts, refreshAccounts } = useAccounts();
+  const { accounts, defaultAccount, refreshAccounts } = useAccounts();
   const { addSubscription, refreshSubscriptions } = useSubscriptions();
   const { defaultCurrency } = useUser();
 
@@ -234,12 +234,14 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
       setSubscriptionName("");
       setSubscriptionFrequency("monthly");
       setSubscriptionCategoryId(null);
-      // Auto-select the first account if available
-      setSelectedAccountId(accounts.length > 0 ? accounts[0].id : null);
+      // Auto-select the default account, fall back to first account
+      setSelectedAccountId(
+        defaultAccount?.id || (accounts.length > 0 ? accounts[0].id : null),
+      );
       slideAnim.setValue(0);
       successAnim.setValue(0);
     }
-  }, [visible, accounts]);
+  }, [visible, accounts, defaultAccount]);
 
   const handleClose = useCallback(() => {
     setAmount("0");
@@ -366,7 +368,6 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
       const subCurrency = selectedAccount?.currency || accountCurrency;
 
       await addSubscription(
@@ -410,6 +411,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     subscriptionName,
     subscriptionCategoryId,
     subscriptionFrequency,
+    selectedAccountId,
+    accounts,
+    accountCurrency,
     addSubscription,
     refreshSubscriptions,
     handleClose,
@@ -716,29 +720,44 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   { paddingBottom: insets.bottom + spacing.lg },
                 ]}
               >
-                <TouchableOpacity
-                  style={[
-                    styles.continueButton,
-                    {
-                      backgroundColor:
-                        transactionType === "expense"
-                          ? colors.expense
-                          : colors.income,
-                    },
-                    (parseFloat(amount) <= 0 || !selectedAccountId) &&
-                      styles.continueButtonDisabled,
-                  ]}
-                  onPress={handleContinue}
-                  disabled={parseFloat(amount) <= 0 || !selectedAccountId}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.continueButtonText}>
-                    {!selectedAccountId ? "Select Account First" : "Next"}
-                  </Text>
-                  {selectedAccountId && (
+                {accounts.length === 0 ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.continueButton,
+                      { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() => {
+                      handleClose();
+                      router.push("/(stack)/accounts");
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="wallet-outline" size={20} color="#FFF" />
+                    <Text style={styles.continueButtonText}>
+                      Create Account First
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[
+                      styles.continueButton,
+                      {
+                        backgroundColor:
+                          transactionType === "expense"
+                            ? colors.expense
+                            : colors.income,
+                      },
+                      parseFloat(amount) <= 0 &&
+                        styles.continueButtonDisabled,
+                    ]}
+                    onPress={handleContinue}
+                    disabled={parseFloat(amount) <= 0}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.continueButtonText}>Next</Text>
                     <Ionicons name="arrow-forward" size={20} color="#FFF" />
-                  )}
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -821,6 +840,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   >
                     {accounts.map((account) => {
                       const isSelected = selectedAccountId === account.id;
+                      const isDefault = defaultAccount?.id === account.id;
                       const iconName =
                         account.type === "checking"
                           ? "business-outline"
@@ -855,6 +875,19 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           >
                             {account.name}
                           </Text>
+                          {isDefault && (
+                            <Text
+                              style={{
+                                fontSize: 9,
+                                color: isSelected
+                                  ? colors.primary
+                                  : colors.textMuted,
+                                fontWeight: "600",
+                              }}
+                            >
+                              ★
+                            </Text>
+                          )}
                           <Text
                             style={[
                               styles.accountCurrencyText,
@@ -1079,11 +1112,15 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                           ? colors.expense
                           : colors.income,
                     },
-                    (!selectedCategoryId || isSubmitting) &&
+                    (!selectedCategoryId ||
+                      !selectedAccountId ||
+                      isSubmitting) &&
                       styles.saveButtonDisabled,
                   ]}
                   onPress={handleSave}
-                  disabled={!selectedCategoryId || isSubmitting}
+                  disabled={
+                    !selectedCategoryId || !selectedAccountId || isSubmitting
+                  }
                   activeOpacity={0.8}
                 >
                   <Ionicons name="checkmark" size={22} color="#FFF" />
@@ -1113,6 +1150,17 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 <Text style={styles.subscriptionSubtitle}>
                   per {subscriptionFrequency}
                 </Text>
+                {selectedAccount && (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
+                    from {selectedAccount.name}
+                  </Text>
+                )}
               </View>
 
               <ScrollView

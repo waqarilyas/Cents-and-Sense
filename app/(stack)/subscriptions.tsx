@@ -480,144 +480,145 @@ export default function SubscriptionsScreen() {
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="close" size={28} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>
-              {editingId ? "Edit Subscription" : "Add Subscription"}
-            </Text>
-            <TouchableOpacity onPress={handleSave}>
-              <Text style={styles.saveButton}>Save</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.modalContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Name</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g., Netflix, Spotify, Gym"
-                placeholderTextColor={colors.textMuted}
-                value={name}
-                onChangeText={setName}
-              />
+          <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={28} color={colors.textPrimary} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>
+                {editingId ? "Edit Subscription" : "Add Subscription"}
+              </Text>
+              <TouchableOpacity onPress={handleSave}>
+                <Text style={styles.saveButton}>Save</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Amount Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Amount</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="0.00"
-                placeholderTextColor={colors.textMuted}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-              />
-            </View>
-
-            {/* Frequency Selection */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Frequency</Text>
-              <View style={styles.frequencyRow}>
-                {(["weekly", "monthly", "yearly"] as const).map((freq) => (
-                  <TouchableOpacity
-                    key={freq}
-                    style={[
-                      styles.frequencyButton,
-                      frequency === freq && styles.frequencyButtonActive,
-                    ]}
-                    onPress={() => {
-                      hapticFeedback();
-                      setFrequency(freq);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.frequencyButtonText,
-                        frequency === freq && styles.frequencyButtonTextActive,
-                      ]}
-                    >
-                      {FREQUENCY_LABELS[freq]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            <ScrollView
+              style={styles.modalContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Name Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g., Netflix, Spotify, Gym"
+                  placeholderTextColor={colors.textMuted}
+                  value={name}
+                  onChangeText={setName}
+                />
               </View>
-            </View>
 
-            {/* Category Selection */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Category</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoryScroll}
-              >
-                {expenseCategories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryChip,
-                      categoryId === cat.id && {
-                        backgroundColor: cat.color + "30",
-                        borderColor: cat.color,
-                      },
-                    ]}
-                    onPress={() => {
-                      hapticFeedback();
-                      setCategoryId(cat.id);
-                    }}
-                  >
-                    <View
+              {/* Amount Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Amount</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.textMuted}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+
+              {/* Frequency Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Frequency</Text>
+                <View style={styles.frequencyRow}>
+                  {(["weekly", "monthly", "yearly"] as const).map((freq) => (
+                    <TouchableOpacity
+                      key={freq}
                       style={[
-                        styles.categoryDot,
-                        { backgroundColor: cat.color },
+                        styles.frequencyButton,
+                        frequency === freq && styles.frequencyButtonActive,
                       ]}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        categoryId === cat.id && { color: cat.color },
-                      ]}
+                      onPress={() => {
+                        hapticFeedback();
+                        setFrequency(freq);
+                      }}
                     >
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                      <Text
+                        style={[
+                          styles.frequencyButtonText,
+                          frequency === freq &&
+                            styles.frequencyButtonTextActive,
+                        ]}
+                      >
+                        {FREQUENCY_LABELS[freq]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
 
-            {/* Currency Selector */}
-            <View style={styles.inputGroup}>
-              <CurrencyDropdown
-                selectedCode={subCurrency}
-                onSelect={setSubCurrency}
-                label="Currency"
-              />
-            </View>
+              {/* Category Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Category</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.categoryScroll}
+                >
+                  {expenseCategories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryChip,
+                        categoryId === cat.id && {
+                          backgroundColor: cat.color + "30",
+                          borderColor: cat.color,
+                        },
+                      ]}
+                      onPress={() => {
+                        hapticFeedback();
+                        setCategoryId(cat.id);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.categoryDot,
+                          { backgroundColor: cat.color },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          categoryId === cat.id && { color: cat.color },
+                        ]}
+                      >
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
-            {/* Notes Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Notes (optional)</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                placeholder="Any additional notes..."
-                placeholderTextColor={colors.textMuted}
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </ScrollView>
-        </View>
+              {/* Currency Selector */}
+              <View style={styles.inputGroup}>
+                <CurrencyDropdown
+                  selectedCode={subCurrency}
+                  onSelect={setSubCurrency}
+                  label="Currency"
+                />
+              </View>
+
+              {/* Notes Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Notes (optional)</Text>
+                <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  placeholder="Any additional notes..."
+                  placeholderTextColor={colors.textMuted}
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>

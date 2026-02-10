@@ -67,13 +67,15 @@ export const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({
   // All currencies grouped by region (excluding popular, which are shown separately)
   const groupedCurrencies = useMemo(() => {
     const popularSet = new Set(POPULAR_CURRENCY_CODES);
-    return getAllRegions().map((region) => ({
-      region,
-      label: REGION_NAMES[region],
-      currencies: getCurrenciesByRegion(region).filter(
-        (c) => !popularSet.has(c.code),
-      ),
-    })).filter((g) => g.currencies.length > 0);
+    return getAllRegions()
+      .map((region) => ({
+        region,
+        label: REGION_NAMES[region],
+        currencies: getCurrenciesByRegion(region).filter(
+          (c) => !popularSet.has(c.code),
+        ),
+      }))
+      .filter((g) => g.currencies.length > 0);
   }, []);
 
   const haptic = () => {
