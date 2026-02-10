@@ -81,7 +81,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           maxLength: 3,
         });
 
-        const id = `account_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const id = `account_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const db = await getDatabase();
 
         await db.runAsync(
@@ -177,6 +177,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const db = await getDatabase();
+        // Delete associated transactions first
+        await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [id]);
+        // Then delete the account
         await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
         widgetService
           .updateAllWidgets()

@@ -757,7 +757,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                     },
                   ]}
                 >
-                  {transactionType === "expense" ? "-" : "+"}${amount}
+                  {transactionType === "expense" ? "-" : "+"}{getCurrencySymbol(accountCurrency)}{amount}
                 </Text>
               </View>
 
@@ -1104,7 +1104,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       { color: colors.expense },
                     ]}
                   >
-                    -${amount}
+                    -{getCurrencySymbol(accountCurrency)}{amount}
                   </Text>
                 </View>
                 <Text style={styles.subscriptionSubtitle}>
@@ -1233,7 +1233,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                   <View style={styles.estimateContent}>
                     <Text style={styles.estimateLabel}>Yearly estimate</Text>
                     <Text style={styles.estimateValue}>
-                      $
+                      {getCurrencySymbol(accountCurrency)}
                       {(
                         parseFloat(amount) *
                         (subscriptionFrequency === "weekly"

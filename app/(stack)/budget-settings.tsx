@@ -231,7 +231,7 @@ export default function BudgetSettingsScreen() {
                 size={20}
                 color={colors.primary}
               />
-              <Text style={styles.exampleTitle}>How It Works</Text>
+              <Text style={styles.exampleTitle}>How It Works (Example)</Text>
             </View>
             <Text style={styles.exampleText}>
               <Text style={styles.bold}>With Carryover Enabled:</Text>

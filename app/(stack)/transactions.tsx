@@ -19,6 +19,7 @@ import {
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
+import { useUser } from "../../lib/contexts/UserContext";
 import {
   spacing,
   borderRadius,
@@ -54,6 +55,7 @@ export default function TransactionsScreen() {
   } = useTransactions();
   const { categories, expenseCategories, incomeCategories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
+  const { defaultCurrency } = useUser();
 
   const [activeTab, setActiveTab] = useState<TransactionType>("expense");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -216,13 +218,10 @@ export default function TransactionsScreen() {
   };
 
   const getAccountOptions = () => {
-    return [
-      { label: "No account (Cash)", value: "" },
-      ...accounts.map((a) => ({
-        label: `${a.name} (${formatCurrency(a.balance)})`,
-        value: a.id,
-      })),
-    ];
+    return accounts.map((a) => ({
+      label: `${a.name} (${formatCurrency(a.balance, a.currency)})`,
+      value: a.id,
+    }));
   };
 
   const renderRightActions = (
@@ -285,7 +284,7 @@ export default function TransactionsScreen() {
               onPress={() =>
                 Alert.alert(
                   "About Transactions",
-                  "Track all your income and expenses.\\n\\n" +
+                  "Track all your income and expenses.\n\n" +
                     "\u2022 Income: Money received\n" +
                     "\u2022 Expense: Money spent\n" +
                     "\u2022 Assign to categories for organization\n" +
@@ -328,7 +327,7 @@ export default function TransactionsScreen() {
                 { color: totalBalance >= 0 ? colors.income : colors.expense },
               ]}
             >
-              {formatCurrency(totalBalance)}
+              {formatCurrency(totalBalance, defaultCurrency)}
             </Text>
           </Card>
           <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
@@ -360,6 +359,7 @@ export default function TransactionsScreen() {
                 activeTab === "income"
                   ? monthlyStats.income
                   : monthlyStats.expense,
+                defaultCurrency,
               )}
             </Text>
           </Card>

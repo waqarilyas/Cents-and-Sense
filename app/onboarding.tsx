@@ -19,8 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../lib/contexts/UserContext";
 import { useAccounts } from "../lib/contexts/AccountContext";
 import { useCurrency } from "../lib/contexts/CurrencyContext";
-import { CurrencyPicker } from "../lib/components/CurrencyPicker";
-import { Currency } from "../lib/currencies";
+import { CurrencyDropdown } from "../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -44,7 +43,6 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<OnboardingStep>("welcome");
   const [userName, setUserName] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("USD");
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hapticFeedback = () => {
@@ -122,11 +120,6 @@ export default function OnboardingScreen() {
         setStep("name");
         break;
     }
-  };
-
-  const handleCurrencySelect = (currency: Currency) => {
-    setSelectedCurrency(currency.code);
-    setShowCurrencyPicker(false);
   };
 
   const renderWelcome = () => (
@@ -227,31 +220,11 @@ export default function OnboardingScreen() {
         This will be your default currency for new accounts and transactions
       </Text>
 
-      <TouchableOpacity
-        style={styles.currencyButton}
-        onPress={() => setShowCurrencyPicker(true)}
-      >
-        <View style={styles.currencyInfo}>
-          <Text style={styles.currencyFlag}>
-            {(() => {
-              const curr =
-                require("../lib/currencies").getCurrency(selectedCurrency);
-              return curr?.flag || "🌍";
-            })()}
-          </Text>
-          <View>
-            <Text style={styles.currencyCode}>{selectedCurrency}</Text>
-            <Text style={styles.currencyName}>
-              {(() => {
-                const curr =
-                  require("../lib/currencies").getCurrency(selectedCurrency);
-                return curr?.name || "Unknown Currency";
-              })()}
-            </Text>
-          </View>
-        </View>
-        <Ionicons name="chevron-forward" size={24} color={colors.textPrimary} />
-      </TouchableOpacity>
+      <CurrencyDropdown
+        selectedCode={selectedCurrency}
+        onSelect={setSelectedCurrency}
+        label="Select Currency"
+      />
 
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.secondaryButton} onPress={handleBack}>
@@ -272,13 +245,6 @@ export default function OnboardingScreen() {
           )}
         </TouchableOpacity>
       </View>
-
-      <CurrencyPicker
-        visible={showCurrencyPicker}
-        selectedCode={selectedCurrency}
-        onSelect={handleCurrencySelect}
-        onClose={() => setShowCurrencyPicker(false)}
-      />
     </View>
   );
 

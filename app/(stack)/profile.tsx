@@ -32,7 +32,7 @@ import {
   useSettings,
   SubscriptionProcessingMode,
 } from "../../lib/contexts/SettingsContext";
-import { CurrencyPicker } from "../../lib/components/CurrencyPicker";
+import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import { getCurrency } from "../../lib/currencies";
 import { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
@@ -70,7 +70,7 @@ export default function ProfileScreen() {
   const { userName } = useUser();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
   // Get current currency info for display
   const currentCurrency = getCurrency(defaultCurrencyCode);
@@ -127,7 +127,7 @@ export default function ProfileScreen() {
         {
           icon: "business-outline",
           label: "Accounts",
-          subtitle: `${accounts.length} accounts • Total: $${totalBalance.toFixed(0)}`,
+          subtitle: `${accounts.length} accounts • Total: ${formatCurrency(totalBalance, defaultCurrencyCode)}`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/(stack)/accounts");
@@ -170,7 +170,7 @@ export default function ProfileScreen() {
         {
           icon: "repeat-outline",
           label: "Subscriptions",
-          subtitle: `${activeSubscriptions.length} active • ${formatCurrency(monthlySubscriptionCost)}/mo`,
+          subtitle: `${activeSubscriptions.length} active • ${formatCurrency(monthlySubscriptionCost, defaultCurrencyCode)}/mo`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/(stack)/subscriptions");
@@ -243,7 +243,7 @@ export default function ProfileScreen() {
             : "USD ($)",
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowCurrencyPicker(true);
+            setShowCurrencyDropdown((prev) => !prev);
           },
           showArrow: true,
         },
@@ -288,7 +288,8 @@ export default function ProfileScreen() {
           icon: "information-circle-outline",
           label: "App Version",
           subtitle: "1.0.0",
-          onPress: () => {},
+          onPress: () =>
+            Alert.alert("Budget Tracker", "Version 1.0.0"),
         },
         {
           icon: "shield-checkmark-outline",
@@ -510,18 +511,33 @@ export default function ProfileScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Currency Picker Modal */}
-      <CurrencyPicker
-        visible={showCurrencyPicker}
-        onClose={() => setShowCurrencyPicker(false)}
-        onSelect={(currency) => {
-          setDefaultCurrency(currency.code);
-          setShowCurrencyPicker(false);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }}
-        selectedCode={defaultCurrencyCode}
-        title="Select Default Currency"
-      />
+      {/* Inline Currency Dropdown */}
+      {showCurrencyDropdown && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.background,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.xl,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+        >
+          <CurrencyDropdown
+            selectedCode={defaultCurrencyCode}
+            onSelect={(code) => {
+              setDefaultCurrency(code);
+              setShowCurrencyDropdown(false);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }}
+            label="Select Default Currency"
+          />
+        </View>
+      )}
     </View>
   );
 }

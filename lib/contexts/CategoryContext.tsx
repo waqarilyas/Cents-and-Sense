@@ -76,6 +76,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasFixedIds = React.useRef(false);
 
   // Separate function to fix invalid category IDs - runs independently
   const fixInvalidCategoryIds = useCallback(async () => {
@@ -91,7 +92,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
           console.log(`Fixing invalid category ID: ${cat.id}`);
 
           // Generate new valid ID
-          const newId = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          const newId = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
           // Update the category with new ID in a transaction
           await db.execAsync("BEGIN TRANSACTION");
@@ -143,7 +144,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       // Seed default categories if they don't exist
       for (const cat of DEFAULT_CATEGORIES) {
         // Replace all non-alphanumeric characters (except hyphens) with underscores
-        const id = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        const id = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         await db.runAsync(
           "INSERT OR IGNORE INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
           [id, cat.name, cat.type, cat.color, Date.now()],
@@ -160,8 +161,11 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const db = await getDatabase();
 
-      // ALWAYS fix invalid IDs first (runs on every app load)
-      await fixInvalidCategoryIds();
+      // Fix invalid IDs only on first load
+      if (!hasFixedIds.current) {
+        hasFixedIds.current = true;
+        await fixInvalidCategoryIds();
+      }
 
       let result = await db.getAllAsync<Category>(
         "SELECT * FROM categories ORDER BY name ASC",
@@ -203,7 +207,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
           maxLength: 9,
         });
 
-        const id = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const id = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const db = await getDatabase();
         await db.runAsync(
           "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",

@@ -59,6 +59,7 @@ interface BudgetContextType {
   getBudgetsByCurrency: (currency: string) => Budget[];
   getAllBudgets: () => Budget[];
   processPeriodTransitions: () => Promise<void>;
+  refreshBudgets: () => Promise<void>;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -222,7 +223,6 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           );
         }
 
-        await loadBudgets();
         await loadBudgets();
         widgetService
           .updateAllWidgets()
@@ -452,7 +452,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           await db.runAsync(
             "INSERT INTO budget_period_snapshots (id, budgetId, periodStart, periodEnd, budgetedAmount, carryoverIn, totalAvailable, spent, carryoverOut, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-              `snap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              `snap_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
               budget.id,
               previousPeriod.start,
               previousPeriod.end,
@@ -518,6 +518,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         getBudgetsByCurrency,
         getAllBudgets,
         processPeriodTransitions,
+        refreshBudgets: loadBudgets,
       }}
     >
       {children}

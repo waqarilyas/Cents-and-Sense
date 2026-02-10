@@ -80,6 +80,7 @@ export default function AnalysisScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { defaultCurrency } = useCurrency();
   const currencySymbol = defaultCurrency?.symbol || "$";
+  const currencyCode = defaultCurrency?.code || "USD";
   const {
     transactions,
     loading: txLoading,
@@ -513,7 +514,7 @@ export default function AnalysisScreen() {
 
   const transactionSizeBuckets = useMemo(() => {
     const buckets = [0, 0, 0, 0, 0];
-    const labels = ["<$10", "$10–$50", "$50–$200", "$200–$500", "$500+"];
+    const labels = [`<${currencySymbol}10`, `${currencySymbol}10–50`, `${currencySymbol}50–200`, `${currencySymbol}200–500`, `${currencySymbol}500+`];
     filteredTransactions
       .filter((t) => t.type === "expense")
       .forEach((t) => {
@@ -789,7 +790,7 @@ export default function AnalysisScreen() {
       result.push({
         type: "warning",
         title: "Overspending Alert",
-        message: `You've spent ${formatCurrency(Math.abs(stats.savings))} more than you earned this period.`,
+        message: `You've spent ${formatCurrency(Math.abs(stats.savings), currencyCode)} more than you earned this period.`,
         icon: "warning",
       });
     }
@@ -841,7 +842,7 @@ export default function AnalysisScreen() {
       result.push({
         type: "tip",
         title: "Subscription Costs",
-        message: `You have ${formatCurrency(monthlySubscriptions)} in monthly subscriptions. Review them periodically.`,
+        message: `You have ${formatCurrency(monthlySubscriptions, currencyCode)} in monthly subscriptions. Review them periodically.`,
         icon: "repeat",
       });
     }
@@ -904,7 +905,7 @@ export default function AnalysisScreen() {
       result.push({
         type: "info",
         title: "Top Merchant",
-        message: `Your highest spending merchant is ${topMerchant.name} at ${formatCurrency(topMerchant.amount)} this period.`,
+        message: `Your highest spending merchant is ${topMerchant.name} at ${formatCurrency(topMerchant.amount, currencyCode)} this period.`,
         icon: "storefront",
       });
     }
@@ -1539,7 +1540,7 @@ export default function AnalysisScreen() {
                 </View>
                 <Text style={styles.overviewLabel}>Income</Text>
                 <Text style={[styles.overviewValue, { color: colors.income }]}>
-                  {formatCurrency(stats.income)}
+                  {formatCurrency(stats.income, currencyCode)}
                 </Text>
                 {stats.incomeChange !== 0 && (
                   <View style={styles.changeIndicator}>
@@ -1570,7 +1571,7 @@ export default function AnalysisScreen() {
                 </View>
                 <Text style={styles.overviewLabel}>Expenses</Text>
                 <Text style={[styles.overviewValue, { color: colors.expense }]}>
-                  {formatCurrency(stats.expenses)}
+                  {formatCurrency(stats.expenses, currencyCode)}
                 </Text>
                 {stats.expenseChange !== 0 && (
                   <View style={styles.changeIndicator}>
@@ -1611,7 +1612,7 @@ export default function AnalysisScreen() {
                     ]}
                   >
                     {stats.savings >= 0 ? "+" : ""}
-                    {formatCurrency(stats.savings)}
+                    {formatCurrency(stats.savings, currencyCode)}
                   </Text>
                 </View>
                 <View
@@ -1674,7 +1675,7 @@ export default function AnalysisScreen() {
                 </View>
                 <View style={styles.quickStatItem}>
                   <Text style={styles.quickStatValue}>
-                    {formatCurrency(spendingPatterns.dailyAvg)}
+                    {formatCurrency(spendingPatterns.dailyAvg, currencyCode)}
                   </Text>
                   <Text style={styles.quickStatLabel}>Daily Avg</Text>
                 </View>
@@ -1776,7 +1777,7 @@ export default function AnalysisScreen() {
                       </View>
                       <View style={styles.breakdownRight}>
                         <Text style={styles.breakdownAmount}>
-                          {formatCurrency(cat.amount)}
+                          {formatCurrency(cat.amount, currencyCode)}
                         </Text>
                         <Text style={styles.breakdownPercentage}>
                           {cat.percentage.toFixed(1)}%
@@ -1803,8 +1804,8 @@ export default function AnalysisScreen() {
                 <>
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
-                      {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
-                      {formatCurrency(budgetsSummary.budgetForPeriod)}
+                      {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)} spent of{" "}
+                      {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
                     </Text>
                     <Text style={styles.budgetUsagePercent}>
                       {budgetsSummary.utilization.toFixed(0)}%
@@ -1840,8 +1841,8 @@ export default function AnalysisScreen() {
                         </Text>
                       </View>
                       <Text style={styles.budgetUsageValue}>
-                        {formatCurrency(budget.spent)} /{" "}
-                        {formatCurrency(budget.limit)}
+                        {formatCurrency(budget.spent, currencyCode)} /{" "}
+                        {formatCurrency(budget.limit, currencyCode)}
                       </Text>
                     </View>
                   ))}
@@ -1859,11 +1860,11 @@ export default function AnalysisScreen() {
                     <View>
                       <Text style={styles.listTitle}>{merchant.name}</Text>
                       <Text style={styles.listSubtitle}>
-                        {merchant.count} tx • Avg {formatCurrency(merchant.avg)}
+                        {merchant.count} tx • Avg {formatCurrency(merchant.avg, currencyCode)}
                       </Text>
                     </View>
                     <Text style={styles.listValue}>
-                      {formatCurrency(merchant.amount)}
+                      {formatCurrency(merchant.amount, currencyCode)}
                     </Text>
                   </View>
                 ))
@@ -1884,7 +1885,7 @@ export default function AnalysisScreen() {
                       </Text>
                     </View>
                     <Text style={styles.listValue}>
-                      {formatCurrency(sub.amount)}
+                      {formatCurrency(sub.amount, currencyCode)}
                     </Text>
                   </View>
                 ))
@@ -1905,7 +1906,7 @@ export default function AnalysisScreen() {
                 </View>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(accountsSummary.totalBalance)}
+                    {formatCurrency(accountsSummary.totalBalance, currencyCode)}
                   </Text>
                   <Text style={styles.summaryLabel}>Total Balance</Text>
                 </View>
@@ -1933,13 +1934,13 @@ export default function AnalysisScreen() {
                     <View>
                       <Text style={styles.goalSummaryLabel}>Saved</Text>
                       <Text style={styles.goalSummaryValue}>
-                        {formatCurrency(goalsSummary.totalSaved)}
+                        {formatCurrency(goalsSummary.totalSaved, currencyCode)}
                       </Text>
                     </View>
                     <View style={styles.goalSummaryRight}>
                       <Text style={styles.goalSummaryLabel}>Target</Text>
                       <Text style={styles.goalSummaryValue}>
-                        {formatCurrency(goalsSummary.totalTarget)}
+                        {formatCurrency(goalsSummary.totalTarget, currencyCode)}
                       </Text>
                     </View>
                   </View>
@@ -1969,7 +1970,7 @@ export default function AnalysisScreen() {
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(budgetsSummary.budgetForPeriod)}
+                    {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
                   </Text>
                   <Text style={styles.summaryLabel}>
                     Budgeted ({getPeriodLabel()})
@@ -1977,13 +1978,13 @@ export default function AnalysisScreen() {
                 </View>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(budgetsSummary.spentInPeriod)}
+                    {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)}
                   </Text>
                   <Text style={styles.summaryLabel}>Spent</Text>
                 </View>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(subscriptionsSummary.periodTotal)}
+                    {formatCurrency(subscriptionsSummary.periodTotal, currencyCode)}
                   </Text>
                   <Text style={styles.summaryLabel}>
                     Subs ({getPeriodLabel()})
@@ -2037,13 +2038,13 @@ export default function AnalysisScreen() {
                           <Text style={styles.breakdownName}>{cat.name}</Text>
                           <Text style={styles.breakdownCount}>
                             {cat.count} transactions • Avg:{" "}
-                            {formatCurrency(cat.avgTransaction)}
+                            {formatCurrency(cat.avgTransaction, currencyCode)}
                           </Text>
                         </View>
                       </View>
                       <View style={styles.breakdownRight}>
                         <Text style={styles.breakdownAmount}>
-                          {formatCurrency(cat.amount)}
+                          {formatCurrency(cat.amount, currencyCode)}
                         </Text>
                         <View style={styles.breakdownMeta}>
                           <Text style={styles.breakdownPercentage}>
@@ -2111,8 +2112,8 @@ export default function AnalysisScreen() {
                 <>
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
-                      {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
-                      {formatCurrency(budgetsSummary.budgetForPeriod)}
+                      {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)} spent of{" "}
+                      {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
                     </Text>
                     <Text style={styles.budgetUsagePercent}>
                       {budgetsSummary.utilization.toFixed(0)}%
@@ -2148,8 +2149,8 @@ export default function AnalysisScreen() {
                         </Text>
                       </View>
                       <Text style={styles.budgetUsageValue}>
-                        {formatCurrency(budget.spent)} /{" "}
-                        {formatCurrency(budget.limit)}
+                        {formatCurrency(budget.spent, currencyCode)} /{" "}
+                        {formatCurrency(budget.limit, currencyCode)}
                       </Text>
                     </View>
                   ))}
@@ -2250,7 +2251,7 @@ export default function AnalysisScreen() {
                     </View>
                   </View>
                   <Text style={styles.topCategoryAmount}>
-                    {formatCurrency(cat.amount)}
+                    {formatCurrency(cat.amount, currencyCode)}
                   </Text>
                 </View>
               ))}
@@ -2270,11 +2271,11 @@ export default function AnalysisScreen() {
                         {merchant.name}
                       </Text>
                       <Text style={styles.listSubtitle}>
-                        {merchant.count} tx • Avg {formatCurrency(merchant.avg)}
+                        {merchant.count} tx • Avg {formatCurrency(merchant.avg, currencyCode)}
                       </Text>
                     </View>
                     <Text style={styles.listValue}>
-                      {formatCurrency(merchant.amount)}
+                      {formatCurrency(merchant.amount, currencyCode)}
                     </Text>
                   </View>
                 ))
@@ -2445,7 +2446,7 @@ export default function AnalysisScreen() {
                   })}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     color: (opacity = 1) => colors.income,
@@ -2485,7 +2486,7 @@ export default function AnalysisScreen() {
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     backgroundColor: colors.surface,
@@ -2534,7 +2535,7 @@ export default function AnalysisScreen() {
                       </View>
                       <View style={styles.breakdownRight}>
                         <Text style={styles.breakdownAmount}>
-                          {formatCurrency(source.amount)}
+                          {formatCurrency(source.amount, currencyCode)}
                         </Text>
                         <Text style={styles.breakdownPercentage}>
                           {source.percentage.toFixed(1)}%
@@ -2698,7 +2699,7 @@ export default function AnalysisScreen() {
                 }}
                 width={width - spacing.lg * 4}
                 height={220}
-                yAxisLabel="$"
+                yAxisLabel={currencySymbol}
                 yAxisSuffix=""
                 chartConfig={{
                   backgroundColor: colors.surface,
@@ -2844,7 +2845,7 @@ export default function AnalysisScreen() {
                 <View style={styles.comparisonItem}>
                   <Text style={styles.comparisonLabel}>This Period</Text>
                   <Text style={styles.comparisonValue}>
-                    {formatCurrency(stats.expenses)}
+                    {formatCurrency(stats.expenses, currencyCode)}
                   </Text>
                 </View>
                 <View style={styles.comparisonVs}>
@@ -2855,7 +2856,7 @@ export default function AnalysisScreen() {
                     {compareMode === "year" ? "Last Year" : "Last Period"}
                   </Text>
                   <Text style={styles.comparisonValue}>
-                    {formatCurrency(stats.prevExpenses)}
+                    {formatCurrency(stats.prevExpenses, currencyCode)}
                   </Text>
                 </View>
               </View>
@@ -2999,7 +3000,7 @@ export default function AnalysisScreen() {
                               {budget.name}
                             </Text>
                             <Text style={styles.budgetProgressAmount}>
-                              {formatCurrency(budget.spent)}
+                              {formatCurrency(budget.spent, currencyCode)}
                             </Text>
                           </View>
                         );
@@ -3008,8 +3009,8 @@ export default function AnalysisScreen() {
 
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
-                      {formatCurrency(budgetsSummary.spentInPeriod)} spent of{" "}
-                      {formatCurrency(budgetsSummary.budgetForPeriod)}
+                      {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)} spent of{" "}
+                      {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
                     </Text>
                     <Text
                       style={[
@@ -3060,7 +3061,7 @@ export default function AnalysisScreen() {
                     }))}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     color: (opacity = 1) => colors.primary,
@@ -3092,8 +3093,8 @@ export default function AnalysisScreen() {
                     </View>
                     <View style={styles.budgetUsageRight}>
                       <Text style={styles.budgetUsageValue}>
-                        {formatCurrency(budget.spent)} /{" "}
-                        {formatCurrency(budget.limit)}
+                        {formatCurrency(budget.spent, currencyCode)} /{" "}
+                        {formatCurrency(budget.limit, currencyCode)}
                       </Text>
                       <Text
                         style={[
@@ -3247,7 +3248,7 @@ export default function AnalysisScreen() {
                     })}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     color: (opacity = 1) => colors.primary,
@@ -3313,7 +3314,7 @@ export default function AnalysisScreen() {
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     backgroundColor: colors.surface,
@@ -3348,7 +3349,7 @@ export default function AnalysisScreen() {
                       </Text>
                     </View>
                     <Text style={styles.listValue}>
-                      {formatCurrency(sub.amount)}
+                      {formatCurrency(sub.amount, currencyCode)}
                     </Text>
                   </View>
                 ))
@@ -3533,7 +3534,7 @@ export default function AnalysisScreen() {
                           {goal.name}
                         </Text>
                         <Text style={styles.budgetProgressAmount}>
-                          {formatCurrency(goal.currentAmount)}
+                          {formatCurrency(goal.currentAmount, currencyCode)}
                         </Text>
                       </View>
                     );
@@ -3584,7 +3585,7 @@ export default function AnalysisScreen() {
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     backgroundColor: colors.surface,
@@ -3622,8 +3623,8 @@ export default function AnalysisScreen() {
                       <View style={styles.goalInfo}>
                         <Text style={styles.goalTitle}>{goal.name}</Text>
                         <Text style={styles.goalSubtitle}>
-                          {formatCurrency(goal.currentAmount)} /{" "}
-                          {formatCurrency(goal.targetAmount)}
+                          {formatCurrency(goal.currentAmount, currencyCode)} /{" "}
+                          {formatCurrency(goal.targetAmount, currencyCode)}
                         </Text>
                         <View style={styles.goalSummaryBar}>
                           <View
@@ -3650,7 +3651,7 @@ export default function AnalysisScreen() {
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(goalProjection.monthlySavings)}
+                    {formatCurrency(goalProjection.monthlySavings, currencyCode)}
                   </Text>
                   <Text style={styles.summaryLabel}>Monthly Savings</Text>
                 </View>
@@ -3795,7 +3796,7 @@ export default function AnalysisScreen() {
                   })()}
                   width={width - spacing.lg * 4}
                   height={240}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     backgroundColor: colors.surface,
@@ -3898,7 +3899,7 @@ export default function AnalysisScreen() {
                   }}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     backgroundColor: colors.surface,
@@ -3949,7 +3950,7 @@ export default function AnalysisScreen() {
                   })}
                   width={width - spacing.lg * 4}
                   height={220}
-                  yAxisLabel="$"
+                  yAxisLabel={currencySymbol}
                   yAxisSuffix=""
                   chartConfig={{
                     color: (opacity = 1) => colors.primary,

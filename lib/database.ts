@@ -349,10 +349,11 @@ async function applyMigration(
           budgetId TEXT NOT NULL,
           periodStart INTEGER NOT NULL,
           periodEnd INTEGER NOT NULL,
-          startingBalance REAL NOT NULL,
-          endingBalance REAL NOT NULL,
-          totalSpent REAL NOT NULL,
-          carryoverAmount REAL NOT NULL,
+          budgetedAmount REAL NOT NULL,
+          carryoverIn REAL NOT NULL DEFAULT 0,
+          totalAvailable REAL NOT NULL,
+          spent REAL NOT NULL,
+          carryoverOut REAL NOT NULL DEFAULT 0,
           createdAt INTEGER NOT NULL,
           FOREIGN KEY(budgetId) REFERENCES budgets(id) ON DELETE CASCADE
         );

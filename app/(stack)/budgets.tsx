@@ -16,7 +16,7 @@ import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import { useUser } from "../../lib/contexts/UserContext";
-import { CurrencySelector } from "../../lib/components/CurrencyPicker";
+import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -326,7 +326,7 @@ export default function BudgetsScreen() {
               {monthlyBudget ? "Overall Monthly Budget" : "Monthly Budget"}
             </Text>
             <Text style={styles.summaryAmount}>
-              {formatCurrency(summaryBudget)}
+              {formatCurrency(summaryBudget, userDefaultCurrency)}
             </Text>
           </View>
           <View style={styles.summaryStats}>
@@ -361,8 +361,8 @@ export default function BudgetsScreen() {
         />
         <View style={styles.summaryFooter}>
           <Text style={styles.summaryFooterText}>
-            {formatCurrency(summarySpent)} spent of{" "}
-            {formatCurrency(summaryBudget)}
+            {formatCurrency(summarySpent, userDefaultCurrency)} spent of{" "}
+            {formatCurrency(summaryBudget, userDefaultCurrency)}
           </Text>
           <Text
             style={[
@@ -375,7 +375,7 @@ export default function BudgetsScreen() {
               },
             ]}
           >
-            {formatCurrency(Math.max(summaryBudget - summarySpent, 0))}{" "}
+            {formatCurrency(Math.max(summaryBudget - summarySpent, 0), userDefaultCurrency)}{" "}
             remaining
           </Text>
         </View>
@@ -467,10 +467,10 @@ export default function BudgetsScreen() {
                         },
                       ]}
                     >
-                      {formatCurrency(budget.spent)}
+                      {formatCurrency(budget.spent, budget.currency)}
                     </Text>
                     <Text style={styles.budgetLimit}>
-                      of {formatCurrency(budget.budget_limit)}
+                      of {formatCurrency(budget.budget_limit, budget.currency)}
                     </Text>
                   </View>
                 </View>
@@ -497,8 +497,8 @@ export default function BudgetsScreen() {
                     ]}
                   >
                     {budget.isOver
-                      ? `Over budget by ${formatCurrency(budget.spent - budget.budget_limit)}`
-                      : `${formatCurrency(budget.remaining)} remaining`}
+                      ? `Over budget by ${formatCurrency(budget.spent - budget.budget_limit, budget.currency)}`
+                      : `${formatCurrency(budget.remaining, budget.currency)} remaining`}
                   </Text>
                   <Text style={styles.budgetPercentage}>
                     {budget.percentage.toFixed(0)}%
@@ -609,17 +609,11 @@ export default function BudgetsScreen() {
         </View>
 
         <View style={{ marginTop: spacing.md }}>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: colors.textPrimary,
-              marginBottom: spacing.sm,
-            }}
-          >
-            Currency
-          </Text>
-          <CurrencySelector selectedCode={budgetCurrency} onPress={() => {}} />
+          <CurrencyDropdown
+            selectedCode={budgetCurrency}
+            onSelect={setBudgetCurrency}
+            label="Currency"
+          />
         </View>
 
         <Button
@@ -739,6 +733,7 @@ export default function BudgetsScreen() {
           style={{ marginTop: spacing.md }}
         />
       </BottomSheet>
+
     </View>
   );
 }

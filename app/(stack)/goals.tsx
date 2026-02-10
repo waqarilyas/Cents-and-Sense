@@ -6,14 +6,16 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import { useUser } from "../../lib/contexts/UserContext";
-import { CurrencySelector } from "../../lib/components/CurrencyPicker";
+import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -35,7 +37,7 @@ import { Goal } from "../../lib/database";
 export default function GoalsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors } = useThemeColors();
+  const { colors, activeTheme } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { defaultCurrency } = useUser();
   const [goalCurrency, setGoalCurrency] = useState(defaultCurrency);
@@ -58,7 +60,12 @@ export default function GoalsScreen() {
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [currentAmount, setCurrentAmount] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [deadlineDate, setDeadlineDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 6);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [contribution, setContribution] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -81,16 +88,13 @@ export default function GoalsScreen() {
     setGoalName("");
     setTargetAmount("");
     setCurrentAmount("");
-    setDeadline("");
+    const d = new Date();
+    d.setMonth(d.getMonth() + 6);
+    setDeadlineDate(d);
+    setShowDatePicker(false);
     setContribution("");
     setGoalCurrency(defaultCurrency);
     setEditingGoal(null);
-  };
-
-  const getDefaultDeadline = () => {
-    const date = new Date();
-    date.setMonth(date.getMonth() + 6); // 6 months from now
-    return date.getTime();
   };
 
   const handleAddGoal = async () => {
@@ -108,7 +112,7 @@ export default function GoalsScreen() {
       await addGoal(
         goalName.trim(),
         parseFloat(targetAmount),
-        getDefaultDeadline(),
+        deadlineDate.getTime(),
         goalCurrency,
       );
       setShowAddModal(false);
@@ -139,7 +143,7 @@ export default function GoalsScreen() {
         goalName.trim(),
         parseFloat(targetAmount),
         parseFloat(currentAmount) || 0,
-        editingGoal.deadline,
+        deadlineDate.getTime(),
       );
       setShowEditModal(false);
       resetForm();
@@ -174,7 +178,7 @@ export default function GoalsScreen() {
       } else {
         Alert.alert(
           "Success",
-          `${formatCurrency(parseFloat(contribution))} added to your goal!`,
+          `${formatCurrency(parseFloat(contribution), editingGoal.currency)} added to your goal!`,
         );
       }
     } catch (error) {
@@ -210,6 +214,7 @@ export default function GoalsScreen() {
     setGoalName(goal.name);
     setTargetAmount(goal.targetAmount.toString());
     setCurrentAmount(goal.currentAmount.toString());
+    setDeadlineDate(new Date(goal.deadline));
     setShowEditModal(true);
   };
 
@@ -248,7 +253,7 @@ export default function GoalsScreen() {
             onPress={() =>
               Alert.alert(
                 "About Goals",
-                "Set savings goals to track your financial objectives.\\n\\n" +
+                "Set savings goals to track your financial objectives.\n\n" +
                   "\u2022 Target Amount: Your goal amount\n" +
                   "\u2022 Current Amount: How much you've saved\n" +
                   "\u2022 Deadline: When you want to reach it\n" +
@@ -325,10 +330,10 @@ export default function GoalsScreen() {
         <View style={styles.summaryAmount}>
           <Text style={styles.summaryAmountLabel}>Total Saved</Text>
           <Text style={styles.summaryAmountValue}>
-            {formatCurrency(totalSaved)}
+            {formatCurrency(totalSaved, defaultCurrency)}
           </Text>
           <Text style={styles.summaryAmountTarget}>
-            of {formatCurrency(totalTarget)} target
+            of {formatCurrency(totalTarget, defaultCurrency)} target
           </Text>
         </View>
       </Card>
@@ -409,10 +414,10 @@ export default function GoalsScreen() {
 
                 <View style={styles.goalAmounts}>
                   <Text style={styles.goalSaved}>
-                    {formatCurrency(goal.currentAmount)}
+                    {formatCurrency(goal.currentAmount, goal.currency)}
                   </Text>
                   <Text style={styles.goalTarget}>
-                    of {formatCurrency(goal.targetAmount)}
+                    of {formatCurrency(goal.targetAmount, goal.currency)}
                   </Text>
                 </View>
 
@@ -432,7 +437,7 @@ export default function GoalsScreen() {
                   <Text style={styles.goalRemaining}>
                     {goal.isCompleted
                       ? "Complete"
-                      : `${formatCurrency(goal.remaining)} to go`}
+                      : `${formatCurrency(goal.remaining, goal.currency)} to go`}
                   </Text>
                   <Text style={styles.goalPercentage}>
                     {goal.progress.toFixed(0)}%
@@ -495,6 +500,14 @@ export default function GoalsScreen() {
         />
 
         <View style={{ marginTop: spacing.md }}>
+          <CurrencyDropdown
+            selectedCode={goalCurrency}
+            onSelect={setGoalCurrency}
+            label="Currency"
+          />
+        </View>
+
+        <View style={{ marginTop: spacing.md }}>
           <Text
             style={{
               fontSize: 14,
@@ -503,14 +516,52 @@ export default function GoalsScreen() {
               marginBottom: spacing.sm,
             }}
           >
-            Currency
+            Deadline
           </Text>
-          <CurrencySelector selectedCode={goalCurrency} onPress={() => {}} />
+          {Platform.OS === "ios" ? (
+            <DateTimePicker
+              value={deadlineDate}
+              mode="date"
+              display="compact"
+              minimumDate={new Date()}
+              onChange={(_, date) => date && setDeadlineDate(date)}
+              themeVariant={activeTheme === "dark" ? "dark" : "light"}
+            />
+          ) : (
+            <>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                style={{
+                  padding: spacing.md,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.textPrimary }}>
+                  {deadlineDate.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={deadlineDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(_, date) => {
+                    setShowDatePicker(false);
+                    if (date) setDeadlineDate(date);
+                  }}
+                />
+              )}
+            </>
+          )}
         </View>
-
-        <Text style={styles.deadlineNote}>
-          Deadline is set to 6 months from today. You can change it later.
-        </Text>
 
         <Button
           title={isSubmitting ? "Creating..." : "Create Goal"}
@@ -554,6 +605,62 @@ export default function GoalsScreen() {
           keyboardType="numeric"
         />
 
+        <View style={{ marginTop: spacing.md }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: colors.textPrimary,
+              marginBottom: spacing.sm,
+            }}
+          >
+            Deadline
+          </Text>
+          {Platform.OS === "ios" ? (
+            <DateTimePicker
+              value={deadlineDate}
+              mode="date"
+              display="compact"
+              minimumDate={new Date()}
+              onChange={(_, date) => date && setDeadlineDate(date)}
+              themeVariant={activeTheme === "dark" ? "dark" : "light"}
+            />
+          ) : (
+            <>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                style={{
+                  padding: spacing.md,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.textPrimary }}>
+                  {deadlineDate.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={deadlineDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(_, date) => {
+                    setShowDatePicker(false);
+                    if (date) setDeadlineDate(date);
+                  }}
+                />
+              )}
+            </>
+          )}
+        </View>
+
         <View style={styles.editActions}>
           <Button
             title="Delete"
@@ -591,10 +698,10 @@ export default function GoalsScreen() {
               <Text style={styles.contributeGoalName}>{editingGoal.name}</Text>
               <View style={styles.contributeProgress}>
                 <Text style={styles.contributeCurrent}>
-                  {formatCurrency(editingGoal.currentAmount)}
+                  {formatCurrency(editingGoal.currentAmount, editingGoal.currency)}
                 </Text>
                 <Text style={styles.contributeTarget}>
-                  of {formatCurrency(editingGoal.targetAmount)}
+                  of {formatCurrency(editingGoal.targetAmount, editingGoal.currency)}
                 </Text>
               </View>
               <ProgressBar
@@ -620,8 +727,9 @@ export default function GoalsScreen() {
                 <Text style={styles.previewValue}>
                   {formatCurrency(
                     editingGoal.currentAmount + parseFloat(contribution),
+                    editingGoal.currency,
                   )}{" "}
-                  / {formatCurrency(editingGoal.targetAmount)}
+                  / {formatCurrency(editingGoal.targetAmount, editingGoal.currency)}
                 </Text>
               </View>
             )}
@@ -637,6 +745,7 @@ export default function GoalsScreen() {
           </>
         )}
       </BottomSheet>
+
     </View>
   );
 }

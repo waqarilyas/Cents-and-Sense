@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useUser } from "../../lib/contexts/UserContext";
-import { CurrencySelector } from "../../lib/components/CurrencyPicker";
+import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import {
   spacing,
   borderRadius,
@@ -78,6 +78,7 @@ export default function SubscriptionsScreen() {
     addSubscription,
     deleteSubscription,
     toggleSubscription,
+    updateSubscription,
     getMonthlyTotal,
     getUpcomingSubscriptions,
   } = useSubscriptions();
@@ -159,6 +160,18 @@ export default function SubscriptionsScreen() {
     hapticFeedback();
   };
 
+  const openEditModal = (sub: typeof subscriptions[0]) => {
+    setEditingId(sub.id);
+    setName(sub.name);
+    setAmount(sub.amount.toString());
+    setCategoryId(sub.categoryId);
+    setFrequency(sub.frequency as "daily" | "weekly" | "monthly" | "yearly");
+    setNotes(sub.notes || "");
+    setSubCurrency(sub.currency || defaultCurrency);
+    setModalVisible(true);
+    hapticFeedback();
+  };
+
   const handleSave = async () => {
     const amountNum = parseFloat(amount);
     if (!name.trim()) {
@@ -175,16 +188,27 @@ export default function SubscriptionsScreen() {
     }
 
     try {
-      await addSubscription(
-        name.trim(),
-        amountNum,
-        categoryId,
-        frequency,
-        Date.now(),
-        subCurrency,
-        3,
-        notes.trim() || undefined,
-      );
+      if (editingId) {
+        await updateSubscription(editingId, {
+          name: name.trim(),
+          amount: amountNum,
+          categoryId,
+          frequency,
+          currency: subCurrency,
+          notes: notes.trim() || undefined,
+        });
+      } else {
+        await addSubscription(
+          name.trim(),
+          amountNum,
+          categoryId,
+          frequency,
+          Date.now(),
+          subCurrency,
+          3,
+          notes.trim() || undefined,
+        );
+      }
 
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -243,7 +267,7 @@ export default function SubscriptionsScreen() {
             onPress={() =>
               Alert.alert(
                 "About Subscriptions",
-                "Track recurring payments automatically.\\n\\n" +
+                "Track recurring payments automatically.\n\n" +
                   "\u2022 Daily/Weekly/Monthly/Yearly frequencies\n" +
                   "\u2022 Auto-renewal reminders\n" +
                   "\u2022 Approve renewals before they're charged\n" +
@@ -283,7 +307,7 @@ export default function SubscriptionsScreen() {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Monthly Cost</Text>
               <Text style={styles.summaryValue}>
-                {formatCurrency(monthlyTotal)}
+                {formatCurrency(monthlyTotal, defaultCurrency)}
               </Text>
             </View>
             <View style={styles.summaryDivider} />
@@ -374,6 +398,7 @@ export default function SubscriptionsScreen() {
                 >
                   <TouchableOpacity
                     style={styles.subscriptionRow}
+                    onPress={() => openEditModal(sub)}
                     onLongPress={() => handleDelete(sub.id, sub.name)}
                     delayLongPress={500}
                   >
@@ -455,7 +480,7 @@ export default function SubscriptionsScreen() {
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={28} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Add Subscription</Text>
+            <Text style={styles.modalTitle}>{editingId ? "Edit Subscription" : "Add Subscription"}</Text>
             <TouchableOpacity onPress={handleSave}>
               <Text style={styles.saveButton}>Save</Text>
             </TouchableOpacity>
@@ -560,8 +585,11 @@ export default function SubscriptionsScreen() {
 
             {/* Currency Selector */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Currency</Text>
-              <CurrencySelector selectedCode={subCurrency} onPress={() => {}} />
+              <CurrencyDropdown
+                selectedCode={subCurrency}
+                onSelect={setSubCurrency}
+                label="Currency"
+              />
             </View>
 
             {/* Notes Input */}
@@ -580,6 +608,7 @@ export default function SubscriptionsScreen() {
           </ScrollView>
         </View>
       </Modal>
+
     </View>
   );
 }

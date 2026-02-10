@@ -15,6 +15,7 @@ import {
   ThemeColors,
   spacing,
   borderRadius,
+  formatCurrency,
 } from "../../lib/theme";
 import { Card } from "../../lib/components";
 import { useAccounts } from "../../lib/contexts/AccountContext";
@@ -22,8 +23,10 @@ import { useGoals } from "../../lib/contexts/GoalContext";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
 import { useCategories } from "../../lib/contexts/CategoryContext";
+import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useUser } from "../../lib/contexts/UserContext";
-import { CurrencyPicker } from "../../lib/components/CurrencyPicker";
+import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
+import { getDatabase } from "../../lib/database";
 import { useMemo, useState } from "react";
 
 interface MenuItem {
@@ -42,15 +45,16 @@ export default function SettingsScreen() {
   const { colors, theme, setTheme } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { accounts } = useAccounts();
-  const { goals } = useGoals();
-  const { budgets } = useBudgets();
-  const { transactions } = useTransactions();
-  const { categories } = useCategories();
+  const { accounts, refreshAccounts } = useAccounts();
+  const { goals, refreshGoals } = useGoals();
+  const { budgets, refreshBudgets } = useBudgets();
+  const { transactions, refreshTransactions } = useTransactions();
+  const { categories, refreshCategories } = useCategories();
+  const { subscriptions, refreshSubscriptions } = useSubscriptions();
   const { userName, defaultCurrency, updateDefaultCurrency } = useUser();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
   // Calculate some stats for display
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
@@ -66,7 +70,7 @@ export default function SettingsScreen() {
         {
           icon: "wallet-outline",
           label: "Accounts",
-          subtitle: `${accounts.length} accounts • $${totalBalance.toLocaleString()}`,
+          subtitle: `${accounts.length} accounts • ${formatCurrency(totalBalance, defaultCurrency)}`,
           onPress: () => router.push("/accounts"),
           badge: accounts.length,
           showArrow: true,
@@ -114,7 +118,7 @@ export default function SettingsScreen() {
           icon: "cash-outline",
           label: "Default Currency",
           subtitle: `${defaultCurrency} - Tap to change`,
-          onPress: () => setShowCurrencyPicker(true),
+          onPress: () => setShowCurrencyDropdown((prev) => !prev),
           showArrow: true,
         },
         {
@@ -171,7 +175,34 @@ export default function SettingsScreen() {
               "This will permanently delete all your data. This action cannot be undone.",
               [
                 { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: () => {} },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      const db = await getDatabase();
+                      await db.execAsync(`
+                        DELETE FROM transactions;
+                        DELETE FROM subscriptions;
+                        DELETE FROM budgets;
+                        DELETE FROM monthly_budgets;
+                        DELETE FROM goals;
+                        DELETE FROM budget_period_snapshots;
+                        UPDATE accounts SET balance = 0;
+                      `);
+                      await refreshAccounts();
+                      await refreshTransactions();
+                      await refreshBudgets();
+                      await refreshGoals();
+                      await refreshCategories();
+                      await refreshSubscriptions();
+                      Alert.alert("Success", "All data has been cleared. Your accounts have been reset to zero balance.");
+                    } catch (error) {
+                      console.error("Error clearing data:", error);
+                      Alert.alert("Error", "Failed to clear data. Please try again.");
+                    }
+                  },
+                },
               ],
             ),
           color: "#F44336",
@@ -212,7 +243,8 @@ export default function SettingsScreen() {
           icon: "information-circle-outline",
           label: "Version",
           subtitle: "1.0.0",
-          onPress: () => {},
+          onPress: () =>
+            Alert.alert("Budget Tracker", "Version 1.0.0"),
         },
         {
           icon: "shield-checkmark-outline",
@@ -344,16 +376,32 @@ export default function SettingsScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Currency Picker Modal */}
-      <CurrencyPicker
-        visible={showCurrencyPicker}
-        selectedCode={defaultCurrency}
-        onSelect={async (currency) => {
-          await updateDefaultCurrency(currency.code);
-          setShowCurrencyPicker(false);
-        }}
-        onClose={() => setShowCurrencyPicker(false)}
-      />
+      {/* Inline Currency Dropdown */}
+      {showCurrencyDropdown && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.background,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.xl,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+        >
+          <CurrencyDropdown
+            selectedCode={defaultCurrency}
+            onSelect={async (code) => {
+              await updateDefaultCurrency(code);
+              setShowCurrencyDropdown(false);
+            }}
+            label="Select Default Currency"
+          />
+        </View>
+      )}
     </View>
   );
 }

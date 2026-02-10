@@ -67,7 +67,7 @@ export default function HomeScreen() {
   const { getCategory } = useCategories();
   const { goals } = useGoals();
   const { settings } = useSettings();
-  const { userName } = useUser();
+  const { userName, defaultCurrency } = useUser();
 
   const balancesByCurrency = getTotalBalanceByCurrency(accounts);
   const monthlyStats = getMonthlyStats();
@@ -156,7 +156,7 @@ export default function HomeScreen() {
     );
     Alert.alert(
       "Add All Subscription Expenses",
-      `Add ${pendingSubscriptions.length} subscriptions (${formatCurrency(totalAmount)}) to your expenses?`,
+      `Add ${pendingSubscriptions.length} subscriptions (${formatCurrency(totalAmount, defaultCurrency)}) to your expenses?`,
       [
         {
           text: "Cancel",
@@ -198,13 +198,13 @@ export default function HomeScreen() {
     } else if (savingsRate >= 0) {
       return {
         icon: "checkmark-circle",
-        message: `You've saved ${formatCurrency(savings)} this month`,
+        message: `You've saved ${formatCurrency(savings, defaultCurrency)} this month`,
         color: colors.income,
       };
     } else {
       return {
         icon: "warning",
-        message: `You've overspent by ${formatCurrency(Math.abs(savings))}`,
+        message: `You've overspent by ${formatCurrency(Math.abs(savings), defaultCurrency)}`,
         color: colors.expense,
       };
     }
@@ -408,33 +408,6 @@ export default function HomeScreen() {
             )}
           </View>
         </Card>
-
-        {/* TEMPORARY: Test Widget Button */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: colors.primary,
-            padding: 16,
-            borderRadius: 12,
-            marginHorizontal: spacing.lg,
-            marginBottom: spacing.md,
-            alignItems: "center",
-          }}
-          onPress={async () => {
-            try {
-              await widgetService.writeTestData();
-              Alert.alert(
-                "Success",
-                "Test data written to widget! Check your home screen widget.",
-              );
-            } catch (error) {
-              Alert.alert("Error", String(error));
-            }
-          }}
-        >
-          <Text style={{ color: "#FFF", fontSize: 16, fontWeight: "bold" }}>
-            TEST: Write Widget Data
-          </Text>
-        </TouchableOpacity>
 
         {/* Quick Access Shortcuts - Row 1 */}
         <View style={styles.quickAccessRow}>
@@ -709,7 +682,7 @@ export default function HomeScreen() {
                     />
                   </View>
                   <Text style={styles.goalRemaining}>
-                    {formatCurrency(remaining)} remaining
+                    {formatCurrency(remaining, goal.currency)} remaining
                   </Text>
                 </TouchableOpacity>
               );

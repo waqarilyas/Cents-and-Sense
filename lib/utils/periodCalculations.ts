@@ -183,11 +183,13 @@ export function getPeriodForDate(
 
 /**
  * Check if period transition is needed (for snapshot creation)
+ * Returns false if lastPeriodEnd is 0 (brand new budget, never had a period end)
  */
 export function needsPeriodTransition(
   lastPeriodEnd: number,
   startDay: number = 1,
 ): boolean {
+  if (lastPeriodEnd === 0) return false;
   const now = Date.now();
   return now > lastPeriodEnd;
 }

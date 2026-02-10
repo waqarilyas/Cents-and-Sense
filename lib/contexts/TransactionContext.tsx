@@ -117,7 +117,7 @@ export function TransactionProvider({
         const validType = validateTransactionType(type);
 
         const db = await getDatabase();
-        const id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
         // Start database transaction for atomicity
         await db.execAsync("BEGIN TRANSACTION");

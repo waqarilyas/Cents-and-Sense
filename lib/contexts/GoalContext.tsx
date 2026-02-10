@@ -38,6 +38,7 @@ interface GoalContextType {
   getGoal: (id: string) => Goal | undefined;
   updateGoalProgress: (id: string, currentAmount: number) => Promise<void>;
   getAllGoals: () => Goal[];
+  refreshGoals: () => Promise<void>;
 }
 
 const GoalContext = createContext<GoalContextType | undefined>(undefined);
@@ -207,7 +208,6 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
         }
 
         await loadGoals();
-        await loadGoals();
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));
@@ -313,6 +313,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
         getGoal,
         updateGoalProgress,
         getAllGoals,
+        refreshGoals: loadGoals,
       }}
     >
       {children}

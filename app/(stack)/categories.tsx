@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useTransactions } from "../../lib/contexts/TransactionContext";
+import { useUser } from "../../lib/contexts/UserContext";
 import {
   spacing,
   borderRadius,
@@ -63,12 +64,15 @@ export default function CategoriesScreen() {
     incomeCategories,
     loading,
     addCategory,
+    updateCategory,
     deleteCategory,
   } = useCategories();
   const { transactions } = useTransactions();
+  const { defaultCurrency } = useUser();
 
   const [activeTab, setActiveTab] = useState<CategoryType>("expense");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Form state
@@ -76,6 +80,7 @@ export default function CategoriesScreen() {
   const [categoryColor, setCategoryColor] = useState(CATEGORY_COLORS[0]);
   const [categoryType, setCategoryType] = useState<CategoryType>("expense");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; color: string } | null>(null);
 
   const getCategorySpending = (categoryId: string) => {
     const now = new Date();
@@ -98,6 +103,34 @@ export default function CategoriesScreen() {
     setCategoryName("");
     setCategoryColor(CATEGORY_COLORS[0]);
     setCategoryType(activeTab);
+    setEditingCategory(null);
+  };
+
+  const openEditCategory = (category: { id: string; name: string; color: string }) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryColor(category.color);
+    setShowEditModal(true);
+  };
+
+  const handleEditCategory = async () => {
+    if (!editingCategory) return;
+    if (!categoryName.trim()) {
+      Alert.alert("Error", "Please enter a category name");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateCategory(editingCategory.id, categoryName.trim(), categoryColor);
+      setShowEditModal(false);
+      resetForm();
+      Alert.alert("Success", "Category updated successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to update category. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddCategory = async () => {
@@ -185,7 +218,7 @@ export default function CategoriesScreen() {
             onPress={() =>
               Alert.alert(
                 "About Categories",
-                "Organize your income and expenses into categories.\\n\\n" +
+                "Organize your income and expenses into categories.\n\n" +
                   "\u2022 Expense Categories: Where money goes out\n" +
                   "\u2022 Income Categories: Where money comes in\n" +
                   "\u2022 Each category shows monthly totals\n" +
@@ -238,7 +271,7 @@ export default function CategoriesScreen() {
           ]}
         >
           {activeTab === "expense" ? "-" : "+"}
-          {formatCurrency(totalThisMonth)}
+          {formatCurrency(totalThisMonth, defaultCurrency)}
         </Text>
         <Text style={styles.summarySubtext}>
           Across {displayCategories.length} categories
@@ -297,6 +330,7 @@ export default function CategoriesScreen() {
               <TouchableOpacity
                 key={category.id}
                 style={[styles.categoryCard, { borderColor: category.color }]}
+                onPress={() => openEditCategory(category)}
                 onLongPress={() =>
                   handleDeleteCategory(category.id, category.name)
                 }
@@ -316,7 +350,7 @@ export default function CategoriesScreen() {
                 <Text
                   style={[styles.categorySpending, { color: category.color }]}
                 >
-                  {formatCurrency(spending)}
+                  {formatCurrency(spending, defaultCurrency)}
                 </Text>
               </TouchableOpacity>
             );
@@ -353,7 +387,7 @@ export default function CategoriesScreen() {
 
         <View style={styles.hintContainer}>
           <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.hint}>Long press on a category to delete it</Text>
+          <Text style={styles.hint}>Tap to edit, long press to delete</Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -467,6 +501,51 @@ export default function CategoriesScreen() {
         <Button
           title={isSubmitting ? "Adding..." : "Add Category"}
           onPress={handleAddCategory}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          fullWidth
+          style={{ marginTop: spacing.md }}
+        />
+      </BottomSheet>
+
+      {/* Edit Category Modal */}
+      <BottomSheet
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          resetForm();
+        }}
+        title="Edit Category"
+      >
+        <Input
+          label="Category Name"
+          value={categoryName}
+          onChangeText={setCategoryName}
+          placeholder="e.g., Subscriptions"
+        />
+
+        <Text style={styles.colorLabel}>Color</Text>
+        <View style={styles.colorGrid}>
+          {CATEGORY_COLORS.map((color) => (
+            <TouchableOpacity
+              key={color}
+              style={[
+                styles.colorOption,
+                { backgroundColor: color },
+                categoryColor === color && styles.colorOptionSelected,
+              ]}
+              onPress={() => setCategoryColor(color)}
+            >
+              {categoryColor === color && (
+                <Text style={styles.colorCheck}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Button
+          title={isSubmitting ? "Saving..." : "Save Changes"}
+          onPress={handleEditCategory}
           disabled={isSubmitting}
           loading={isSubmitting}
           fullWidth

@@ -213,7 +213,7 @@ export default function AccountsScreen() {
             onPress={() =>
               Alert.alert(
                 "About Accounts",
-                "Manage your bank accounts and cards.\\n\\n" +
+                "Manage your bank accounts and cards.\n\n" +
                   "\u2022 Track multiple accounts separately\n" +
                   "\u2022 Each account can have its own currency\n" +
                   "\u2022 View balances across all accounts\n" +
@@ -247,7 +247,7 @@ export default function AccountsScreen() {
             { color: totalBalance >= 0 ? colors.income : colors.expense },
           ]}
         >
-          {formatCurrency(totalBalance)}
+          {formatCurrency(totalBalance, defaultCurrency)}
         </Text>
         <View style={styles.balanceStats}>
           <View style={styles.balanceStat}>
@@ -319,7 +319,7 @@ export default function AccountsScreen() {
                           },
                         ]}
                       >
-                        {formatCurrency(account.balance)}
+                        {formatCurrency(account.balance, account.currency)}
                       </Text>
                     </View>
                   </View>

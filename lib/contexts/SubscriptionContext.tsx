@@ -156,7 +156,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           },
         );
 
-        const id = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const id = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const now = Date.now();
 
         const db = await getDatabase();
@@ -325,14 +325,27 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         // Start transaction for atomic subscription processing
         await db.execAsync("BEGIN TRANSACTION");
 
-        const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-        // Create the transaction with currency
+        // Find a matching account by currency, or fall back to first account
+        const matchingAccount = await db.getFirstAsync<{ id: string }>(
+          "SELECT id FROM accounts WHERE currency = ? LIMIT 1",
+          [subscription.currency || "USD"],
+        );
+        const fallbackAccount = matchingAccount
+          ? null
+          : await db.getFirstAsync<{ id: string }>(
+              "SELECT id FROM accounts ORDER BY createdAt ASC LIMIT 1",
+            );
+        const accountId = matchingAccount?.id || fallbackAccount?.id || null;
+
+        // Create the transaction with currency and accountId
         await db.runAsync(
-          `INSERT INTO transactions (id, categoryId, amount, currency, description, date, type, subscriptionId, createdAt)
-           VALUES (?, ?, ?, ?, ?, ?, 'expense', ?, ?)`,
+          `INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, subscriptionId, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'expense', ?, ?)`,
           [
             transactionId,
+            accountId,
             subscription.categoryId,
             subscription.amount,
             subscription.currency || "USD",
@@ -342,6 +355,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             now,
           ],
         );
+
+        // Update account balance if we have one
+        if (accountId) {
+          await db.runAsync(
+            "UPDATE accounts SET balance = balance - ? WHERE id = ?",
+            [subscription.amount, accountId],
+          );
+        }
 
         // Update the next due date
         const nextDue = calculateNextDueDate(
