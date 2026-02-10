@@ -196,10 +196,16 @@ export default function SettingsScreen() {
                       await refreshGoals();
                       await refreshCategories();
                       await refreshSubscriptions();
-                      Alert.alert("Success", "All data has been cleared. Your accounts have been reset to zero balance.");
+                      Alert.alert(
+                        "Success",
+                        "All data has been cleared. Your accounts have been reset to zero balance.",
+                      );
                     } catch (error) {
                       console.error("Error clearing data:", error);
-                      Alert.alert("Error", "Failed to clear data. Please try again.");
+                      Alert.alert(
+                        "Error",
+                        "Failed to clear data. Please try again.",
+                      );
                     }
                   },
                 },
@@ -243,8 +249,7 @@ export default function SettingsScreen() {
           icon: "information-circle-outline",
           label: "Version",
           subtitle: "1.0.0",
-          onPress: () =>
-            Alert.alert("Budget Tracker", "Version 1.0.0"),
+          onPress: () => Alert.alert("Budget Tracker", "Version 1.0.0"),
         },
         {
           icon: "shield-checkmark-outline",

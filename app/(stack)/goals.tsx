@@ -698,10 +698,17 @@ export default function GoalsScreen() {
               <Text style={styles.contributeGoalName}>{editingGoal.name}</Text>
               <View style={styles.contributeProgress}>
                 <Text style={styles.contributeCurrent}>
-                  {formatCurrency(editingGoal.currentAmount, editingGoal.currency)}
+                  {formatCurrency(
+                    editingGoal.currentAmount,
+                    editingGoal.currency,
+                  )}
                 </Text>
                 <Text style={styles.contributeTarget}>
-                  of {formatCurrency(editingGoal.targetAmount, editingGoal.currency)}
+                  of{" "}
+                  {formatCurrency(
+                    editingGoal.targetAmount,
+                    editingGoal.currency,
+                  )}
                 </Text>
               </View>
               <ProgressBar
@@ -729,7 +736,11 @@ export default function GoalsScreen() {
                     editingGoal.currentAmount + parseFloat(contribution),
                     editingGoal.currency,
                   )}{" "}
-                  / {formatCurrency(editingGoal.targetAmount, editingGoal.currency)}
+                  /{" "}
+                  {formatCurrency(
+                    editingGoal.targetAmount,
+                    editingGoal.currency,
+                  )}
                 </Text>
               </View>
             )}
@@ -745,7 +756,6 @@ export default function GoalsScreen() {
           </>
         )}
       </BottomSheet>
-
     </View>
   );
 }

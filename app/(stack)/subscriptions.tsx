@@ -160,7 +160,7 @@ export default function SubscriptionsScreen() {
     hapticFeedback();
   };
 
-  const openEditModal = (sub: typeof subscriptions[0]) => {
+  const openEditModal = (sub: (typeof subscriptions)[0]) => {
     setEditingId(sub.id);
     setName(sub.name);
     setAmount(sub.amount.toString());
@@ -480,7 +480,9 @@ export default function SubscriptionsScreen() {
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={28} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>{editingId ? "Edit Subscription" : "Add Subscription"}</Text>
+            <Text style={styles.modalTitle}>
+              {editingId ? "Edit Subscription" : "Add Subscription"}
+            </Text>
             <TouchableOpacity onPress={handleSave}>
               <Text style={styles.saveButton}>Save</Text>
             </TouchableOpacity>
@@ -608,7 +610,6 @@ export default function SubscriptionsScreen() {
           </ScrollView>
         </View>
       </Modal>
-
     </View>
   );
 }

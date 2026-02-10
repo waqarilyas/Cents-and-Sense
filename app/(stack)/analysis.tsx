@@ -514,7 +514,13 @@ export default function AnalysisScreen() {
 
   const transactionSizeBuckets = useMemo(() => {
     const buckets = [0, 0, 0, 0, 0];
-    const labels = [`<${currencySymbol}10`, `${currencySymbol}10–50`, `${currencySymbol}50–200`, `${currencySymbol}200–500`, `${currencySymbol}500+`];
+    const labels = [
+      `<${currencySymbol}10`,
+      `${currencySymbol}10–50`,
+      `${currencySymbol}50–200`,
+      `${currencySymbol}200–500`,
+      `${currencySymbol}500+`,
+    ];
     filteredTransactions
       .filter((t) => t.type === "expense")
       .forEach((t) => {
@@ -1804,8 +1810,15 @@ export default function AnalysisScreen() {
                 <>
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
-                      {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)} spent of{" "}
-                      {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
+                      {formatCurrency(
+                        budgetsSummary.spentInPeriod,
+                        currencyCode,
+                      )}{" "}
+                      spent of{" "}
+                      {formatCurrency(
+                        budgetsSummary.budgetForPeriod,
+                        currencyCode,
+                      )}
                     </Text>
                     <Text style={styles.budgetUsagePercent}>
                       {budgetsSummary.utilization.toFixed(0)}%
@@ -1860,7 +1873,8 @@ export default function AnalysisScreen() {
                     <View>
                       <Text style={styles.listTitle}>{merchant.name}</Text>
                       <Text style={styles.listSubtitle}>
-                        {merchant.count} tx • Avg {formatCurrency(merchant.avg, currencyCode)}
+                        {merchant.count} tx • Avg{" "}
+                        {formatCurrency(merchant.avg, currencyCode)}
                       </Text>
                     </View>
                     <Text style={styles.listValue}>
@@ -1970,7 +1984,10 @@ export default function AnalysisScreen() {
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
+                    {formatCurrency(
+                      budgetsSummary.budgetForPeriod,
+                      currencyCode,
+                    )}
                   </Text>
                   <Text style={styles.summaryLabel}>
                     Budgeted ({getPeriodLabel()})
@@ -1984,7 +2001,10 @@ export default function AnalysisScreen() {
                 </View>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(subscriptionsSummary.periodTotal, currencyCode)}
+                    {formatCurrency(
+                      subscriptionsSummary.periodTotal,
+                      currencyCode,
+                    )}
                   </Text>
                   <Text style={styles.summaryLabel}>
                     Subs ({getPeriodLabel()})
@@ -2112,8 +2132,15 @@ export default function AnalysisScreen() {
                 <>
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
-                      {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)} spent of{" "}
-                      {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
+                      {formatCurrency(
+                        budgetsSummary.spentInPeriod,
+                        currencyCode,
+                      )}{" "}
+                      spent of{" "}
+                      {formatCurrency(
+                        budgetsSummary.budgetForPeriod,
+                        currencyCode,
+                      )}
                     </Text>
                     <Text style={styles.budgetUsagePercent}>
                       {budgetsSummary.utilization.toFixed(0)}%
@@ -2271,7 +2298,8 @@ export default function AnalysisScreen() {
                         {merchant.name}
                       </Text>
                       <Text style={styles.listSubtitle}>
-                        {merchant.count} tx • Avg {formatCurrency(merchant.avg, currencyCode)}
+                        {merchant.count} tx • Avg{" "}
+                        {formatCurrency(merchant.avg, currencyCode)}
                       </Text>
                     </View>
                     <Text style={styles.listValue}>
@@ -3009,8 +3037,15 @@ export default function AnalysisScreen() {
 
                   <View style={styles.budgetUsageHeader}>
                     <Text style={styles.budgetUsageLabel}>
-                      {formatCurrency(budgetsSummary.spentInPeriod, currencyCode)} spent of{" "}
-                      {formatCurrency(budgetsSummary.budgetForPeriod, currencyCode)}
+                      {formatCurrency(
+                        budgetsSummary.spentInPeriod,
+                        currencyCode,
+                      )}{" "}
+                      spent of{" "}
+                      {formatCurrency(
+                        budgetsSummary.budgetForPeriod,
+                        currencyCode,
+                      )}
                     </Text>
                     <Text
                       style={[
@@ -3651,7 +3686,10 @@ export default function AnalysisScreen() {
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>
-                    {formatCurrency(goalProjection.monthlySavings, currencyCode)}
+                    {formatCurrency(
+                      goalProjection.monthlySavings,
+                      currencyCode,
+                    )}
                   </Text>
                   <Text style={styles.summaryLabel}>Monthly Savings</Text>
                 </View>

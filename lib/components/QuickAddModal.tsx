@@ -757,7 +757,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                     },
                   ]}
                 >
-                  {transactionType === "expense" ? "-" : "+"}{getCurrencySymbol(accountCurrency)}{amount}
+                  {transactionType === "expense" ? "-" : "+"}
+                  {getCurrencySymbol(accountCurrency)}
+                  {amount}
                 </Text>
               </View>
 
@@ -1104,7 +1106,8 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       { color: colors.expense },
                     ]}
                   >
-                    -{getCurrencySymbol(accountCurrency)}{amount}
+                    -{getCurrencySymbol(accountCurrency)}
+                    {amount}
                   </Text>
                 </View>
                 <Text style={styles.subscriptionSubtitle}>

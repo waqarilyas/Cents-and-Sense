@@ -375,7 +375,10 @@ export default function BudgetsScreen() {
               },
             ]}
           >
-            {formatCurrency(Math.max(summaryBudget - summarySpent, 0), userDefaultCurrency)}{" "}
+            {formatCurrency(
+              Math.max(summaryBudget - summarySpent, 0),
+              userDefaultCurrency,
+            )}{" "}
             remaining
           </Text>
         </View>
@@ -733,7 +736,6 @@ export default function BudgetsScreen() {
           style={{ marginTop: spacing.md }}
         />
       </BottomSheet>
-
     </View>
   );
 }

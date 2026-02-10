@@ -80,7 +80,11 @@ export default function CategoriesScreen() {
   const [categoryColor, setCategoryColor] = useState(CATEGORY_COLORS[0]);
   const [categoryType, setCategoryType] = useState<CategoryType>("expense");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [editingCategory, setEditingCategory] = useState<{
+    id: string;
+    name: string;
+    color: string;
+  } | null>(null);
 
   const getCategorySpending = (categoryId: string) => {
     const now = new Date();
@@ -106,7 +110,11 @@ export default function CategoriesScreen() {
     setEditingCategory(null);
   };
 
-  const openEditCategory = (category: { id: string; name: string; color: string }) => {
+  const openEditCategory = (category: {
+    id: string;
+    name: string;
+    color: string;
+  }) => {
     setEditingCategory(category);
     setCategoryName(category.name);
     setCategoryColor(category.color);
@@ -122,7 +130,11 @@ export default function CategoriesScreen() {
 
     setIsSubmitting(true);
     try {
-      await updateCategory(editingCategory.id, categoryName.trim(), categoryColor);
+      await updateCategory(
+        editingCategory.id,
+        categoryName.trim(),
+        categoryColor,
+      );
       setShowEditModal(false);
       resetForm();
       Alert.alert("Success", "Category updated successfully!");

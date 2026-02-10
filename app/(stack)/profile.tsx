@@ -288,8 +288,7 @@ export default function ProfileScreen() {
           icon: "information-circle-outline",
           label: "App Version",
           subtitle: "1.0.0",
-          onPress: () =>
-            Alert.alert("Budget Tracker", "Version 1.0.0"),
+          onPress: () => Alert.alert("Budget Tracker", "Version 1.0.0"),
         },
         {
           icon: "shield-checkmark-outline",
@@ -532,7 +531,9 @@ export default function ProfileScreen() {
             onSelect={(code) => {
               setDefaultCurrency(code);
               setShowCurrencyDropdown(false);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             }}
             label="Select Default Currency"
           />
