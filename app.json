@@ -15,6 +15,7 @@
     "android": {
       "package": "com.budgetplanner.app",
       "permissions": ["android.permission.VIBRATE"],
+      "softwareKeyboardLayoutMode": "resize",
       "intentFilters": [
         {
           "action": "VIEW",

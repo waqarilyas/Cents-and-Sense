@@ -51,6 +51,7 @@ export function getCurrentMonthRange(): { start: number; end: number } {
     23,
     59,
     59,
+    999,
   ).getTime();
   return { start, end };
 }
@@ -58,7 +59,7 @@ export function getCurrentMonthRange(): { start: number; end: number } {
 export function getYearRange(): { start: number; end: number } {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1).getTime();
-  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59).getTime();
+  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999).getTime();
   return { start, end };
 }
 

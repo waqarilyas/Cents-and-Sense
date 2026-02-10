@@ -35,6 +35,7 @@ import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
 import { widgetService } from "../../lib/services/WidgetService";
+import { getCurrentPeriod } from "../../lib/utils/periodCalculations";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -212,8 +213,8 @@ export default function HomeScreen() {
 
   // Budget alert
   const budgetAlert = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const periodStartDay = settings.budgetPeriodStartDay || 1;
+    const period = getCurrentPeriod(periodStartDay);
 
     for (const budget of budgets) {
       const spent = transactions
@@ -221,7 +222,8 @@ export default function HomeScreen() {
           (t) =>
             t.categoryId === budget.categoryId &&
             t.type === "expense" &&
-            t.date >= monthStart,
+            t.date >= period.start &&
+            t.date <= period.end,
         )
         .reduce((sum, t) => sum + t.amount, 0);
 
@@ -236,7 +238,7 @@ export default function HomeScreen() {
       }
     }
     return null;
-  }, [budgets, transactions, getCategory]);
+  }, [budgets, transactions, getCategory, settings.budgetPeriodStartDay]);
 
   const recentTransactions = useMemo(() => {
     return [...transactions].sort((a, b) => b.date - a.date).slice(0, 5);

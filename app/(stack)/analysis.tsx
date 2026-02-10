@@ -144,9 +144,13 @@ export default function AnalysisScreen() {
       case "month":
         startDate.setFullYear(now.getFullYear(), now.getMonth(), 1);
         break;
-      case "quarter":
-        startDate.setMonth(now.getMonth() - 3);
+      case "quarter": {
+        // Avoid setMonth overflow: go to 1st, subtract 3 months, then set day
+        const qMonth = now.getMonth() - 3;
+        startDate.setDate(1);
+        startDate.setMonth(qMonth);
         break;
+      }
       case "year":
         startDate.setFullYear(now.getFullYear() - 1);
         break;
@@ -170,7 +174,7 @@ export default function AnalysisScreen() {
     }
 
     const duration = periodRange.end - periodRange.start;
-    const end = periodRange.start;
+    const end = periodRange.start; // previous period ends where current starts
     const start = end - duration;
 
     return { start, end };
@@ -195,7 +199,7 @@ export default function AnalysisScreen() {
     selectedCategoryId,
   ]);
 
-  // Previous period transactions for comparison
+  // Previous period transactions for comparison (use < for end, matching the exclusive boundary)
   const previousPeriodTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const inRange =
@@ -623,7 +627,7 @@ export default function AnalysisScreen() {
           0,
         ).getTime();
 
-        const dayTransactions = transactions.filter(
+        const dayTransactions = filteredTransactions.filter(
           (t) => t.date >= startOfMonth && t.date <= endOfMonth,
         );
 
@@ -653,7 +657,7 @@ export default function AnalysisScreen() {
         ).getTime();
         const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
-        const dayTransactions = transactions.filter(
+        const dayTransactions = filteredTransactions.filter(
           (t) => t.date >= startOfDay && t.date < endOfDay,
         );
 
@@ -681,7 +685,7 @@ export default function AnalysisScreen() {
     }
 
     return trend;
-  }, [transactions, selectedPeriod, periodRange]);
+  }, [filteredTransactions, selectedPeriod, periodRange]);
 
   // Spending patterns analysis
   const spendingPatterns = useMemo(() => {

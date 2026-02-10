@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useRouter } from "expo-router";
@@ -98,7 +100,10 @@ export default function BudgetSettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -114,6 +119,7 @@ export default function BudgetSettingsScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Current Period Info */}
         <Card style={styles.infoCard}>
@@ -272,7 +278,7 @@ export default function BudgetSettingsScreen() {
           </View>
         </Card>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

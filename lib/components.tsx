@@ -11,6 +11,9 @@ import {
   ViewStyle,
   TextStyle,
   StyleProp,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from "react-native";
 import {
   spacing,
@@ -406,21 +409,35 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable
-          style={styles.bottomSheet}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <View style={styles.bottomSheetHandle} />
-          <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.bottomSheetClose}>
-              <Text style={styles.bottomSheetCloseText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.bottomSheetContent}>{children}</View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <Pressable style={styles.modalOverlay} onPress={onClose}>
+          <Pressable
+            style={styles.bottomSheet}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.bottomSheetHandle} />
+            <View style={styles.bottomSheetHeader}>
+              <Text style={styles.bottomSheetTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose} style={styles.bottomSheetClose}>
+                <Text style={styles.bottomSheetCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={styles.bottomSheetContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              bounces={false}
+            >
+              {children}
+              <View style={{ height: 20 }} />
+            </ScrollView>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -822,7 +839,8 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textSecondary,
     },
     bottomSheetContent: {
-      padding: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
     },
 
     // Select

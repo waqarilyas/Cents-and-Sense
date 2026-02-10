@@ -9,6 +9,8 @@ import {
   TextInput,
   Alert,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -27,7 +29,6 @@ import {
 } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 // Popular subscription icons
 const SUBSCRIPTION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -475,6 +476,10 @@ export default function SubscriptionsScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -488,7 +493,11 @@ export default function SubscriptionsScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          <ScrollView
+            style={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             {/* Name Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Name</Text>
@@ -609,6 +618,7 @@ export default function SubscriptionsScreen() {
             </View>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

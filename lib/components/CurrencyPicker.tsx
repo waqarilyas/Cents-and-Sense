@@ -15,8 +15,12 @@ import { spacing, borderRadius, useThemeColors, ThemeColors } from "../theme";
 import {
   Currency,
   CURRENCIES,
+  POPULAR_CURRENCY_CODES,
   getPopularCurrencies,
   searchCurrencies,
+  getCurrenciesByRegion,
+  getAllRegions,
+  REGION_NAMES,
 } from "../currencies";
 import * as Haptics from "expo-haptics";
 
@@ -52,12 +56,25 @@ export const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({
 
   const popularCurrencies = useMemo(() => getPopularCurrencies(), []);
 
-  const displayList = useMemo(() => {
+  // Search results (flat list)
+  const searchResults = useMemo(() => {
     if (searchQuery.trim()) {
       return searchCurrencies(searchQuery);
     }
-    return popularCurrencies;
-  }, [searchQuery, popularCurrencies]);
+    return null; // null means "show grouped view"
+  }, [searchQuery]);
+
+  // All currencies grouped by region (excluding popular, which are shown separately)
+  const groupedCurrencies = useMemo(() => {
+    const popularSet = new Set(POPULAR_CURRENCY_CODES);
+    return getAllRegions().map((region) => ({
+      region,
+      label: REGION_NAMES[region],
+      currencies: getCurrenciesByRegion(region).filter(
+        (c) => !popularSet.has(c.code),
+      ),
+    })).filter((g) => g.currencies.length > 0);
+  }, []);
 
   const haptic = () => {
     if (Platform.OS !== "web") {
@@ -143,49 +160,129 @@ export const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {displayList.length === 0 ? (
-              <Text style={styles.emptyText}>No currencies found</Text>
+            {searchResults !== null ? (
+              /* ── Search results (flat) ── */
+              searchResults.length === 0 ? (
+                <Text style={styles.emptyText}>No currencies found</Text>
+              ) : (
+                searchResults.map((currency) => {
+                  const isActive = currency.code === selectedCode;
+                  return (
+                    <TouchableOpacity
+                      key={currency.code}
+                      style={[styles.item, isActive && styles.itemActive]}
+                      onPress={() => handleSelect(currency)}
+                      activeOpacity={0.65}
+                    >
+                      <Text style={styles.itemFlag}>{currency.flag}</Text>
+                      <View style={styles.itemInfo}>
+                        <Text
+                          style={[
+                            styles.itemCode,
+                            isActive && { color: colors.primary },
+                          ]}
+                        >
+                          {currency.code}
+                        </Text>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                          {currency.name}
+                        </Text>
+                      </View>
+                      <Text style={styles.itemSymbol}>{currency.symbol}</Text>
+                      {isActive && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={18}
+                          color={colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              )
             ) : (
-              displayList.map((currency) => {
-                const isActive = currency.code === selectedCode;
-                return (
-                  <TouchableOpacity
-                    key={currency.code}
-                    style={[styles.item, isActive && styles.itemActive]}
-                    onPress={() => handleSelect(currency)}
-                    activeOpacity={0.65}
-                  >
-                    <Text style={styles.itemFlag}>{currency.flag}</Text>
-                    <View style={styles.itemInfo}>
-                      <Text
-                        style={[
-                          styles.itemCode,
-                          isActive && { color: colors.primary },
-                        ]}
-                      >
-                        {currency.code}
-                      </Text>
-                      <Text style={styles.itemName} numberOfLines={1}>
-                        {currency.name}
-                      </Text>
-                    </View>
-                    <Text style={styles.itemSymbol}>{currency.symbol}</Text>
-                    {isActive && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={18}
-                        color={colors.primary}
-                      />
-                    )}
-                  </TouchableOpacity>
-                );
-              })
-            )}
+              /* ── Default view: Popular + All by region ── */
+              <>
+                {/* Popular section */}
+                <Text style={styles.sectionHeader}>Popular</Text>
+                {popularCurrencies.map((currency) => {
+                  const isActive = currency.code === selectedCode;
+                  return (
+                    <TouchableOpacity
+                      key={currency.code}
+                      style={[styles.item, isActive && styles.itemActive]}
+                      onPress={() => handleSelect(currency)}
+                      activeOpacity={0.65}
+                    >
+                      <Text style={styles.itemFlag}>{currency.flag}</Text>
+                      <View style={styles.itemInfo}>
+                        <Text
+                          style={[
+                            styles.itemCode,
+                            isActive && { color: colors.primary },
+                          ]}
+                        >
+                          {currency.code}
+                        </Text>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                          {currency.name}
+                        </Text>
+                      </View>
+                      <Text style={styles.itemSymbol}>{currency.symbol}</Text>
+                      {isActive && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={18}
+                          color={colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
 
-            {!searchQuery.trim() && (
-              <Text style={styles.hintText}>
-                Type to search 150+ currencies
-              </Text>
+                {/* All other currencies grouped by region */}
+                {groupedCurrencies.map((group) => (
+                  <View key={group.region}>
+                    <Text style={styles.sectionHeader}>{group.label}</Text>
+                    {group.currencies.map((currency) => {
+                      const isActive = currency.code === selectedCode;
+                      return (
+                        <TouchableOpacity
+                          key={currency.code}
+                          style={[styles.item, isActive && styles.itemActive]}
+                          onPress={() => handleSelect(currency)}
+                          activeOpacity={0.65}
+                        >
+                          <Text style={styles.itemFlag}>{currency.flag}</Text>
+                          <View style={styles.itemInfo}>
+                            <Text
+                              style={[
+                                styles.itemCode,
+                                isActive && { color: colors.primary },
+                              ]}
+                            >
+                              {currency.code}
+                            </Text>
+                            <Text style={styles.itemName} numberOfLines={1}>
+                              {currency.name}
+                            </Text>
+                          </View>
+                          <Text style={styles.itemSymbol}>
+                            {currency.symbol}
+                          </Text>
+                          {isActive && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={18}
+                              color={colors.primary}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </>
             )}
           </ScrollView>
         </View>
@@ -348,19 +445,24 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: Platform.OS === "ios" ? 8 : 4,
     },
     list: {
-      maxHeight: 220,
+      maxHeight: 340,
+    },
+    sectionHeader: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.textMuted,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: 4,
+      backgroundColor: colors.background,
     },
     emptyText: {
       textAlign: "center",
       color: colors.textMuted,
       paddingVertical: spacing.lg,
       fontSize: 14,
-    },
-    hintText: {
-      textAlign: "center",
-      color: colors.textMuted,
-      fontSize: 12,
-      paddingVertical: spacing.sm,
     },
     item: {
       flexDirection: "row",

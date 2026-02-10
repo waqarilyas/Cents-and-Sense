@@ -82,6 +82,10 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
   const fixInvalidCategoryIds = useCallback(async () => {
     try {
       const db = await getDatabase();
+
+      // Temporarily disable FK constraints so we can safely re-key categories
+      await db.execAsync("PRAGMA foreign_keys = OFF;");
+
       const existingCategories = await db.getAllAsync<Category>(
         "SELECT * FROM categories",
       );
@@ -97,32 +101,28 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
           // Update the category with new ID in a transaction
           await db.execAsync("BEGIN TRANSACTION");
           try {
-            // Update transactions that reference this category
+            // 1. Insert new category FIRST (so FK references can point to it)
+            await db.runAsync(
+              "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
+              [newId, cat.name, cat.type, cat.color, cat.createdAt],
+            );
+
+            // 2. Update all references from old ID to new ID
             await db.runAsync(
               "UPDATE transactions SET categoryId = ? WHERE categoryId = ?",
               [newId, cat.id],
             );
-
-            // Update budgets that reference this category
             await db.runAsync(
               "UPDATE budgets SET categoryId = ? WHERE categoryId = ?",
               [newId, cat.id],
             );
-
-            // Update subscriptions that reference this category
             await db.runAsync(
               "UPDATE subscriptions SET categoryId = ? WHERE categoryId = ?",
               [newId, cat.id],
             );
 
-            // Delete old category
+            // 3. Delete old category (now has no references)
             await db.runAsync("DELETE FROM categories WHERE id = ?", [cat.id]);
-
-            // Insert category with new ID
-            await db.runAsync(
-              "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-              [newId, cat.name, cat.type, cat.color, cat.createdAt],
-            );
 
             await db.execAsync("COMMIT");
             console.log(`✅ Fixed category ID: ${cat.id} -> ${newId}`);
@@ -132,6 +132,9 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
+
+      // Re-enable FK constraints
+      await db.execAsync("PRAGMA foreign_keys = ON;");
     } catch (err) {
       console.error("Error fixing category IDs:", err);
     }

@@ -402,6 +402,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Process period transitions and create snapshots
+  // Handles multi-month gaps (e.g., app not opened for 3 months)
   const processPeriodTransitions = useCallback(async () => {
     const db = await getDatabase();
 
@@ -429,43 +430,63 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           continue; // Skip if carryover disabled or not monthly
         }
 
-        // Check if we need to process transition
-        if (needsPeriodTransition(budget.lastPeriodEnd, periodStartDay)) {
-          const previousPeriod = getPreviousPeriod(periodStartDay);
+        // Process ALL missed periods in a loop (handles multi-month gaps)
+        let carryover = budget.lastCarryoverAmount;
+        let lastEnd = budget.lastPeriodEnd;
+        const MAX_CATCHUP = 12; // Safety limit
+        let iterations = 0;
 
-          // Calculate spending for previous period (currency-aware)
+        while (
+          needsPeriodTransition(lastEnd, periodStartDay) &&
+          iterations < MAX_CATCHUP
+        ) {
+          iterations++;
+          // Calculate which period just ended based on lastEnd
+          // Go one day past lastEnd to land in the next period, then get previous
+          const refDate = new Date(lastEnd + 86400000); // +1 day
+          const endedPeriod = getPreviousPeriod(periodStartDay, refDate);
+          const nextPeriod = getCurrentPeriod(periodStartDay, refDate);
+
+          // Calculate spending for the ended period
           const transactions = await db.getAllAsync<any>(
             "SELECT amount FROM transactions WHERE categoryId = ? AND currency = ? AND type = 'expense' AND date >= ? AND date <= ?",
             [
               budget.categoryId,
               budget.currency,
-              previousPeriod.start,
-              previousPeriod.end,
+              endedPeriod.start,
+              endedPeriod.end,
             ],
           );
 
-          const spent = transactions.reduce((sum, t) => sum + t.amount, 0);
-          const carryover =
-            budget.budget_limit + budget.lastCarryoverAmount - spent;
+          const spent = transactions.reduce(
+            (sum: number, t: any) => sum + t.amount,
+            0,
+          );
+          carryover = budget.budget_limit + carryover - spent;
 
-          // Create snapshot for previous period
+          // Create snapshot for the ended period
           await db.runAsync(
             "INSERT INTO budget_period_snapshots (id, budgetId, periodStart, periodEnd, budgetedAmount, carryoverIn, totalAvailable, spent, carryoverOut, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-              `snap_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+              `snap_${Date.now()}_${iterations}_${Math.random().toString(36).substring(2, 11)}`,
               budget.id,
-              previousPeriod.start,
-              previousPeriod.end,
+              endedPeriod.start,
+              endedPeriod.end,
               budget.budget_limit,
-              budget.lastCarryoverAmount,
-              budget.budget_limit + budget.lastCarryoverAmount,
+              carryover - (budget.budget_limit - spent), // carryoverIn for this period
+              budget.budget_limit + (carryover - (budget.budget_limit - spent)),
               spent,
               carryover,
               Date.now(),
             ],
           );
 
-          // Update budget with new carryover
+          // Advance lastEnd to the end of the next period
+          lastEnd = nextPeriod.end;
+        }
+
+        // Update budget with final carryover if any transitions occurred
+        if (iterations > 0) {
           await db.runAsync(
             "UPDATE budgets SET lastCarryoverAmount = ?, lastPeriodEnd = ? WHERE id = ?",
             [carryover, currentPeriod.end, budget.id],

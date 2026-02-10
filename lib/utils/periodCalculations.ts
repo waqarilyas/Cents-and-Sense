@@ -17,6 +17,9 @@ export function getCurrentPeriod(
   startDay: number = 1,
   referenceDate: Date = new Date(),
 ): PeriodRange {
+  // Clamp startDay to 1-28 for safety
+  const safeStartDay = Math.max(1, Math.min(28, startDay));
+
   const year = referenceDate.getFullYear();
   const month = referenceDate.getMonth();
   const day = referenceDate.getDate();
@@ -24,14 +27,18 @@ export function getCurrentPeriod(
   let periodStart: Date;
   let periodEnd: Date;
 
-  if (day >= startDay) {
+  if (day >= safeStartDay) {
     // We're in the current month's period
-    periodStart = new Date(year, month, startDay, 0, 0, 0, 0);
-    periodEnd = new Date(year, month + 1, startDay - 1, 23, 59, 59, 999);
+    periodStart = new Date(year, month, safeStartDay, 0, 0, 0, 0);
+    // End = day before start of next period
+    const nextPeriodStart = new Date(year, month + 1, safeStartDay, 0, 0, 0, 0);
+    periodEnd = new Date(nextPeriodStart.getTime() - 1);
   } else {
     // We're still in the previous month's period
-    periodStart = new Date(year, month - 1, startDay, 0, 0, 0, 0);
-    periodEnd = new Date(year, month, startDay - 1, 23, 59, 59, 999);
+    periodStart = new Date(year, month - 1, safeStartDay, 0, 0, 0, 0);
+    // End = day before start of current month's period
+    const currentMonthPeriodStart = new Date(year, month, safeStartDay, 0, 0, 0, 0);
+    periodEnd = new Date(currentMonthPeriodStart.getTime() - 1);
   }
 
   return {

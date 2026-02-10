@@ -264,7 +264,7 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaProvider>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={[
           styles.container,
           { paddingTop: insets.top, paddingBottom: insets.bottom },

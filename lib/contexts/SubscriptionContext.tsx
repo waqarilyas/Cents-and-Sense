@@ -61,7 +61,7 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(
   undefined,
 );
 
-// Calculate next due date based on frequency
+// Calculate next due date based on frequency (handles month-end overflow)
 function calculateNextDueDate(
   currentDueDate: number,
   frequency: "daily" | "weekly" | "monthly" | "yearly",
@@ -75,12 +75,27 @@ function calculateNextDueDate(
     case "weekly":
       date.setDate(date.getDate() + 7);
       break;
-    case "monthly":
+    case "monthly": {
+      // Preserve the original day-of-month to avoid drift (e.g. Jan 31 → Feb 28, not Mar 3)
+      const originalDay = date.getDate();
+      date.setDate(1); // go to 1st to avoid overflow
       date.setMonth(date.getMonth() + 1);
+      // Clamp to the last day of the new month
+      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      date.setDate(Math.min(originalDay, lastDay));
       break;
-    case "yearly":
+    }
+    case "yearly": {
+      // Handle leap year: Feb 29 → Feb 28 in non-leap years
+      const originalDay = date.getDate();
+      const originalMonth = date.getMonth();
+      date.setDate(1);
       date.setFullYear(date.getFullYear() + 1);
+      date.setMonth(originalMonth);
+      const lastDay = new Date(date.getFullYear(), originalMonth + 1, 0).getDate();
+      date.setDate(Math.min(originalDay, lastDay));
       break;
+    }
   }
 
   return date.getTime();
@@ -414,11 +429,47 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
 
       if (mode === "auto") {
-        // Auto mode: Process all due subscriptions immediately
+        // Auto mode: Process all due subscriptions, catching up missed periods
+        const db = await getDatabase();
+
         for (const subscription of dueSubscriptions) {
-          const success = await processSubscription(subscription);
-          if (success) {
-            processedCount++;
+          // Process all missed periods in a loop (e.g., 3 months away → 3 transactions)
+          let currentDueDate = subscription.nextDueDate;
+          const MAX_CATCHUP = 12; // safety limit to prevent infinite loops
+          let catchupCount = 0;
+
+          while (currentDueDate <= now && catchupCount < MAX_CATCHUP) {
+            catchupCount++;
+
+            // Dedup: check if a transaction already exists for this subscription + due date
+            const existing = await db.getFirstAsync<{ id: string }>(
+              "SELECT id FROM transactions WHERE subscriptionId = ? AND date = ? LIMIT 1",
+              [subscription.id, currentDueDate],
+            );
+            if (existing) {
+              // Already processed, just advance the date
+              currentDueDate = calculateNextDueDate(currentDueDate, subscription.frequency);
+              continue;
+            }
+
+            // Create a temporary subscription object with the right due date
+            const subForProcessing = { ...subscription, nextDueDate: currentDueDate };
+            const success = await processSubscription(subForProcessing);
+            if (success) {
+              processedCount++;
+            } else {
+              break; // stop on error
+            }
+
+            currentDueDate = calculateNextDueDate(currentDueDate, subscription.frequency);
+          }
+
+          // Make sure the DB next due date is up to date
+          if (currentDueDate > subscription.nextDueDate) {
+            await db.runAsync(
+              "UPDATE subscriptions SET nextDueDate = ? WHERE id = ?",
+              [currentDueDate, subscription.id],
+            );
           }
         }
 

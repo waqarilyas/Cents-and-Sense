@@ -60,6 +60,12 @@ export default function HistoryScreen() {
     }
   };
 
+  // Build a category map for O(1) lookups instead of O(n) find per transaction
+  const categoryMap = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories],
+  );
+
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
@@ -72,7 +78,7 @@ export default function HistoryScreen() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((t) => {
-        const category = categories.find((c) => c.id === t.categoryId);
+        const category = categoryMap.get(t.categoryId);
         return (
           t.description?.toLowerCase().includes(query) ||
           category?.name.toLowerCase().includes(query)
@@ -82,22 +88,25 @@ export default function HistoryScreen() {
 
     // Sort by date (newest first)
     return filtered.sort((a, b) => b.date - a.date);
-  }, [transactions, filter, searchQuery, categories]);
+  }, [transactions, filter, searchQuery, categoryMap]);
 
   // Group by date
   const groupedTransactions = useMemo(() => {
     const groups: Record<string, typeof transactions> = {};
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const todayStr = today.toDateString();
+    const yesterdayStr = yesterday.toDateString();
 
     filteredTransactions.forEach((t) => {
       const date = new Date(t.date);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
 
       let dateKey: string;
-      if (date.toDateString() === today.toDateString()) {
+      const dateStr = date.toDateString();
+      if (dateStr === todayStr) {
         dateKey = "Today";
-      } else if (date.toDateString() === yesterday.toDateString()) {
+      } else if (dateStr === yesterdayStr) {
         dateKey = "Yesterday";
       } else {
         dateKey = date.toLocaleDateString("en-US", {
@@ -217,6 +226,7 @@ export default function HistoryScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -230,9 +240,7 @@ export default function HistoryScreen() {
               <View key={date} style={styles.dateSection}>
                 <Text style={styles.dateTitle}>{date}</Text>
                 {items.map((transaction) => {
-                  const category = categories.find(
-                    (c) => c.id === transaction.categoryId,
-                  );
+                  const category = categoryMap.get(transaction.categoryId);
                   const account = accounts.find(
                     (a) => a.id === transaction.accountId,
                   );

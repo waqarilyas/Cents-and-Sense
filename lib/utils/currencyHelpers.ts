@@ -191,7 +191,7 @@ export function getSubscriptionTotalByCurrency(
             amount = amount * 30;
             break;
           case "weekly":
-            amount = amount * 4;
+            amount = amount * 4.33;
             break;
           case "yearly":
             amount = amount / 12;
@@ -205,7 +205,7 @@ export function getSubscriptionTotalByCurrency(
             amount = amount / 30;
             break;
           case "weekly":
-            amount = amount / 4;
+            amount = amount / 4.33;
             break;
           case "yearly":
             amount = amount * 12;
