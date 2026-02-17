@@ -315,10 +315,7 @@ export default function HistoryScreen() {
                       ]}
                     >
                       {transaction.type === "income" ? "+" : "-"}
-                      {formatCurrency(
-                        transaction.amount,
-                        transaction.currency,
-                      )}
+                      {formatCurrency(transaction.amount, transaction.currency)}
                     </Text>
                   </View>
                 </Card>

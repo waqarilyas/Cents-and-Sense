@@ -214,7 +214,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         await db.execAsync("BEGIN TRANSACTION");
         try {
           // Delete associated transactions first
-          await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [id]);
+          await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [
+            id,
+          ]);
           // Then delete the account
           await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
 

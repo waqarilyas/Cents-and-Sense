@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, View, StatusBar, TouchableOpacity } from "react-native";
+import {
+  ActivityIndicator,
+  View,
+  StatusBar,
+  TouchableOpacity,
+} from "react-native";
 import { Text } from "react-native-paper";
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -38,7 +43,9 @@ export default function RootLayout() {
     } catch (error) {
       console.error("Database initialization error:", error);
       setDbError(
-        error instanceof Error ? error.message : "Failed to initialize database"
+        error instanceof Error
+          ? error.message
+          : "Failed to initialize database",
       );
     }
   };
@@ -81,7 +88,8 @@ export default function RootLayout() {
               lineHeight: 22,
             }}
           >
-            The database could not be initialized. Your data is safe — please try again.
+            The database could not be initialized. Your data is safe — please
+            try again.
           </Text>
           {__DEV__ && (
             <Text
