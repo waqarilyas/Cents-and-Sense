@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Appearance,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -29,21 +30,16 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error details for debugging
     console.error("ErrorBoundary caught an error:", error, errorInfo);
 
     this.setState({
       error,
       errorInfo,
     });
-
-    // You can also log to an error reporting service here
-    // e.g., Sentry, Bugsnag, etc.
   }
 
   handleReset = () => {
@@ -56,22 +52,27 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const isDark = Appearance.getColorScheme() === "dark";
+      const bg = isDark ? "#0B1120" : "#F5F7FA";
+      const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
+      const textSecondary = isDark ? "#94A3B8" : "#64748B";
+      const textMuted = isDark ? "#64748B" : "#94A3B8";
+
       return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: bg }]}>
           <View style={styles.content}>
-            {/* Error Icon */}
             <View style={styles.iconContainer}>
               <Ionicons name="alert-circle" size={80} color="#EF4444" />
             </View>
 
-            {/* Error Title */}
-            <Text style={styles.title}>Oops! Something went wrong</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: textPrimary }]}>
+              Oops! Something went wrong
+            </Text>
+            <Text style={[styles.subtitle, { color: textSecondary }]}>
               The app encountered an unexpected error. Don't worry, your data is
               safe.
             </Text>
 
-            {/* Error Details (only in development) */}
             {__DEV__ && this.state.error && (
               <ScrollView style={styles.errorDetails}>
                 <Text style={styles.errorTitle}>Error Details:</Text>
@@ -89,7 +90,6 @@ class ErrorBoundary extends Component<Props, State> {
               </ScrollView>
             )}
 
-            {/* Reset Button */}
             <TouchableOpacity
               style={styles.resetButton}
               onPress={this.handleReset}
@@ -99,8 +99,7 @@ class ErrorBoundary extends Component<Props, State> {
               <Text style={styles.resetButtonText}>Try Again</Text>
             </TouchableOpacity>
 
-            {/* Help Text */}
-            <Text style={styles.helpText}>
+            <Text style={[styles.helpText, { color: textMuted }]}>
               If the problem persists, try restarting the app
             </Text>
           </View>
@@ -115,7 +114,6 @@ class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -131,13 +129,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#0F172A",
     marginBottom: 12,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#64748B",
     marginBottom: 32,
     textAlign: "center",
     lineHeight: 24,
@@ -184,7 +180,6 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    color: "#94A3B8",
     marginTop: 24,
     textAlign: "center",
   },

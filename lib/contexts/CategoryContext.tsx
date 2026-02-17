@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { Category, getDatabase } from "../database";
@@ -276,18 +277,40 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
     },
-    [loadCategories],
+    [categories, loadCategories],
   );
 
   const deleteCategory = useCallback(
     async (id: string) => {
+      // Check for linked subscriptions and budgets at the DB level before deleting
+      const db = await getDatabase();
+
+      const linkedSubscription = await db.getFirstAsync<{ id: string }>(
+        "SELECT id FROM subscriptions WHERE categoryId = ? LIMIT 1",
+        [id],
+      );
+      if (linkedSubscription) {
+        throw new Error(
+          "This category has active subscriptions. Remove them first before deleting.",
+        );
+      }
+
+      const linkedBudget = await db.getFirstAsync<{ id: string }>(
+        "SELECT id FROM budgets WHERE categoryId = ? LIMIT 1",
+        [id],
+      );
+      if (linkedBudget) {
+        throw new Error(
+          "This category has budgets linked to it. Remove them first before deleting.",
+        );
+      }
+
       // Optimistic update - remove from UI immediately
       const previousCategories = [...categories];
       setCategories((prev) => prev.filter((c) => c.id !== id));
       setError(null);
 
       try {
-        const db = await getDatabase();
         await db.runAsync("DELETE FROM categories WHERE id = ?", [id]);
       } catch (err) {
         // Rollback on error
@@ -315,8 +338,14 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
     [categories],
   );
 
-  const expenseCategories = categories.filter((c) => c.type === "expense");
-  const incomeCategories = categories.filter((c) => c.type === "income");
+  const expenseCategories = useMemo(
+    () => categories.filter((c) => c.type === "expense"),
+    [categories],
+  );
+  const incomeCategories = useMemo(
+    () => categories.filter((c) => c.type === "income"),
+    [categories],
+  );
 
   return (
     <CategoryContext.Provider

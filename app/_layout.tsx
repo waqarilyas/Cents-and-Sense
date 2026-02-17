@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, View, StatusBar } from "react-native";
+import { ActivityIndicator, View, StatusBar, TouchableOpacity } from "react-native";
+import { Text } from "react-native-paper";
 import { PaperProvider, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -16,34 +17,103 @@ import { SettingsProvider } from "../lib/contexts/SettingsContext";
 import { useThemeColors } from "../lib/theme";
 import { widgetService } from "../lib/services/WidgetService";
 import ErrorBoundary from "../components/ErrorBoundary";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  const initDb = async () => {
+    try {
+      setDbError(null);
+      await initializeDatabase();
+      setDbReady(true);
+
+      // Initialize widget data after DB is confirmed ready
+      try {
+        await widgetService.updateAllWidgets();
+      } catch (err) {
+        console.warn("Initial widget update failed:", err);
+      }
+    } catch (error) {
+      console.error("Database initialization error:", error);
+      setDbError(
+        error instanceof Error ? error.message : "Failed to initialize database"
+      );
+    }
+  };
 
   useEffect(() => {
-    const initDb = async () => {
-      try {
-        await initializeDatabase();
-        setDbReady(true);
-
-        // Initialize widget data on app start (after a delay to ensure DB is ready)
-        setTimeout(async () => {
-          try {
-            console.log("Initializing widget data...");
-            await widgetService.updateAllWidgets();
-            console.log("Widget data initialized successfully");
-          } catch (err) {
-            console.warn("Initial widget update failed:", err);
-          }
-        }, 2000);
-      } catch (error) {
-        console.error("Database initialization error:", error);
-        setDbReady(true);
-      }
-    };
-
     initDb();
   }, []);
+
+  // DB failed to init — show error screen, NOT the app
+  if (dbError) {
+    return (
+      <SafeAreaProvider>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#0B1120",
+            padding: 24,
+          }}
+        >
+          <Ionicons name="alert-circle" size={64} color="#EF4444" />
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: 20,
+              fontWeight: "700",
+              marginTop: 16,
+              textAlign: "center",
+            }}
+          >
+            Unable to Start
+          </Text>
+          <Text
+            style={{
+              color: "#94A3B8",
+              fontSize: 14,
+              marginTop: 8,
+              textAlign: "center",
+              lineHeight: 22,
+            }}
+          >
+            The database could not be initialized. Your data is safe — please try again.
+          </Text>
+          {__DEV__ && (
+            <Text
+              style={{
+                color: "#F87171",
+                fontSize: 12,
+                marginTop: 12,
+                fontFamily: "monospace",
+                textAlign: "center",
+              }}
+            >
+              {dbError}
+            </Text>
+          )}
+          <TouchableOpacity
+            onPress={initDb}
+            style={{
+              marginTop: 24,
+              backgroundColor: "#6366F1",
+              paddingHorizontal: 32,
+              paddingVertical: 14,
+              borderRadius: 12,
+            }}
+          >
+            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600" }}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   if (!dbReady) {
     return (

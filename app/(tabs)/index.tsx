@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo, useEffect } from "react";
+import { useCallback, useState, useMemo, useEffect, useRef } from "react";
 import {
   ScrollView,
   View,
@@ -80,12 +80,19 @@ export default function HomeScreen() {
     processDueSubscriptions(settings.subscriptionProcessingMode);
   }, [settings.subscriptionProcessingMode]);
 
+  // Throttle focus refreshes to avoid excessive DB queries (once per 5s max)
+  const lastRefresh = useRef(0);
+  const REFRESH_THROTTLE_MS = 5000;
+
   useFocusEffect(
     useCallback(() => {
+      const now = Date.now();
+      if (now - lastRefresh.current < REFRESH_THROTTLE_MS) return;
+      lastRefresh.current = now;
+
       refreshAccounts();
       refreshTransactions();
       refreshSubscriptions();
-      // Check for due subscriptions when screen focuses
       processDueSubscriptions(settings.subscriptionProcessingMode);
     }, [
       refreshAccounts,

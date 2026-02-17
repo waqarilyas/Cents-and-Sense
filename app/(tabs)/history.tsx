@@ -1,6 +1,6 @@
 import { useCallback, useState, useMemo } from "react";
 import {
-  ScrollView,
+  SectionList,
   View,
   TouchableOpacity,
   StyleSheet,
@@ -125,6 +125,16 @@ export default function HistoryScreen() {
     return groups;
   }, [filteredTransactions]);
 
+  // Convert grouped transactions to SectionList format
+  const sections = useMemo(
+    () =>
+      Object.entries(groupedTransactions).map(([date, items]) => ({
+        title: date,
+        data: items,
+      })),
+    [groupedTransactions],
+  );
+
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>,
@@ -222,11 +232,14 @@ export default function HistoryScreen() {
         </View>
 
         {/* Transaction List */}
-        <ScrollView
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -234,90 +247,85 @@ export default function HistoryScreen() {
               colors={[colors.primary]}
             />
           }
-        >
-          {Object.keys(groupedTransactions).length > 0 ? (
-            Object.entries(groupedTransactions).map(([date, items]) => (
-              <View key={date} style={styles.dateSection}>
-                <Text style={styles.dateTitle}>{date}</Text>
-                {items.map((transaction) => {
-                  const category = categoryMap.get(transaction.categoryId);
-                  const account = accounts.find(
-                    (a) => a.id === transaction.accountId,
-                  );
-                  return (
-                    <Swipeable
-                      key={transaction.id}
-                      renderRightActions={(progress, dragX) =>
-                        renderRightActions(progress, dragX, transaction.id)
-                      }
-                      friction={2}
-                      rightThreshold={40}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={styles.dateTitle}>{title}</Text>
+          )}
+          renderItem={({ item: transaction }) => {
+            const category = categoryMap.get(transaction.categoryId);
+            const account = accounts.find(
+              (a) => a.id === transaction.accountId,
+            );
+            return (
+              <Swipeable
+                renderRightActions={(progress, dragX) =>
+                  renderRightActions(progress, dragX, transaction.id)
+                }
+                friction={2}
+                rightThreshold={40}
+              >
+                <Card style={styles.transactionCard}>
+                  <View style={styles.transactionRow}>
+                    <View
+                      style={[
+                        styles.transactionIcon,
+                        {
+                          backgroundColor: category?.color
+                            ? `${category.color}15`
+                            : transaction.type === "income"
+                              ? `${colors.income}15`
+                              : `${colors.expense}15`,
+                        },
+                      ]}
                     >
-                      <Card style={styles.transactionCard}>
-                        <View style={styles.transactionRow}>
-                          <View
-                            style={[
-                              styles.transactionIcon,
-                              {
-                                backgroundColor: category?.color
-                                  ? `${category.color}15`
-                                  : transaction.type === "income"
-                                    ? `${colors.income}15`
-                                    : `${colors.expense}15`,
-                              },
-                            ]}
-                          >
-                            <Ionicons
-                              name={
-                                category
-                                  ? getCategoryIcon(category.name)
-                                  : "ellipsis-horizontal"
-                              }
-                              size={20}
-                              color={
-                                category?.color ||
-                                (transaction.type === "income"
-                                  ? colors.income
-                                  : colors.expense)
-                              }
-                            />
-                          </View>
-                          <View style={styles.transactionInfo}>
-                            <Text style={styles.transactionTitle}>
-                              {transaction.description ||
-                                category?.name ||
-                                "Transaction"}
-                            </Text>
-                            <Text style={styles.transactionSubtitle}>
-                              {category?.name || "Uncategorized"}
-                              {account ? ` • ${account.name}` : ""}
-                            </Text>
-                          </View>
-                          <Text
-                            style={[
-                              styles.transactionAmount,
-                              {
-                                color:
-                                  transaction.type === "income"
-                                    ? colors.income
-                                    : colors.expense,
-                              },
-                            ]}
-                          >
-                            {transaction.type === "income" ? "+" : "-"}
-                            {formatCurrency(
-                              transaction.amount,
-                              transaction.currency,
-                            )}
-                          </Text>
-                        </View>
-                      </Card>
-                    </Swipeable>
-                  );
-                })}
-              </View>
-            ))
-          ) : (
+                      <Ionicons
+                        name={
+                          category
+                            ? getCategoryIcon(category.name)
+                            : "ellipsis-horizontal"
+                        }
+                        size={20}
+                        color={
+                          category?.color ||
+                          (transaction.type === "income"
+                            ? colors.income
+                            : colors.expense)
+                        }
+                      />
+                    </View>
+                    <View style={styles.transactionInfo}>
+                      <Text style={styles.transactionTitle}>
+                        {transaction.description ||
+                          category?.name ||
+                          "Transaction"}
+                      </Text>
+                      <Text style={styles.transactionSubtitle}>
+                        {category?.name || "Uncategorized"}
+                        {account ? ` • ${account.name}` : ""}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.transactionAmount,
+                        {
+                          color:
+                            transaction.type === "income"
+                              ? colors.income
+                              : colors.expense,
+                        },
+                      ]}
+                    >
+                      {transaction.type === "income" ? "+" : "-"}
+                      {formatCurrency(
+                        transaction.amount,
+                        transaction.currency,
+                      )}
+                    </Text>
+                  </View>
+                </Card>
+              </Swipeable>
+            );
+          }}
+          ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons
                 name="receipt-outline"
@@ -335,11 +343,9 @@ export default function HistoryScreen() {
                   : "Tap the + button to add your first expense"}
               </Text>
             </View>
-          )}
-
-          {/* Bottom spacing for tab bar */}
-          <View style={{ height: 120 }} />
-        </ScrollView>
+          }
+          ListFooterComponent={<View style={{ height: 120 }} />}
+        />
       </View>
     </GestureHandlerRootView>
   );
@@ -418,14 +424,12 @@ const createStyles = (colors: ThemeColors) =>
     scrollContent: {
       paddingHorizontal: spacing.lg,
     },
-    dateSection: {
-      marginBottom: spacing.lg,
-    },
     dateTitle: {
       fontSize: 14,
       fontWeight: "600",
       color: colors.textSecondary,
       marginBottom: spacing.sm,
+      marginTop: spacing.md,
     },
     transactionCard: {
       marginBottom: spacing.sm,

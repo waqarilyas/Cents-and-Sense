@@ -53,7 +53,6 @@ export default function SettingsScreen() {
   const { subscriptions, refreshSubscriptions } = useSubscriptions();
   const { userName, defaultCurrency, updateDefaultCurrency } = useUser();
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
   // Calculate some stats for display
@@ -110,8 +109,12 @@ export default function SettingsScreen() {
         {
           icon: "notifications-outline",
           label: "Notifications",
-          subtitle: notificationsEnabled ? "Enabled" : "Disabled",
-          onPress: () => setNotificationsEnabled(!notificationsEnabled),
+          subtitle: "Coming soon",
+          onPress: () =>
+            Alert.alert(
+              "Notifications",
+              "Push notifications will be available in a future update.",
+            ),
           showArrow: true,
         },
         {
@@ -182,13 +185,15 @@ export default function SettingsScreen() {
                     try {
                       const db = await getDatabase();
                       await db.execAsync(`
+                        BEGIN TRANSACTION;
+                        DELETE FROM budget_period_snapshots;
                         DELETE FROM transactions;
                         DELETE FROM subscriptions;
                         DELETE FROM budgets;
                         DELETE FROM monthly_budgets;
                         DELETE FROM goals;
-                        DELETE FROM budget_period_snapshots;
                         UPDATE accounts SET balance = 0;
+                        COMMIT;
                       `);
                       await refreshAccounts();
                       await refreshTransactions();
@@ -202,6 +207,10 @@ export default function SettingsScreen() {
                       );
                     } catch (error) {
                       console.error("Error clearing data:", error);
+                      try {
+                        const db = await getDatabase();
+                        await db.execAsync("ROLLBACK");
+                      } catch (_) {}
                       Alert.alert(
                         "Error",
                         "Failed to clear data. Please try again.",

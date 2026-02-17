@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
-  ScrollView,
+  SectionList,
   View,
   TouchableOpacity,
   StyleSheet,
@@ -85,7 +85,9 @@ export default function TransactionsScreen() {
     setAmount("");
     setDescription("");
     setCategoryId("");
-    setAccountId(defaultAccount?.id || (accounts.length > 0 ? accounts[0].id : ""));
+    setAccountId(
+      defaultAccount?.id || (accounts.length > 0 ? accounts[0].id : ""),
+    );
     setTransactionType("expense");
     setEditingTransaction(null);
   };
@@ -267,6 +269,12 @@ export default function TransactionsScreen() {
   const monthGroups = getMonthGroups();
   const totalBalance = monthlyStats.income - monthlyStats.expense;
 
+  // Convert month groups to SectionList format
+  const sections = Object.entries(monthGroups).map(([month, items]) => ({
+    title: month,
+    data: items,
+  }));
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -409,10 +417,13 @@ export default function TransactionsScreen() {
         )}
 
         {/* Transaction List */}
-        <ScrollView
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -420,96 +431,91 @@ export default function TransactionsScreen() {
               colors={[colors.primary]}
             />
           }
-        >
-          {Object.keys(monthGroups).length > 0 ? (
-            Object.entries(monthGroups).map(([month, items]) => (
-              <View key={month} style={styles.monthSection}>
-                <Text style={styles.monthTitle}>{month}</Text>
-                {items.map((transaction) => {
-                  const category = categories.find(
-                    (c) => c.id === transaction.categoryId,
-                  );
-                  const account = accounts.find(
-                    (a) => a.id === transaction.accountId,
-                  );
-                  return (
-                    <Swipeable
-                      key={transaction.id}
-                      renderRightActions={(progress, dragX) =>
-                        renderRightActions(progress, dragX, transaction.id)
-                      }
-                      friction={2}
-                      rightThreshold={40}
-                    >
-                      <TouchableOpacity
-                        onPress={() => openEditModal(transaction)}
-                        activeOpacity={0.7}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={styles.monthTitle}>{title}</Text>
+          )}
+          renderItem={({ item: transaction }) => {
+            const category = categories.find(
+              (c) => c.id === transaction.categoryId,
+            );
+            const account = accounts.find(
+              (a) => a.id === transaction.accountId,
+            );
+            return (
+              <Swipeable
+                renderRightActions={(progress, dragX) =>
+                  renderRightActions(progress, dragX, transaction.id)
+                }
+                friction={2}
+                rightThreshold={40}
+              >
+                <TouchableOpacity
+                  onPress={() => openEditModal(transaction)}
+                  activeOpacity={0.7}
+                >
+                  <Card style={styles.transactionCard}>
+                    <View style={styles.transactionRow}>
+                      <View
+                        style={[
+                          styles.transactionIcon,
+                          {
+                            backgroundColor:
+                              transaction.type === "income"
+                                ? `${colors.income}15`
+                                : `${colors.expense}15`,
+                          },
+                        ]}
                       >
-                        <Card style={styles.transactionCard}>
-                          <View style={styles.transactionRow}>
-                            <View
-                              style={[
-                                styles.transactionIcon,
-                                {
-                                  backgroundColor:
-                                    transaction.type === "income"
-                                      ? `${colors.income}15`
-                                      : `${colors.expense}15`,
-                                },
-                              ]}
-                            >
-                              <Ionicons
-                                name={
-                                  transaction.type === "income"
-                                    ? "arrow-down"
-                                    : "arrow-up"
-                                }
-                                size={20}
-                                color={
-                                  transaction.type === "income"
-                                    ? colors.income
-                                    : colors.expense
-                                }
-                              />
-                            </View>
-                            <View style={styles.transactionInfo}>
-                              <Text style={styles.transactionTitle}>
-                                {transaction.description ||
-                                  category?.name ||
-                                  "Transaction"}
-                              </Text>
-                              <Text style={styles.transactionSubtitle}>
-                                {formatShortDate(transaction.date)} •{" "}
-                                {category?.name || "Uncategorized"}
-                                {account ? ` • ${account.name}` : ""}
-                              </Text>
-                            </View>
-                            <Text
-                              style={[
-                                styles.transactionAmount,
-                                {
-                                  color:
-                                    transaction.type === "income"
-                                      ? colors.income
-                                      : colors.expense,
-                                },
-                              ]}
-                            >
-                              {transaction.type === "income" ? "+" : "-"}
-                              {formatCurrency(
-                                transaction.amount,
-                                transaction.currency,
-                              )}
-                            </Text>
-                          </View>
-                        </Card>
-                      </TouchableOpacity>
-                    </Swipeable>
-                  );
-                })}
-              </View>
-            ))
-          ) : (
+                        <Ionicons
+                          name={
+                            transaction.type === "income"
+                              ? "arrow-down"
+                              : "arrow-up"
+                          }
+                          size={20}
+                          color={
+                            transaction.type === "income"
+                              ? colors.income
+                              : colors.expense
+                          }
+                        />
+                      </View>
+                      <View style={styles.transactionInfo}>
+                        <Text style={styles.transactionTitle}>
+                          {transaction.description ||
+                            category?.name ||
+                            "Transaction"}
+                        </Text>
+                        <Text style={styles.transactionSubtitle}>
+                          {formatShortDate(transaction.date)} •{" "}
+                          {category?.name || "Uncategorized"}
+                          {account ? ` • ${account.name}` : ""}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.transactionAmount,
+                          {
+                            color:
+                              transaction.type === "income"
+                                ? colors.income
+                                : colors.expense,
+                          },
+                        ]}
+                      >
+                        {transaction.type === "income" ? "+" : "-"}
+                        {formatCurrency(
+                          transaction.amount,
+                          transaction.currency,
+                        )}
+                      </Text>
+                    </View>
+                  </Card>
+                </TouchableOpacity>
+              </Swipeable>
+            );
+          }}
+          ListEmptyComponent={
             <Card style={styles.emptyCard}>
               <View style={styles.emptyIcon}>
                 <Ionicons
@@ -537,9 +543,9 @@ export default function TransactionsScreen() {
                 <Text style={styles.emptyButtonText}>Add Transaction</Text>
               </TouchableOpacity>
             </Card>
-          )}
-          <View style={{ height: 100 }} />
-        </ScrollView>
+          }
+          ListFooterComponent={<View style={{ height: 100 }} />}
+        />
 
         {/* Add Transaction Modal */}
         <BottomSheet
@@ -857,14 +863,12 @@ const createStyles = (colors: ThemeColors) =>
     scrollContent: {
       paddingHorizontal: spacing.lg,
     },
-    monthSection: {
-      marginBottom: spacing.lg,
-    },
     monthTitle: {
       fontSize: 16,
       fontWeight: "600",
       color: colors.textPrimary,
       marginBottom: spacing.md,
+      marginTop: spacing.md,
     },
     transactionCard: {
       marginBottom: spacing.sm,

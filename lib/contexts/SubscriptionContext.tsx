@@ -233,6 +233,24 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         throw new Error("Subscription not found");
       }
 
+      // Validate provided fields
+      if (updates.name !== undefined) {
+        validateString(updates.name, "subscription name", {
+          required: true,
+          minLength: 1,
+          maxLength: 100,
+        });
+      }
+      if (updates.amount !== undefined) {
+        validateAmount(updates.amount, "amount", {
+          min: 0.01,
+          max: 999999999,
+        });
+      }
+      if (updates.categoryId !== undefined) {
+        validateId(updates.categoryId, "categoryId");
+      }
+
       // Optimistic update
       const updatedSubscription = { ...oldSubscription, ...updates };
       setSubscriptions((prev) =>

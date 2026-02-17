@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Switch,
   Pressable,
 } from "react-native";
 import { Text } from "react-native-paper";
@@ -69,7 +68,6 @@ export default function ProfileScreen() {
   const { settings, updateSetting } = useSettings();
   const { userName } = useUser();
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
   // Get current currency info for display
@@ -224,8 +222,12 @@ export default function ProfileScreen() {
         {
           icon: "notifications-outline",
           label: "Notifications",
-          subtitle: notificationsEnabled ? "Enabled" : "Disabled",
-          onPress: () => setNotificationsEnabled(!notificationsEnabled),
+          subtitle: "Coming soon",
+          onPress: () =>
+            Alert.alert(
+              "Notifications",
+              "Push notifications will be available in a future update.",
+            ),
         },
         {
           icon: "moon-outline",
@@ -395,19 +397,6 @@ export default function ProfileScreen() {
                       </Text>
                     )}
                   </View>
-                  {item.label === "Notifications" && (
-                    <Switch
-                      value={notificationsEnabled}
-                      onValueChange={setNotificationsEnabled}
-                      trackColor={{
-                        false: colors.border,
-                        true: colors.primaryLight,
-                      }}
-                      thumbColor={
-                        notificationsEnabled ? colors.primary : colors.textMuted
-                      }
-                    />
-                  )}
                   {item.badge !== undefined && Number(item.badge) > 0 && (
                     <View style={styles.menuItemBadge}>
                       <Text style={styles.menuItemBadgeText}>{item.badge}</Text>

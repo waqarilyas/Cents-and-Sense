@@ -185,7 +185,11 @@ export default function AccountsScreen() {
   };
 
   const handleAccountLongPress = (account: Account) => {
-    const actions: { text: string; onPress?: () => void; style?: "cancel" | "destructive" | "default" }[] = [];
+    const actions: {
+      text: string;
+      onPress?: () => void;
+      style?: "cancel" | "destructive" | "default";
+    }[] = [];
 
     if (!account.isDefault) {
       actions.push({
@@ -210,7 +214,11 @@ export default function AccountsScreen() {
 
     actions.push({ text: "Cancel", style: "cancel" });
 
-    Alert.alert(account.name, account.isDefault ? "This is your default account" : "Choose an action", actions);
+    Alert.alert(
+      account.name,
+      account.isDefault ? "This is your default account" : "Choose an action",
+      actions,
+    );
   };
 
   const openEditModal = (account: Account) => {
@@ -334,12 +342,34 @@ export default function AccountsScreen() {
                       />
                     </View>
                     <View style={styles.accountInfo}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
                         <Text style={styles.accountName}>{account.name}</Text>
                         {account.isDefault && (
-                          <View style={[styles.defaultBadge, { backgroundColor: colors.primaryLight }]}>
-                            <Ionicons name="star" size={10} color={colors.primary} />
-                            <Text style={[styles.defaultBadgeText, { color: colors.primary }]}>Default</Text>
+                          <View
+                            style={[
+                              styles.defaultBadge,
+                              { backgroundColor: colors.primaryLight },
+                            ]}
+                          >
+                            <Ionicons
+                              name="star"
+                              size={10}
+                              color={colors.primary}
+                            />
+                            <Text
+                              style={[
+                                styles.defaultBadgeText,
+                                { color: colors.primary },
+                              ]}
+                            >
+                              Default
+                            </Text>
                           </View>
                         )}
                       </View>

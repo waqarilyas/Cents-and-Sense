@@ -747,8 +747,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                             ? colors.expense
                             : colors.income,
                       },
-                      parseFloat(amount) <= 0 &&
-                        styles.continueButtonDisabled,
+                      parseFloat(amount) <= 0 && styles.continueButtonDisabled,
                     ]}
                     onPress={handleContinue}
                     disabled={parseFloat(amount) <= 0}

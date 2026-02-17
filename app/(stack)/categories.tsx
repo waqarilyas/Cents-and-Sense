@@ -66,8 +66,9 @@ export default function CategoriesScreen() {
     addCategory,
     updateCategory,
     deleteCategory,
+    refreshCategories,
   } = useCategories();
-  const { transactions } = useTransactions();
+  const { transactions, refreshTransactions } = useTransactions();
   const { defaultCurrency } = useUser();
 
   const [activeTab, setActiveTab] = useState<CategoryType>("expense");
@@ -188,7 +189,11 @@ export default function CategoriesScreen() {
             try {
               await deleteCategory(id);
             } catch (error) {
-              Alert.alert("Error", "Failed to delete category");
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete category";
+              Alert.alert("Cannot Delete", message);
             }
           },
         },
@@ -328,7 +333,11 @@ export default function CategoriesScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => setRefreshing(false)}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await Promise.all([refreshCategories(), refreshTransactions()]);
+              setRefreshing(false);
+            }}
             colors={[colors.primary]}
           />
         }

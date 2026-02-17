@@ -108,7 +108,15 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
         await db.runAsync(
           "INSERT INTO accounts (id, name, type, balance, currency, isDefault, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [id, validName, validType, 0, validCurrency, shouldBeDefault, Date.now()],
+          [
+            id,
+            validName,
+            validType,
+            0,
+            validCurrency,
+            shouldBeDefault,
+            Date.now(),
+          ],
         );
 
         await loadAccounts();
@@ -201,22 +209,33 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const db = await getDatabase();
-        // Delete associated transactions first
-        await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [id]);
-        // Then delete the account
-        await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
 
-        // If the deleted account was the default, reassign to the first remaining account
-        if (deletedAccount?.isDefault) {
-          const remaining = accounts.filter((a) => a.id !== id);
-          if (remaining.length > 0) {
-            await db.runAsync(
-              "UPDATE accounts SET isDefault = 1 WHERE id = ?",
-              [remaining[0].id],
-            );
+        // Use a transaction to ensure atomicity
+        await db.execAsync("BEGIN TRANSACTION");
+        try {
+          // Delete associated transactions first
+          await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [id]);
+          // Then delete the account
+          await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
+
+          // If the deleted account was the default, reassign to the first remaining account
+          if (deletedAccount?.isDefault) {
+            const remaining = accounts.filter((a) => a.id !== id);
+            if (remaining.length > 0) {
+              await db.runAsync(
+                "UPDATE accounts SET isDefault = 1 WHERE id = ?",
+                [remaining[0].id],
+              );
+            }
           }
-          await loadAccounts(); // Reload to reflect new default
+
+          await db.execAsync("COMMIT");
+        } catch (txErr) {
+          await db.execAsync("ROLLBACK");
+          throw txErr;
         }
+
+        await loadAccounts(); // Reload to reflect changes
 
         widgetService
           .updateAllWidgets()
@@ -246,18 +265,23 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const db = await getDatabase();
-        // Clear all defaults, then set the new one
-        await db.runAsync("UPDATE accounts SET isDefault = 0");
-        await db.runAsync("UPDATE accounts SET isDefault = 1 WHERE id = ?", [
-          id,
-        ]);
+        // Use a transaction to prevent a state with no default
+        await db.execAsync("BEGIN TRANSACTION");
+        try {
+          await db.runAsync("UPDATE accounts SET isDefault = 0");
+          await db.runAsync("UPDATE accounts SET isDefault = 1 WHERE id = ?", [
+            id,
+          ]);
+          await db.execAsync("COMMIT");
+        } catch (txErr) {
+          await db.execAsync("ROLLBACK");
+          throw txErr;
+        }
       } catch (err) {
         // Rollback on error
         setAccounts(previousAccounts);
         const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to set default account";
+          err instanceof Error ? err.message : "Failed to set default account";
         setError(message);
         throw err;
       }
