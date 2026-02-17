@@ -18,10 +18,10 @@ npm install
 
 ### Running Tests
 
-| Command | Description |
-|---|---|
-| `npm test` | Run all tests |
-| `npm run test:coverage` | Run all tests with coverage report |
+| Command                  | Description                             |
+| ------------------------ | --------------------------------------- |
+| `npm test`               | Run all tests                           |
+| `npm run test:coverage`  | Run all tests with coverage report      |
 | `npx jest --no-coverage` | Run all tests without coverage (faster) |
 
 ### Running Specific Tests
@@ -92,16 +92,16 @@ Test each React Context provider individually with a mocked SQLite database. Cov
 
 Simulate real user flows across the full provider stack using an in-memory database. All 9 context providers are nested in the same order as the real app, so cross-context interactions (e.g. adding a transaction updates the account balance) are tested end-to-end.
 
-| Suite | What it covers |
-|---|---|
-| **Onboarding** | Profile setup, account auto-creation, data persistence across restarts |
-| **Transactions** | Income/expense with balance updates, delete reverting balance, validation |
-| **Budgets** | Per-category budgets, monthly overall budget, carryover toggle |
-| **Goals** | Savings goals, progress tracking, detail updates |
-| **Subscriptions** | Auto-processing (creates transaction + updates balance), skip pending, toggle active |
-| **Multi-Currency** | Accounts/goals/budgets in different currencies, default currency switching |
+| Suite                                | What it covers                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| **Onboarding**                       | Profile setup, account auto-creation, data persistence across restarts                 |
+| **Transactions**                     | Income/expense with balance updates, delete reverting balance, validation              |
+| **Budgets**                          | Per-category budgets, monthly overall budget, carryover toggle                         |
+| **Goals**                            | Savings goals, progress tracking, detail updates                                       |
+| **Subscriptions**                    | Auto-processing (creates transaction + updates balance), skip pending, toggle active   |
+| **Multi-Currency**                   | Accounts/goals/budgets in different currencies, default currency switching             |
 | **Categories & Settings & Accounts** | Category CRUD with deletion protection, settings persistence/reset, account management |
-| **Cross-Context** | Full user journey (onboard → transact → budget → goal), data integrity across contexts |
+| **Cross-Context**                    | Full user journey (onboard → transact → budget → goal), data integrity across contexts |
 
 ### Test Configuration
 
