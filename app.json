@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Budget Planner",
-    "slug": "budget-planner",
+    "name": "Cents and Sense",
+    "slug": "cents-and-sense",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "budgetplanner",
+    "scheme": "centsandsense",
     "newArchEnabled": true,
     "assetBundlePatterns": ["**/*"],
     "splash": {
@@ -16,11 +16,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.budgetplanner.app",
+      "bundleIdentifier": "com.centsandsense.app",
       "buildNumber": "1"
     },
     "android": {
-      "package": "com.budgetplanner.app",
+      "package": "com.centsandsense.app",
       "versionCode": 1,
       "permissions": ["android.permission.VIBRATE"],
       "softwareKeyboardLayoutMode": "resize",
@@ -33,7 +33,7 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "budgetplanner"
+              "scheme": "centsandsense"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

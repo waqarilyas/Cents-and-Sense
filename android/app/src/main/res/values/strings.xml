@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">Budget Planner</string>
+  <string name="app_name">Cents and Sense</string>
   <string name="budget_overview">Budget Overview</string>
   <string name="widget_spending_description">Track monthly spending</string>
   <string name="widget_goals_description">View savings goals progress</string>

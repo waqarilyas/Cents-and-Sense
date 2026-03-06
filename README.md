@@ -1,4 +1,4 @@
-# Budget Tracker App
+# Cents and Sense
 
 A React Native budget tracking app built with Expo SDK 52, expo-router, and expo-sqlite.
 
