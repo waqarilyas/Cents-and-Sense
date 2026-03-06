@@ -12,7 +12,7 @@
 
 **A comprehensive budget tracking mobile app with multi-currency support, goals, subscriptions, and advanced analytics.**
 
-[Features](#-features) • [Demo](#-demo) • [Screenshots](#-screenshots) • [Getting Started](#-getting-started) • [Contributing](#-contributing) • [License](#-license)
+[Features](#-features) • [Demo](#-demo) • [Getting Started](#-getting-started) • [Contributing](#-contributing) • [License](#-license)
 
 </div>
 
@@ -50,13 +50,7 @@ Cents and Sense is a feature-rich, open-source budget tracking application built
 
 ---
 
-## 📸 Screenshots
-
-> Add screenshots of your app here to showcase the UI
-
----
-
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
