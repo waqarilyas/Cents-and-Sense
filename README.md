@@ -92,11 +92,13 @@ npm run web
 ### Environment Setup
 
 For Android development:
+
 - Install Android Studio
 - Set up an Android emulator or connect a physical device
 - Enable USB debugging on your device
 
 For iOS development (macOS only):
+
 - Install Xcode from the App Store
 - Install Xcode Command Line Tools
 - Set up an iOS simulator or connect a physical device
@@ -215,12 +217,14 @@ Simulate real user flows across the full provider stack using an in-memory datab
 ## 🏗️ Tech Stack
 
 ### Frontend
+
 - **React Native** 0.76.9 - Cross-platform mobile framework
 - **Expo** ~52.0.0 - Development platform and tools
 - **TypeScript** 5.1.6 - Type safety
 - **Expo Router** ~4.0.22 - File-based navigation
 
 ### UI/UX
+
 - **React Native Paper** - Material Design components
 - **Lucide React Native** - Icon library
 - **React Native SVG** - SVG support
@@ -228,16 +232,19 @@ Simulate real user flows across the full provider stack using an in-memory datab
 - **React Native Chart Kit** - Additional chart components
 
 ### State Management & Data
+
 - **React Context API** - Global state management
 - **Expo SQLite** ~15.1.4 - Local database
 - **AsyncStorage** - Persistent key-value storage
 
 ### Testing
+
 - **Jest** 30.2.0 - Testing framework
 - **React Testing Library** - Component testing
 - **ts-jest** - TypeScript support for Jest
 
 ### Development Tools
+
 - **ESLint** - Code linting
 - **Prettier** - Code formatting
 

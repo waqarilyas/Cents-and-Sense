@@ -95,6 +95,7 @@ We follow conventional commit messages for clarity and automated changelog gener
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -104,6 +105,7 @@ We follow conventional commit messages for clarity and automated changelog gener
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 ```
 feat(transactions): add category filtering
 fix(budget): correct carryover calculation
@@ -114,6 +116,7 @@ test(goals): add progress calculation tests
 ## 🔄 Changelog
 
 Significant changes should be noted. When making notable changes:
+
 - Update or create a CHANGELOG.md entry if the change is user-facing
 - Follow [Keep a Changelog](https://keepachangelog.com/) format
 - Group changes by type (Added, Changed, Deprecated, Removed, Fixed, Security)
