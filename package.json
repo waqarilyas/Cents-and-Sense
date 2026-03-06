@@ -2,6 +2,34 @@
   "name": "cents-and-sense",
   "version": "1.0.0",
   "private": true,
+  "description": "A comprehensive budget tracking mobile app with multi-currency support, goals, subscriptions, and advanced analytics",
+  "author": {
+    "name": "Waqar Ilyas",
+    "url": "https://github.com/waqarilyas"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waqarilyas/budget-tracker-app-development.git"
+  },
+  "bugs": {
+    "url": "https://github.com/waqarilyas/budget-tracker-app-development/issues"
+  },
+  "homepage": "https://github.com/waqarilyas/budget-tracker-app-development#readme",
+  "keywords": [
+    "budget-tracker",
+    "expense-tracker",
+    "finance",
+    "money-management",
+    "react-native",
+    "expo",
+    "typescript",
+    "mobile-app",
+    "multi-currency",
+    "budgeting",
+    "personal-finance",
+    "savings-goals",
+    "subscription-tracking"
+  ],
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
