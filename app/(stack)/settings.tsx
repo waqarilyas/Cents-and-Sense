@@ -4,11 +4,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Linking,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Application from 'expo-application';
 import {
   useThemeColors,
   ThemeMode,
@@ -26,7 +28,7 @@ import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useUser } from "../../lib/contexts/UserContext";
 import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
-import { getDatabase } from "../../lib/database";
+import { exportAllData, deleteAllData } from "../../lib/utils/dataManagement";
 import { useMemo, useState } from "react";
 
 interface MenuItem {
@@ -54,6 +56,10 @@ export default function SettingsScreen() {
   const { userName, defaultCurrency, updateDefaultCurrency } = useUser();
 
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+
+  // Get app version
+  const appVersion = Application.nativeApplicationVersion || '1.0.0';
+  const buildNumber = Application.nativeBuildVersion || '1';
 
   // Calculate some stats for display
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
@@ -153,69 +159,102 @@ export default function SettingsScreen() {
       title: "Data & Security",
       items: [
         {
-          icon: "cloud-upload-outline",
-          label: "Backup Data",
-          subtitle: "Export your data",
-          onPress: () =>
-            Alert.alert("Backup", "Data backup feature coming soon!"),
-          showArrow: true,
-        },
-        {
-          icon: "cloud-download-outline",
-          label: "Restore Data",
-          subtitle: "Import from backup",
-          onPress: () =>
-            Alert.alert("Restore", "Data restore feature coming soon!"),
-          showArrow: true,
-        },
-        {
-          icon: "trash-outline",
-          label: "Clear All Data",
-          subtitle: "Delete all transactions and accounts",
-          onPress: () =>
+          icon: "download-outline",
+          label: "Export All Data",
+          subtitle: "Download your data as JSON file",
+          onPress: async () => {
             Alert.alert(
-              "Clear All Data",
-              "This will permanently delete all your data. This action cannot be undone.",
+              "Export Data",
+              "This will export all your financial data (accounts, transactions, budgets, goals, etc.) to a JSON file.",
               [
                 { text: "Cancel", style: "cancel" },
                 {
-                  text: "Delete",
-                  style: "destructive",
+                  text: "Export",
                   onPress: async () => {
                     try {
-                      const db = await getDatabase();
-                      await db.execAsync(`
-                        BEGIN TRANSACTION;
-                        DELETE FROM budget_period_snapshots;
-                        DELETE FROM transactions;
-                        DELETE FROM subscriptions;
-                        DELETE FROM budgets;
-                        DELETE FROM monthly_budgets;
-                        DELETE FROM goals;
-                        UPDATE accounts SET balance = 0;
-                        COMMIT;
-                      `);
-                      await refreshAccounts();
-                      await refreshTransactions();
-                      await refreshBudgets();
-                      await refreshGoals();
-                      await refreshCategories();
-                      await refreshSubscriptions();
-                      Alert.alert(
-                        "Success",
-                        "All data has been cleared. Your accounts have been reset to zero balance.",
-                      );
+                      await exportAllData();
                     } catch (error) {
-                      console.error("Error clearing data:", error);
-                      try {
-                        const db = await getDatabase();
-                        await db.execAsync("ROLLBACK");
-                      } catch (_) {}
                       Alert.alert(
-                        "Error",
-                        "Failed to clear data. Please try again.",
+                        "Export Failed",
+                        error instanceof Error ? error.message : "An error occurred while exporting data.",
                       );
                     }
+                  },
+                },
+              ],
+            );
+          },
+          showArrow: true,
+          color: "#4CAF50",
+        },
+        {
+          icon: "trash-outline",
+          label: "Delete All Data",
+          subtitle: "Permanently delete everything",
+          onPress: () =>
+            Alert.alert(
+              "⚠️ Delete All Data",
+              "This will PERMANENTLY delete:\n\n• All accounts\n• All transactions\n• All budgets\n• All goals\n• All subscriptions\n• All custom categories\n• All settings\n\nThis action CANNOT be undone!\n\nConsider exporting your data first.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Export First",
+                  onPress: async () => {
+                    try {
+                      await exportAllData();
+                      Alert.alert(
+                        "Data Exported",
+                        "Now you can safely delete your data if needed.",
+                      );
+                    } catch (error) {
+                      Alert.alert(
+                        "Export Failed",
+                        "Please try exporting again before deleting data.",
+                      );
+                    }
+                  },
+                },
+                {
+                  text: "Delete Everything",
+                  style: "destructive",
+                  onPress: () => {
+                    // Double confirmation
+                    Alert.alert(
+                      "Final Confirmation",
+                      "Are you absolutely sure? This will delete ALL your data permanently.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Yes, Delete All",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              await deleteAllData();
+                              // Refresh all contexts
+                              await Promise.all([
+                                refreshAccounts(),
+                                refreshTransactions(),
+                                refreshBudgets(),
+                                refreshGoals(),
+                                refreshCategories(),
+                                refreshSubscriptions(),
+                              ]);
+                              Alert.alert(
+                                "✅ Data Deleted",
+                                "All your data has been permanently deleted. You can start fresh or close the app.",
+                              );
+                            } catch (error) {
+                              Alert.alert(
+                                "Error",
+                                error instanceof Error 
+                                  ? error.message 
+                                  : "Failed to delete data. Please try again.",
+                              );
+                            }
+                          },
+                        },
+                      ],
+                    );
                   },
                 },
               ],
@@ -229,24 +268,57 @@ export default function SettingsScreen() {
       title: "Support",
       items: [
         {
-          icon: "help-circle-outline",
-          label: "Help & FAQ",
-          onPress: () =>
-            Alert.alert("Help", "Visit our website for help and FAQs."),
+          icon: "book-outline",
+          label: "User Guide",
+          subtitle: "How to use Cents and Sense",
+          onPress: () => router.push("/guide"),
           showArrow: true,
         },
         {
-          icon: "mail-outline",
-          label: "Contact Support",
-          onPress: () =>
-            Alert.alert("Contact", "Email us at support@budgettracker.app"),
+          icon: "help-circle-outline",
+          label: "Help & FAQ",
+          subtitle: "Get help on GitHub",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development/discussions";
+            Linking.openURL(url).catch(() =>
+              Alert.alert("Error", "Could not open the link.")
+            );
+          },
+          showArrow: true,
+        },
+        {
+          icon: "bug-outline",
+          label: "Report a Bug",
+          subtitle: "Help us improve",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development/issues/new?template=bug_report.md";
+            Linking.openURL(url).catch(() =>
+              Alert.alert("Error", "Could not open the link.")
+            );
+          },
           showArrow: true,
         },
         {
           icon: "star-outline",
-          label: "Rate App",
+          label: "Feature Request",
+          subtitle: "Suggest new features",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development/issues/new?template=feature_request.md";
+            Linking.openURL(url).catch(() =>
+              Alert.alert("Error", "Could not open the link.")
+            );
+          },
+          showArrow: true,
+        },
+        {
+          icon: "heart-outline",
+          label: "Rate on App Store",
+          subtitle: "Support the project",
           onPress: () =>
-            Alert.alert("Thank You!", "We appreciate your feedback!"),
+            Alert.alert(
+              "Thank You!",
+              "We appreciate your support! The app will be available on app stores soon.",
+            ),
           showArrow: true,
         },
       ],
@@ -256,15 +328,83 @@ export default function SettingsScreen() {
       items: [
         {
           icon: "information-circle-outline",
-          label: "Version",
-          subtitle: "1.0.0",
-          onPress: () => Alert.alert("Budget Tracker", "Version 1.0.0"),
+          label: "App Version",
+          subtitle: `Version ${appVersion} (Build ${buildNumber})`,
+          onPress: () => {
+            Alert.alert(
+              "Cents and Sense",
+              `Version: ${appVersion}\nBuild: ${buildNumber}\n\nA comprehensive budget tracking app built with React Native and Expo.\n\nMade with ❤️ by the open-source community.`,
+            );
+          },
         },
         {
           icon: "shield-checkmark-outline",
           label: "Privacy Policy",
-          onPress: () =>
-            Alert.alert("Privacy", "Your data stays on your device."),
+          subtitle: "How we protect your data",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development/blob/main/PRIVACY_POLICY.md";
+            Linking.openURL(url).catch(() =>
+              Alert.alert(
+                "Privacy Policy",
+                "Your data is stored locally on your device only. We do not collect, transmit, or store any of your personal or financial information on external servers. You have complete control over your data at all times.",
+              )
+            );
+          },
+          showArrow: true,
+        },
+        {
+          icon: "document-text-outline",
+          label: "Terms of Service",
+          subtitle: "Terms and conditions",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development/blob/main/TERMS_OF_SERVICE.md";
+            Linking.openURL(url).catch(() =>
+              Alert.alert(
+                "Terms of Service",
+                "Cents and Sense is provided as-is under the MIT License. By using this app, you agree to use it responsibly for personal finance tracking.",
+              )
+            );
+          },
+          showArrow: true,
+        },
+        {
+          icon: "code-slash-outline",
+          label: "Open Source",
+          subtitle: "MIT License - View on GitHub",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development";
+            Linking.openURL(url).catch(() =>
+              Alert.alert("Error", "Could not open GitHub repository.")
+            );
+          },
+          showArrow: true,
+          color: "#4CAF50",
+        },
+        {
+          icon: "people-outline",
+          label: "Contributors",
+          subtitle: "Meet the team",
+          onPress: () => {
+            const url = "https://github.com/waqarilyas/budget-tracker-app-development/graphs/contributors";
+            Linking.openURL(url).catch(() =>
+              Alert.alert(
+                "Contributors",
+                "Thank you to all our contributors who make this project possible!",
+              )
+            );
+          },
+          showArrow: true,
+        },
+        {
+          icon: "heart-outline",
+          label: "Acknowledgments",
+          subtitle: "Built with amazing tools",
+          onPress: () => {
+            Alert.alert(
+              "Acknowledgments",
+              "Cents and Sense is built with:\n\n• React Native & Expo\n• React Native Paper\n• SQLite\n• Victory Charts\n• Lucide Icons\n\nAnd many other amazing open-source libraries.\n\nThank you to all the developers!",
+            );
+          },
           showArrow: true,
         },
       ],

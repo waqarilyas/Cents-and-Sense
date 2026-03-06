@@ -50,7 +50,7 @@ Cents and Sense is a feature-rich, open-source budget tracking application built
 
 ---
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 
