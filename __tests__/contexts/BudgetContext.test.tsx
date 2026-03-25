@@ -287,7 +287,9 @@ describe("BudgetContext — deleteBudget", () => {
 
     const deleteCall = mockDb.runAsync.mock.calls.find(
       (call: any[]) =>
-        typeof call[0] === "string" && call[0].includes("DELETE"),
+        typeof call[0] === "string" &&
+        call[0].includes("UPDATE") &&
+        call[0].includes("deletedAt"),
     );
     expect(deleteCall).toBeDefined();
   });

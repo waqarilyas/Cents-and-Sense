@@ -21,6 +21,7 @@ import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import { useCurrency } from "../../lib/contexts/CurrencyContext";
+import { useEntitlements } from "../../lib/contexts/EntitlementContext";
 import {
   spacing,
   borderRadius,
@@ -29,6 +30,7 @@ import {
 } from "../../lib/theme";
 import { useThemeColors, ThemeColors } from "../../lib/theme";
 import { Card, LoadingState } from "../../lib/components";
+import { PremiumGate } from "../../lib/components/PremiumGate";
 
 // Format currency with abbreviations for compact display
 const formatCompactCurrency = (
@@ -79,6 +81,7 @@ export default function AnalysisScreen() {
   const { colors, activeTheme } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { defaultCurrency } = useCurrency();
+  const { isPremium, loading: entitlementLoading } = useEntitlements();
   const currencySymbol = defaultCurrency?.symbol || "$";
   const currencyCode = defaultCurrency?.code || "USD";
   const {
@@ -950,8 +953,17 @@ export default function AnalysisScreen() {
     return max || 100;
   }, [dailyTrend]);
 
-  if (txLoading || catLoading) {
+  if (txLoading || catLoading || entitlementLoading) {
     return <LoadingState />;
+  }
+
+  if (!isPremium) {
+    return (
+      <PremiumGate
+        title="Analytics Is Premium"
+        message="Upgrade to unlock advanced analytics, insights, export, and cloud sync."
+      />
+    );
   }
 
   const formatShortDate = (timestamp: number) => {

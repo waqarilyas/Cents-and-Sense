@@ -27,6 +27,10 @@ import { useCategories } from "../../lib/contexts/CategoryContext";
 import { useSubscriptions } from "../../lib/contexts/SubscriptionContext";
 import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import { useUser } from "../../lib/contexts/UserContext";
+import { useAuth } from "../../lib/contexts/AuthContext";
+import { useEntitlements } from "../../lib/contexts/EntitlementContext";
+import { useSync } from "../../lib/contexts/SyncContext";
+import { billingService } from "../../lib/services/BillingService";
 import {
   useSettings,
   SubscriptionProcessingMode,
@@ -35,6 +39,7 @@ import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import { getCurrency } from "../../lib/currencies";
 import { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
+import { exportAllData, deleteAllData } from "../../lib/utils/dataManagement";
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -57,16 +62,19 @@ export default function ProfileScreen() {
   const { colors, theme, setTheme } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { accounts } = useAccounts();
-  const { goals } = useGoals();
-  const { budgets } = useBudgets();
-  const { transactions } = useTransactions();
-  const { categories } = useCategories();
-  const { activeSubscriptions, getMonthlyTotal } = useSubscriptions();
-  const { defaultCurrency, defaultCurrencyCode, setDefaultCurrency } =
-    useCurrency();
+  const { accounts, refreshAccounts } = useAccounts();
+  const { goals, refreshGoals } = useGoals();
+  const { budgets, refreshBudgets } = useBudgets();
+  const { transactions, refreshTransactions } = useTransactions();
+  const { categories, refreshCategories } = useCategories();
+  const { activeSubscriptions, getMonthlyTotal, refreshSubscriptions } =
+    useSubscriptions();
+  const { defaultCurrencyCode, setDefaultCurrency } = useCurrency();
   const { settings, updateSetting } = useSettings();
-  const { userName } = useUser();
+  const { userName, updateDefaultCurrency, refreshUserProfile } = useUser();
+  const { authState, email, signOut } = useAuth();
+  const { isPremium, source, purchasePlan, restorePurchases } = useEntitlements();
+  const { syncNow } = useSync();
 
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
@@ -249,6 +257,169 @@ export default function ProfileScreen() {
           },
           showArrow: true,
         },
+        {
+          icon: authState !== "guest" ? "person-circle" : "person-add",
+          label:
+            authState !== "guest"
+              ? "Signed In Account"
+              : "Sign In for Sync",
+          subtitle:
+            authState !== "guest"
+              ? email || "Authenticated"
+              : "Log in to sync across devices",
+          onPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (authState !== "guest") {
+              Alert.alert("Account", `Signed in${email ? ` as ${email}` : ""}`);
+            } else {
+              router.push("/(stack)/auth");
+            }
+          },
+          showArrow: authState === "guest",
+        },
+        {
+          icon: "diamond-outline",
+          label: isPremium ? "Premium Active" : "Upgrade to Premium",
+          subtitle: isPremium
+            ? `Analytics + Sync + Export unlocked (${source})`
+            : "Unlock analytics, sync, export, backup",
+          onPress: () => {
+            if (isPremium) {
+              Alert.alert("Premium", "Your premium access is active.");
+              return;
+            }
+            Alert.alert("Choose Plan", "Select a plan", [
+              {
+                text: "Monthly",
+                onPress: async () => {
+                  try {
+                    await purchasePlan("monthly");
+                  } catch (error) {
+                    Alert.alert(
+                      "Purchase Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to complete purchase",
+                    );
+                  }
+                },
+              },
+              {
+                text: "Yearly",
+                onPress: async () => {
+                  try {
+                    await purchasePlan("yearly");
+                  } catch (error) {
+                    Alert.alert(
+                      "Purchase Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to complete purchase",
+                    );
+                  }
+                },
+              },
+              {
+                text: "Lifetime",
+                onPress: async () => {
+                  try {
+                    await purchasePlan("lifetime");
+                  } catch (error) {
+                    Alert.alert(
+                      "Purchase Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to complete purchase",
+                    );
+                  }
+                },
+              },
+              { text: "Cancel", style: "cancel" },
+            ]);
+          },
+          showArrow: true,
+        },
+        {
+          icon: "sync-outline",
+          label: "Sync Now",
+          subtitle: "Sync data across devices",
+          onPress: async () => {
+            if (!isPremium) {
+              Alert.alert("Premium Required", "Cloud sync requires Premium.");
+              return;
+            }
+            if (authState === "guest") {
+              router.push("/(stack)/auth");
+              return;
+            }
+            try {
+              await syncNow();
+              Alert.alert("Sync Complete", "Your data is synced.");
+            } catch (error) {
+              Alert.alert(
+                "Sync Failed",
+                error instanceof Error ? error.message : "Unable to sync data",
+              );
+            }
+          },
+          showArrow: true,
+        },
+        {
+          icon: "refresh-outline",
+          label: "Restore Purchases",
+          subtitle: "Recover your purchases",
+          onPress: async () => {
+            try {
+              await restorePurchases();
+              Alert.alert("Restore Complete", "Purchases were restored.");
+            } catch (error) {
+              Alert.alert(
+                "Restore Failed",
+                error instanceof Error
+                  ? error.message
+                  : "Unable to restore purchases",
+              );
+            }
+          },
+          showArrow: true,
+        },
+        {
+          icon: "card-outline",
+          label: "Manage Subscription",
+          subtitle: "Manage billing in app store",
+          onPress: async () => {
+            try {
+              await billingService.openManageSubscriptionPortal();
+            } catch (error) {
+              Alert.alert(
+                "Manage Subscription",
+                error instanceof Error
+                  ? error.message
+                  : "Unable to open store subscription settings.",
+              );
+            }
+          },
+          showArrow: true,
+        },
+        {
+          icon: "log-out-outline",
+          label: "Sign Out",
+          subtitle: "Switch back to guest mode",
+          onPress: async () => {
+            try {
+              await signOut();
+              Alert.alert("Signed Out", "You are now using guest mode.");
+            } catch (error) {
+              Alert.alert(
+                "Sign Out Failed",
+                error instanceof Error
+                  ? error.message
+                  : "Unable to sign out",
+              );
+            }
+          },
+          showArrow: true,
+        },
       ],
     },
     {
@@ -424,7 +595,32 @@ export default function ProfileScreen() {
               onPress={() =>
                 Alert.alert(
                   "Export Data",
-                  "Export functionality will be available in a future update!",
+                  "This will export all your financial data to a JSON file.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Export",
+                      onPress: async () => {
+                        if (!isPremium) {
+                          Alert.alert(
+                            "Premium Required",
+                            "Data export is available in Premium.",
+                          );
+                          return;
+                        }
+                        try {
+                          await exportAllData();
+                        } catch (error) {
+                          Alert.alert(
+                            "Export Failed",
+                            error instanceof Error
+                              ? error.message
+                              : "An error occurred while exporting data.",
+                          );
+                        }
+                      },
+                    },
+                  ],
                 )
               }
               activeOpacity={0.7}
@@ -439,7 +635,7 @@ export default function ProfileScreen() {
               <View style={styles.menuItemContent}>
                 <Text style={styles.menuItemLabel}>Export Data</Text>
                 <Text style={styles.menuItemSubtitle}>
-                  Download your data as CSV
+                  Download your data as JSON
                 </Text>
               </View>
               <Ionicons
@@ -459,11 +655,31 @@ export default function ProfileScreen() {
                     {
                       text: "Clear Data",
                       style: "destructive",
-                      onPress: () =>
-                        Alert.alert(
-                          "Not Implemented",
-                          "For safety, this feature requires a manual database reset.",
-                        ),
+                      onPress: async () => {
+                        try {
+                          await deleteAllData();
+                          await Promise.all([
+                            refreshAccounts(),
+                            refreshTransactions(),
+                            refreshBudgets(),
+                            refreshGoals(),
+                            refreshCategories(),
+                            refreshSubscriptions(),
+                            refreshUserProfile(),
+                          ]);
+                          Alert.alert(
+                            "✅ Data Deleted",
+                            "All app data has been deleted successfully.",
+                          );
+                        } catch (error) {
+                          Alert.alert(
+                            "Delete Failed",
+                            error instanceof Error
+                              ? error.message
+                              : "Failed to delete all data.",
+                          );
+                        }
+                      },
                     },
                   ],
                 )
@@ -517,8 +733,11 @@ export default function ProfileScreen() {
         >
           <CurrencyDropdown
             selectedCode={defaultCurrencyCode}
-            onSelect={(code) => {
-              setDefaultCurrency(code);
+            onSelect={async (code) => {
+              await Promise.all([
+                setDefaultCurrency(code),
+                updateDefaultCurrency(code),
+              ]);
               setShowCurrencyDropdown(false);
               Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success,

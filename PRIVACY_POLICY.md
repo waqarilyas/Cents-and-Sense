@@ -13,7 +13,7 @@ Cents and Sense ("we", "our", or "the app") is committed to protecting your priv
 Cents and Sense collects and stores the following information locally on your device:
 
 - **Personal Information**: Your name and profile preferences
-- **Financial Data**: 
+- **Financial Data**:
   - Account information (names, balances, types)
   - Transactions (amounts, categories, dates, notes)
   - Budgets and budget settings
@@ -53,24 +53,29 @@ We use the data you provide solely to:
 You have complete control over your data:
 
 ### Access
+
 - View all your data within the app at any time
 
 ### Export
+
 - Export your data in JSON format through the Settings menu
 - Exported files can be saved to your device or shared as you choose
 
 ### Deletion
+
 - Delete individual transactions, accounts, goals, or budgets
 - Delete all data at once using "Delete All Data" in Settings
 - Uninstalling the app removes all local data permanently
 
 ### Portability
+
 - Export your data to move it to another device
 - Import previously exported data
 
 ## Third-Party Services
 
 Cents and Sense does NOT use:
+
 - Analytics services
 - Advertising networks
 - Social media integrations
@@ -84,6 +89,7 @@ Cents and Sense does not knowingly collect or solicit data from anyone under the
 ## Changes to This Privacy Policy
 
 We may update this Privacy Policy from time to time. We will notify you of any changes by:
+
 - Updating the "Last Updated" date
 - Displaying a notice within the app
 - Requiring acceptance of new terms on first launch after update
@@ -114,6 +120,7 @@ https://github.com/waqarilyas/budget-tracker-app-development
 ## Compliance
 
 This app complies with:
+
 - Google Play Store Developer Program Policies
 - Apple App Store Review Guidelines
 - General Data Protection Regulation (GDPR) principles

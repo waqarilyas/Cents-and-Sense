@@ -37,7 +37,8 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { transactions, loading, deleteTransaction } = useTransactions();
+  const { transactions, loading, deleteTransaction, refreshTransactions } =
+    useTransactions();
   const { categories } = useCategories();
   const { accounts, refreshAccounts } = useAccounts();
 
@@ -47,9 +48,9 @@ export default function HistoryScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshAccounts();
+    await Promise.all([refreshAccounts(), refreshTransactions()]);
     setTimeout(() => setRefreshing(false), 500);
-  }, [refreshAccounts]);
+  }, [refreshAccounts, refreshTransactions]);
 
   const handleDeleteTransaction = async (id: string) => {
     try {

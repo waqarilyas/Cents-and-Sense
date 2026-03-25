@@ -74,13 +74,27 @@ cd budget-tracker-app-development
 npm install
 ```
 
-3. **Start the development server**
+3. **Create local environment config**
+
+```bash
+cp .env.example .env.local
+```
+
+Required keys:
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (new Supabase publishable key flow)
+- `EXPO_PUBLIC_REVENUECAT_IOS_PUBLIC_API_KEY`
+- `EXPO_PUBLIC_REVENUECAT_ANDROID_PUBLIC_API_KEY`
+
+Server-only keys such as Supabase secret/service-role and RevenueCat secret must stay outside client-facing Expo public vars.
+
+4. **Start the development server**
 
 ```bash
 npm start
 ```
 
-4. **Run on your platform**
+5. **Run on your platform**
 
 ```bash
 # iOS (macOS only)

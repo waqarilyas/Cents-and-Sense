@@ -24,6 +24,7 @@ interface UserContextType {
   updateDefaultCurrency: (currency: string) => Promise<void>;
   completeOnboarding: () => Promise<void>;
   getUserProfile: () => Promise<UserProfile | null>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -34,12 +35,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load user profile on mount
-  useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -56,7 +52,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Load full profile from database
       const db = await getDatabase();
       const profile = await db.getFirstAsync<UserProfile>(
-        "SELECT * FROM user_profile WHERE id = ? LIMIT 1",
+        "SELECT * FROM user_profile WHERE id = ? AND deletedAt IS NULL LIMIT 1",
         [USER_PROFILE_ID],
       );
 
@@ -74,7 +70,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load user profile on mount
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
 
   const setUserProfile = useCallback(async (name: string, currency: string) => {
     try {
@@ -83,20 +84,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // Check if profile exists
       const existing = await db.getFirstAsync<UserProfile>(
-        "SELECT * FROM user_profile WHERE id = ? LIMIT 1",
+        "SELECT * FROM user_profile WHERE id = ? AND deletedAt IS NULL LIMIT 1",
         [USER_PROFILE_ID],
       );
 
       if (existing) {
         // Update existing profile
         await db.runAsync(
-          "UPDATE user_profile SET name = ?, defaultCurrency = ?, updatedAt = ? WHERE id = ?",
+          "UPDATE user_profile SET name = ?, defaultCurrency = ?, updatedAt = ?, deletedAt = NULL WHERE id = ?",
           [name, currency, now, USER_PROFILE_ID],
         );
       } else {
         // Create new profile
         await db.runAsync(
-          "INSERT INTO user_profile (id, name, defaultCurrency, onboardingCompleted, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
+          "INSERT INTO user_profile (id, name, defaultCurrency, onboardingCompleted, createdAt, updatedAt, deletedAt) VALUES (?, ?, ?, ?, ?, ?, NULL)",
           [USER_PROFILE_ID, name, currency, 0, now, now],
         );
       }
@@ -169,7 +170,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       const db = await getDatabase();
       const profile = await db.getFirstAsync<UserProfile>(
-        "SELECT * FROM user_profile WHERE id = ? LIMIT 1",
+        "SELECT * FROM user_profile WHERE id = ? AND deletedAt IS NULL LIMIT 1",
         [USER_PROFILE_ID],
       );
       return profile || null;
@@ -191,6 +192,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateDefaultCurrency,
         completeOnboarding,
         getUserProfile,
+        refreshUserProfile: loadUserProfile,
       }}
     >
       {children}

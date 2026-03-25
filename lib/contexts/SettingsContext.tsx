@@ -12,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export type SubscriptionProcessingMode = "auto" | "manual" | "notify";
 export type ThemeMode = "light" | "dark" | "system";
 
-interface Settings {
+export interface Settings {
   // Subscription settings
   subscriptionProcessingMode: SubscriptionProcessingMode;
 
@@ -34,7 +34,7 @@ interface Settings {
   enableBudgetCarryover: boolean; // Allow unused budget to roll over
 }
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   subscriptionProcessingMode: "notify", // Default to notify - user gets choice
   notificationsEnabled: true,
   subscriptionReminderDays: 3,
@@ -60,7 +60,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
   undefined,
 );
 
-const SETTINGS_STORAGE_KEY = "@budget_tracker_settings";
+export const SETTINGS_STORAGE_KEY = "@budget_tracker_settings";
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);

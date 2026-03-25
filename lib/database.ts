@@ -1,7 +1,7 @@
 import * as SQLite from "expo-sqlite";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 11; // Increment this when schema changes
+const SCHEMA_VERSION = 12; // Increment this when schema changes
 
 export interface UserProfile {
   id: string;
@@ -10,6 +10,9 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   createdAt: number;
   updatedAt: number;
+  userId?: string | null;
+  deletedAt?: number | null;
+  deviceId?: string | null;
 }
 
 export interface Account {
@@ -20,6 +23,10 @@ export interface Account {
   currency: string;
   isDefault: boolean;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface Category {
@@ -28,6 +35,10 @@ export interface Category {
   type: "income" | "expense";
   color: string;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface Transaction {
@@ -41,6 +52,10 @@ export interface Transaction {
   type: "income" | "expense";
   subscriptionId?: string;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface Budget {
@@ -53,6 +68,10 @@ export interface Budget {
   lastCarryoverAmount: number;
   lastPeriodEnd: number;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface MonthlyBudget {
@@ -62,6 +81,10 @@ export interface MonthlyBudget {
   month: number;
   year: number;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface Goal {
@@ -72,6 +95,10 @@ export interface Goal {
   currency: string;
   deadline: number;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface Subscription {
@@ -87,6 +114,10 @@ export interface Subscription {
   reminderDays: number;
   notes?: string;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number | null;
+  userId?: string | null;
+  deviceId?: string | null;
 }
 
 export interface BudgetSettings {
@@ -375,6 +406,65 @@ async function applyMigration(
       `);
       break;
 
+    case 12:
+      // Add offline-first cloud sync metadata + sync_state tracking
+      console.log("Version 12 - Adding sync metadata columns and sync_state");
+      await database.execAsync(`
+        ALTER TABLE accounts ADD COLUMN userId TEXT;
+        ALTER TABLE accounts ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE accounts ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE accounts ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE categories ADD COLUMN userId TEXT;
+        ALTER TABLE categories ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE categories ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE categories ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE transactions ADD COLUMN userId TEXT;
+        ALTER TABLE transactions ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE transactions ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE transactions ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE budgets ADD COLUMN userId TEXT;
+        ALTER TABLE budgets ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE budgets ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE budgets ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE monthly_budgets ADD COLUMN userId TEXT;
+        ALTER TABLE monthly_budgets ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE monthly_budgets ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE monthly_budgets ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE goals ADD COLUMN userId TEXT;
+        ALTER TABLE goals ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE goals ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE goals ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE subscriptions ADD COLUMN userId TEXT;
+        ALTER TABLE subscriptions ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE subscriptions ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE subscriptions ADD COLUMN deviceId TEXT;
+
+        ALTER TABLE user_profile ADD COLUMN userId TEXT;
+        ALTER TABLE user_profile ADD COLUMN deletedAt INTEGER;
+        ALTER TABLE user_profile ADD COLUMN deviceId TEXT;
+
+        CREATE TABLE IF NOT EXISTS sync_state (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updatedAt INTEGER NOT NULL
+        );
+
+        UPDATE accounts SET updatedAt = createdAt WHERE updatedAt = 0;
+        UPDATE categories SET updatedAt = createdAt WHERE updatedAt = 0;
+        UPDATE transactions SET updatedAt = createdAt WHERE updatedAt = 0;
+        UPDATE budgets SET updatedAt = createdAt WHERE updatedAt = 0;
+        UPDATE monthly_budgets SET updatedAt = createdAt WHERE updatedAt = 0;
+        UPDATE goals SET updatedAt = createdAt WHERE updatedAt = 0;
+        UPDATE subscriptions SET updatedAt = createdAt WHERE updatedAt = 0;
+      `);
+      break;
+
     default:
       console.warn(`No migration defined for version ${version}`);
   }
@@ -452,7 +542,11 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         balance REAL NOT NULL DEFAULT 0,
         currency TEXT NOT NULL DEFAULT 'USD',
         isDefault INTEGER NOT NULL DEFAULT 0,
-        createdAt INTEGER NOT NULL
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT
       );
 
       CREATE TABLE IF NOT EXISTS categories (
@@ -460,7 +554,11 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         name TEXT NOT NULL,
         type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
         color TEXT NOT NULL,
-        createdAt INTEGER NOT NULL
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT
       );
 
       CREATE TABLE IF NOT EXISTS subscriptions (
@@ -476,6 +574,10 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         reminderDays INTEGER NOT NULL DEFAULT 3,
         notes TEXT,
         createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT,
         FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE RESTRICT
       );
 
@@ -490,6 +592,10 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
         subscriptionId TEXT,
         createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT,
         FOREIGN KEY(accountId) REFERENCES accounts(id) ON DELETE SET NULL,
         FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE RESTRICT,
         FOREIGN KEY(subscriptionId) REFERENCES subscriptions(id) ON DELETE SET NULL
@@ -505,6 +611,10 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         lastCarryoverAmount REAL NOT NULL DEFAULT 0,
         lastPeriodEnd INTEGER NOT NULL DEFAULT 0,
         createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT,
         FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE CASCADE
       );
 
@@ -515,6 +625,10 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         month INTEGER NOT NULL,
         year INTEGER NOT NULL,
         createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT,
         UNIQUE(month, year)
       );
 
@@ -525,7 +639,11 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         currentAmount REAL NOT NULL DEFAULT 0,
         currency TEXT NOT NULL DEFAULT 'USD',
         deadline INTEGER NOT NULL,
-        createdAt INTEGER NOT NULL
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL DEFAULT 0,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT
       );
 
       CREATE TABLE IF NOT EXISTS budget_settings (
@@ -542,6 +660,15 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         defaultCurrency TEXT NOT NULL DEFAULT 'USD',
         onboardingCompleted INTEGER NOT NULL DEFAULT 0,
         createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        deletedAt INTEGER,
+        userId TEXT,
+        deviceId TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS sync_state (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
         updatedAt INTEGER NOT NULL
       );
 
@@ -570,6 +697,13 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
       CREATE INDEX IF NOT EXISTS idx_subscriptions_nextDueDate ON subscriptions(nextDueDate);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_isActive ON subscriptions(isActive);
       CREATE INDEX IF NOT EXISTS idx_accounts_isDefault ON accounts(isDefault);
+      CREATE INDEX IF NOT EXISTS idx_accounts_userId ON accounts(userId);
+      CREATE INDEX IF NOT EXISTS idx_categories_userId ON categories(userId);
+      CREATE INDEX IF NOT EXISTS idx_transactions_userId ON transactions(userId);
+      CREATE INDEX IF NOT EXISTS idx_budgets_userId ON budgets(userId);
+      CREATE INDEX IF NOT EXISTS idx_goals_userId ON goals(userId);
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_userId ON subscriptions(userId);
+      CREATE INDEX IF NOT EXISTS idx_sync_state_updatedAt ON sync_state(updatedAt);
     `);
 
     db = database;

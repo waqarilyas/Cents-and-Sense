@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Budget,
   MonthlyBudget,
@@ -25,6 +26,7 @@ import {
   ValidationError,
 } from "../utils/validation";
 import { Alert } from "react-native";
+import { SETTINGS_STORAGE_KEY } from "./SettingsContext";
 
 interface BudgetWithCarryover extends Budget {
   carryoverAmount: number;
@@ -78,7 +80,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const db = await getDatabase();
       const result = await db.getAllAsync<Budget>(
-        "SELECT * FROM budgets ORDER BY createdAt DESC",
+        "SELECT * FROM budgets WHERE deletedAt IS NULL ORDER BY createdAt DESC",
       );
       setBudgets(result || []);
     } catch (err) {
@@ -96,7 +98,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
       const result = await db.getFirstAsync<MonthlyBudget>(
-        "SELECT * FROM monthly_budgets WHERE month = ? AND year = ? LIMIT 1",
+        "SELECT * FROM monthly_budgets WHERE month = ? AND year = ? AND deletedAt IS NULL LIMIT 1",
         [month, year],
       );
       setMonthlyBudgetState(result || null);
@@ -157,7 +159,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         }
 
         await db.runAsync(
-          "INSERT INTO budgets (id, categoryId, budget_limit, period, currency, allowCarryover, lastCarryoverAmount, lastPeriodEnd, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO budgets (id, categoryId, budget_limit, period, currency, allowCarryover, lastCarryoverAmount, lastPeriodEnd, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             id,
             validCategoryId,
@@ -167,6 +169,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             allowCarryover ? 1 : 0,
             0,
             0,
+            now,
             now,
           ],
         );
@@ -213,13 +216,13 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         const db = await getDatabase();
         if (validCurrency) {
           await db.runAsync(
-            "UPDATE budgets SET budget_limit = ?, period = ?, currency = ? WHERE id = ?",
-            [validAmount, period, validCurrency, validId],
+            "UPDATE budgets SET budget_limit = ?, period = ?, currency = ?, updatedAt = ? WHERE id = ?",
+            [validAmount, period, validCurrency, Date.now(), validId],
           );
         } else {
           await db.runAsync(
-            "UPDATE budgets SET budget_limit = ?, period = ? WHERE id = ?",
-            [validAmount, period, validId],
+            "UPDATE budgets SET budget_limit = ?, period = ?, updatedAt = ? WHERE id = ?",
+            [validAmount, period, Date.now(), validId],
           );
         }
 
@@ -260,23 +263,24 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
         const existing = await db.getFirstAsync<MonthlyBudget>(
-          "SELECT * FROM monthly_budgets WHERE month = ? AND year = ? LIMIT 1",
+          "SELECT * FROM monthly_budgets WHERE month = ? AND year = ? AND deletedAt IS NULL LIMIT 1",
           [month, year],
         );
         if (existing) {
           await db.runAsync(
-            "UPDATE monthly_budgets SET amount = ?, currency = ? WHERE id = ?",
-            [validAmount, validCurrency, existing.id],
+            "UPDATE monthly_budgets SET amount = ?, currency = ?, updatedAt = ?, deletedAt = NULL WHERE id = ?",
+            [validAmount, validCurrency, Date.now(), existing.id],
           );
         } else {
           await db.runAsync(
-            "INSERT INTO monthly_budgets (id, amount, currency, month, year, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO monthly_budgets (id, amount, currency, month, year, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
               Date.now().toString(),
               validAmount,
               validCurrency,
               month,
               year,
+              Date.now(),
               Date.now(),
             ],
           );
@@ -308,8 +312,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
       await db.runAsync(
-        "DELETE FROM monthly_budgets WHERE month = ? AND year = ?",
-        [month, year],
+        "UPDATE monthly_budgets SET deletedAt = ?, updatedAt = ? WHERE month = ? AND year = ? AND deletedAt IS NULL",
+        [Date.now(), Date.now(), month, year],
       );
       await loadMonthlyBudget();
     } catch (err) {
@@ -327,7 +331,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         const validId = validateId(id, "id");
 
         const db = await getDatabase();
-        await db.runAsync("DELETE FROM budgets WHERE id = ?", [validId]);
+        await db.runAsync(
+          "UPDATE budgets SET deletedAt = ?, updatedAt = ? WHERE id = ?",
+          [Date.now(), Date.now(), validId],
+        );
 
         await loadBudgets();
         widgetService
@@ -386,8 +393,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       try {
         const db = await getDatabase();
         await db.runAsync(
-          "UPDATE budgets SET allowCarryover = ? WHERE id = ?",
-          [enabled ? 1 : 0, id],
+          "UPDATE budgets SET allowCarryover = ?, updatedAt = ? WHERE id = ?",
+          [enabled ? 1 : 0, Date.now(), id],
         );
       } catch (err) {
         // Rollback
@@ -410,12 +417,40 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       // Start transaction for atomic period transitions
       await db.execAsync("BEGIN TRANSACTION");
 
-      // Get settings for period start day
-      const settingsResult = await db.getFirstAsync<any>(
-        "SELECT budgetPeriodStartDay, enableCarryover FROM budget_settings LIMIT 1",
-      );
-      const periodStartDay = settingsResult?.budgetPeriodStartDay || 1;
-      const globalCarryoverEnabled = settingsResult?.enableCarryover !== 0;
+      // Resolve settings from app settings (AsyncStorage) first, DB as fallback.
+      // This keeps period transitions aligned with what users configure in UI.
+      let periodStartDay = 1;
+      let globalCarryoverEnabled = true;
+
+      try {
+        const storedSettingsRaw = await AsyncStorage.getItem(
+          SETTINGS_STORAGE_KEY,
+        );
+        if (storedSettingsRaw) {
+          const storedSettings = JSON.parse(storedSettingsRaw) as {
+            budgetPeriodStartDay?: number;
+            enableBudgetCarryover?: boolean;
+          };
+          if (
+            typeof storedSettings.budgetPeriodStartDay === "number" &&
+            storedSettings.budgetPeriodStartDay >= 1 &&
+            storedSettings.budgetPeriodStartDay <= 28
+          ) {
+            periodStartDay = storedSettings.budgetPeriodStartDay;
+          }
+          if (typeof storedSettings.enableBudgetCarryover === "boolean") {
+            globalCarryoverEnabled = storedSettings.enableBudgetCarryover;
+          }
+        } else {
+          const settingsResult = await db.getFirstAsync<any>(
+            "SELECT budgetPeriodStartDay, enableCarryover FROM budget_settings LIMIT 1",
+          );
+          periodStartDay = settingsResult?.budgetPeriodStartDay || 1;
+          globalCarryoverEnabled = settingsResult?.enableCarryover !== 0;
+        }
+      } catch (settingsError) {
+        console.warn("Falling back to default budget settings:", settingsError);
+      }
 
       if (!globalCarryoverEnabled) {
         await db.execAsync("COMMIT");
@@ -449,7 +484,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
           // Calculate spending for the ended period
           const transactions = await db.getAllAsync<any>(
-            "SELECT amount FROM transactions WHERE categoryId = ? AND currency = ? AND type = 'expense' AND date >= ? AND date <= ?",
+            "SELECT amount FROM transactions WHERE categoryId = ? AND currency = ? AND type = 'expense' AND date >= ? AND date <= ? AND deletedAt IS NULL",
             [
               budget.categoryId,
               budget.currency,
@@ -488,8 +523,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         // Update budget with final carryover if any transitions occurred
         if (iterations > 0) {
           await db.runAsync(
-            "UPDATE budgets SET lastCarryoverAmount = ?, lastPeriodEnd = ? WHERE id = ?",
-            [carryover, currentPeriod.end, budget.id],
+            "UPDATE budgets SET lastCarryoverAmount = ?, lastPeriodEnd = ?, updatedAt = ? WHERE id = ?",
+            [carryover, currentPeriod.end, Date.now(), budget.id],
           );
         }
       }

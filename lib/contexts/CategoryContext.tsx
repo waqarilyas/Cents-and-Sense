@@ -104,8 +104,8 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
           try {
             // 1. Insert new category FIRST (so FK references can point to it)
             await db.runAsync(
-              "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-              [newId, cat.name, cat.type, cat.color, cat.createdAt],
+              "INSERT INTO categories (id, name, type, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
+              [newId, cat.name, cat.type, cat.color, cat.createdAt, cat.createdAt],
             );
 
             // 2. Update all references from old ID to new ID
@@ -150,8 +150,8 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         // Replace all non-alphanumeric characters (except hyphens) with underscores
         const id = `cat_${cat.name.toLowerCase().replace(/[^a-z0-9-]+/g, "_")}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         await db.runAsync(
-          "INSERT OR IGNORE INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-          [id, cat.name, cat.type, cat.color, Date.now()],
+          "INSERT OR IGNORE INTO categories (id, name, type, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
+          [id, cat.name, cat.type, cat.color, Date.now(), Date.now()],
         );
       }
     } catch (err) {
@@ -172,14 +172,14 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       }
 
       let result = await db.getAllAsync<Category>(
-        "SELECT * FROM categories ORDER BY name ASC",
+        "SELECT * FROM categories WHERE deletedAt IS NULL ORDER BY name ASC",
       );
 
       // If no categories exist, seed defaults
       if (!result || result.length === 0) {
         await seedDefaultCategories();
         result = await db.getAllAsync<Category>(
-          "SELECT * FROM categories ORDER BY name ASC",
+          "SELECT * FROM categories WHERE deletedAt IS NULL ORDER BY name ASC",
         );
       }
 
@@ -214,8 +214,8 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
         const id = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const db = await getDatabase();
         await db.runAsync(
-          "INSERT INTO categories (id, name, type, color, createdAt) VALUES (?, ?, ?, ?, ?)",
-          [id, validName, type, validColor, Date.now()],
+          "INSERT INTO categories (id, name, type, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
+          [id, validName, type, validColor, Date.now(), Date.now()],
         );
 
         await loadCategories();
@@ -262,8 +262,8 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
 
         const db = await getDatabase();
         await db.runAsync(
-          "UPDATE categories SET name = ?, color = ? WHERE id = ?",
-          [validName, validColor, validId],
+          "UPDATE categories SET name = ?, color = ?, updatedAt = ? WHERE id = ?",
+          [validName, validColor, Date.now(), validId],
         );
 
         await loadCategories();
@@ -311,7 +311,11 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
       setError(null);
 
       try {
-        await db.runAsync("DELETE FROM categories WHERE id = ?", [id]);
+        const now = Date.now();
+        await db.runAsync(
+          "UPDATE categories SET deletedAt = ?, updatedAt = ? WHERE id = ?",
+          [now, now, id],
+        );
       } catch (err) {
         // Rollback on error
         setCategories(previousCategories);

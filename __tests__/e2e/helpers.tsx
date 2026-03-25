@@ -330,7 +330,8 @@ class InMemoryDB {
 
   // Direct access for test assertions
   getTable(name: string): Row[] {
-    return this.tables[name] || [];
+    const rows = this.tables[name] || [];
+    return rows.filter((row) => row.deletedAt == null);
   }
 
   insertDirect(table: string, row: Row) {

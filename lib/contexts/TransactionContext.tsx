@@ -75,7 +75,7 @@ export function TransactionProvider({
       setError(null);
       const db = await getDatabase();
       const result = await db.getAllAsync<Transaction>(
-        "SELECT * FROM transactions ORDER BY date DESC, createdAt DESC",
+        "SELECT * FROM transactions WHERE deletedAt IS NULL ORDER BY date DESC, createdAt DESC",
       );
       setTransactions(result || []);
     } catch (err) {
@@ -147,7 +147,7 @@ export function TransactionProvider({
 
           // Insert transaction
           await db.runAsync(
-            "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
               id,
               validAccountId,
@@ -157,6 +157,7 @@ export function TransactionProvider({
               validDescription,
               validDate,
               validType,
+              Date.now(),
               Date.now(),
             ],
           );
@@ -269,7 +270,7 @@ export function TransactionProvider({
 
           // Update the transaction
           await db.runAsync(
-            "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, currency = ?, description = ?, date = ?, type = ? WHERE id = ?",
+            "UPDATE transactions SET accountId = ?, categoryId = ?, amount = ?, currency = ?, description = ?, date = ?, type = ?, updatedAt = ? WHERE id = ?",
             [
               validAccountId,
               validCategoryId,
@@ -278,6 +279,7 @@ export function TransactionProvider({
               validDescription,
               validDate,
               validType,
+              Date.now(),
               validId,
             ],
           );
@@ -354,7 +356,11 @@ export function TransactionProvider({
           }
 
           // Delete the transaction
-          await db.runAsync("DELETE FROM transactions WHERE id = ?", [validId]);
+          const now = Date.now();
+          await db.runAsync(
+            "UPDATE transactions SET deletedAt = ?, updatedAt = ? WHERE id = ?",
+            [now, now, validId],
+          );
 
           // Revert the transaction's balance impact
           if (tx.accountId) {

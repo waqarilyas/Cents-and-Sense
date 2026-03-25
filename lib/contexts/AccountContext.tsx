@@ -61,7 +61,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const db = await getDatabase();
       const result = await db.getAllAsync<any>(
-        "SELECT * FROM accounts ORDER BY createdAt DESC",
+        "SELECT * FROM accounts WHERE deletedAt IS NULL ORDER BY createdAt DESC",
       );
       // Map isDefault from integer to boolean
       const mapped: Account[] = (result || []).map((r: any) => ({
@@ -107,7 +107,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         const shouldBeDefault = !existingDefault ? 1 : 0;
 
         await db.runAsync(
-          "INSERT INTO accounts (id, name, type, balance, currency, isDefault, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO accounts (id, name, type, balance, currency, isDefault, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           [
             id,
             validName,
@@ -115,6 +115,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             0,
             validCurrency,
             shouldBeDefault,
+            Date.now(),
             Date.now(),
           ],
         );
@@ -163,13 +164,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
         if (validCurrency) {
           await db.runAsync(
-            "UPDATE accounts SET name = ?, balance = ?, currency = ? WHERE id = ?",
-            [validName, validBalance, validCurrency, validId],
+            "UPDATE accounts SET name = ?, balance = ?, currency = ?, updatedAt = ? WHERE id = ?",
+            [validName, validBalance, validCurrency, Date.now(), validId],
           );
         } else {
           await db.runAsync(
-            "UPDATE accounts SET name = ?, balance = ? WHERE id = ?",
-            [validName, validBalance, validId],
+            "UPDATE accounts SET name = ?, balance = ?, updatedAt = ? WHERE id = ?",
+            [validName, validBalance, Date.now(), validId],
           );
         }
 
@@ -213,20 +214,25 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         // Use a transaction to ensure atomicity
         await db.execAsync("BEGIN TRANSACTION");
         try {
-          // Delete associated transactions first
-          await db.runAsync("DELETE FROM transactions WHERE accountId = ?", [
-            id,
-          ]);
-          // Then delete the account
-          await db.runAsync("DELETE FROM accounts WHERE id = ?", [id]);
+          const now = Date.now();
+          // Soft-delete associated transactions first
+          await db.runAsync(
+            "UPDATE transactions SET deletedAt = ?, updatedAt = ? WHERE accountId = ?",
+            [now, now, id],
+          );
+          // Then soft-delete the account
+          await db.runAsync(
+            "UPDATE accounts SET deletedAt = ?, updatedAt = ? WHERE id = ?",
+            [now, now, id],
+          );
 
           // If the deleted account was the default, reassign to the first remaining account
           if (deletedAccount?.isDefault) {
             const remaining = accounts.filter((a) => a.id !== id);
             if (remaining.length > 0) {
               await db.runAsync(
-                "UPDATE accounts SET isDefault = 1 WHERE id = ?",
-                [remaining[0].id],
+                "UPDATE accounts SET isDefault = 1, updatedAt = ? WHERE id = ?",
+                [Date.now(), remaining[0].id],
               );
             }
           }
@@ -270,10 +276,15 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         // Use a transaction to prevent a state with no default
         await db.execAsync("BEGIN TRANSACTION");
         try {
-          await db.runAsync("UPDATE accounts SET isDefault = 0");
-          await db.runAsync("UPDATE accounts SET isDefault = 1 WHERE id = ?", [
-            id,
-          ]);
+          const now = Date.now();
+          await db.runAsync(
+            "UPDATE accounts SET isDefault = 0, updatedAt = ? WHERE deletedAt IS NULL",
+            [now],
+          );
+          await db.runAsync(
+            "UPDATE accounts SET isDefault = 1, updatedAt = ? WHERE id = ?",
+            [now, id],
+          );
           await db.execAsync("COMMIT");
         } catch (txErr) {
           await db.execAsync("ROLLBACK");

@@ -147,6 +147,7 @@ We appreciate security researchers who help keep Cents and Sense safe:
 ## Contact
 
 For security-related questions that don't involve reporting vulnerabilities:
+
 - Open a discussion: https://github.com/waqarilyas/budget-tracker-app-development/discussions
 
 ---

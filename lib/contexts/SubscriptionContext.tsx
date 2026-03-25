@@ -120,7 +120,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     try {
       const db = await getDatabase();
       const result = await db.getAllAsync<Subscription>(
-        "SELECT * FROM subscriptions ORDER BY nextDueDate ASC",
+        "SELECT * FROM subscriptions WHERE deletedAt IS NULL ORDER BY nextDueDate ASC",
       );
       // Convert SQLite integers to booleans
       const parsed = result.map((s) => ({
@@ -194,8 +194,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         }
 
         await db.runAsync(
-          `INSERT INTO subscriptions (id, name, amount, currency, categoryId, frequency, startDate, nextDueDate, isActive, reminderDays, notes, createdAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+          `INSERT INTO subscriptions (id, name, amount, currency, categoryId, frequency, startDate, nextDueDate, isActive, reminderDays, notes, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
           [
             id,
             validName,
@@ -207,6 +207,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             validStartDate,
             validReminderDays,
             notes || null,
+            now,
             now,
           ],
         );
@@ -298,6 +299,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           fields.push("notes = ?");
           values.push(updates.notes || null);
         }
+        fields.push("updatedAt = ?");
+        values.push(Date.now());
 
         if (fields.length > 0) {
           values.push(id);
@@ -325,7 +328,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       try {
         const db = await getDatabase();
-        await db.runAsync("DELETE FROM subscriptions WHERE id = ?", [id]);
+        await db.runAsync(
+          "UPDATE subscriptions SET deletedAt = ?, updatedAt = ? WHERE id = ?",
+          [Date.now(), Date.now(), id],
+        );
       } catch (err) {
         // Rollback on error
         setSubscriptions(previousSubscriptions);
@@ -382,8 +388,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
         // Create the transaction with currency and accountId
         await db.runAsync(
-          `INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, subscriptionId, createdAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'expense', ?, ?)`,
+          `INSERT INTO transactions (id, accountId, categoryId, amount, currency, description, date, type, subscriptionId, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'expense', ?, ?, ?)`,
           [
             transactionId,
             accountId,
@@ -393,6 +399,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             subscription.name,
             subscription.nextDueDate,
             subscription.id,
+            now,
             now,
           ],
         );
@@ -411,8 +418,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           subscription.frequency,
         );
         await db.runAsync(
-          "UPDATE subscriptions SET nextDueDate = ? WHERE id = ?",
-          [nextDue, subscription.id],
+          "UPDATE subscriptions SET nextDueDate = ?, updatedAt = ? WHERE id = ?",
+          [nextDue, Date.now(), subscription.id],
         );
 
         // Commit the transaction
@@ -469,7 +476,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
             // Dedup: check if a transaction already exists for this subscription + due date
             const existing = await db.getFirstAsync<{ id: string }>(
-              "SELECT id FROM transactions WHERE subscriptionId = ? AND date = ? LIMIT 1",
+              "SELECT id FROM transactions WHERE subscriptionId = ? AND date = ? AND deletedAt IS NULL LIMIT 1",
               [subscription.id, currentDueDate],
             );
             if (existing) {
@@ -502,8 +509,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           // Make sure the DB next due date is up to date
           if (currentDueDate > subscription.nextDueDate) {
             await db.runAsync(
-              "UPDATE subscriptions SET nextDueDate = ? WHERE id = ?",
-              [currentDueDate, subscription.id],
+              "UPDATE subscriptions SET nextDueDate = ?, updatedAt = ? WHERE id = ?",
+              [currentDueDate, Date.now(), subscription.id],
             );
           }
         }
@@ -573,8 +580,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           pending.subscription.frequency,
         );
         await db.runAsync(
-          "UPDATE subscriptions SET nextDueDate = ? WHERE id = ?",
-          [nextDue, subscriptionId],
+          "UPDATE subscriptions SET nextDueDate = ?, updatedAt = ? WHERE id = ?",
+          [nextDue, Date.now(), subscriptionId],
         );
 
         setPendingSubscriptions((prev) =>

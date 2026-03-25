@@ -19,6 +19,9 @@ import { GoalProvider } from "../lib/contexts/GoalContext";
 import { SubscriptionProvider } from "../lib/contexts/SubscriptionContext";
 import { CurrencyProvider } from "../lib/contexts/CurrencyContext";
 import { SettingsProvider } from "../lib/contexts/SettingsContext";
+import { AuthProvider } from "../lib/contexts/AuthContext";
+import { EntitlementProvider } from "../lib/contexts/EntitlementContext";
+import { SyncProvider } from "../lib/contexts/SyncContext";
 import { useThemeColors } from "../lib/theme";
 import { widgetService } from "../lib/services/WidgetService";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -144,9 +147,11 @@ export default function RootLayout() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <SettingsProvider>
-          <UserProvider>
-            <ThemedApp />
-          </UserProvider>
+          <AuthProvider>
+            <UserProvider>
+              <ThemedApp />
+            </UserProvider>
+          </AuthProvider>
         </SettingsProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
@@ -219,11 +224,15 @@ function ThemedApp() {
                 <BudgetProvider>
                   <GoalProvider>
                     <SubscriptionProvider>
-                      <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="onboarding" />
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="(stack)" />
-                      </Stack>
+                      <EntitlementProvider>
+                        <SyncProvider>
+                          <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="onboarding" />
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="(stack)" />
+                          </Stack>
+                        </SyncProvider>
+                      </EntitlementProvider>
                     </SubscriptionProvider>
                   </GoalProvider>
                 </BudgetProvider>

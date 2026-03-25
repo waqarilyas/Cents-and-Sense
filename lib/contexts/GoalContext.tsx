@@ -54,7 +54,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const db = await getDatabase();
       const result = await db.getAllAsync<Goal>(
-        "SELECT * FROM goals ORDER BY deadline ASC, createdAt DESC",
+        "SELECT * FROM goals WHERE deletedAt IS NULL ORDER BY deadline ASC, createdAt DESC",
       );
       setGoals(result || []);
     } catch (err) {
@@ -110,7 +110,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
 
         const db = await getDatabase();
         await db.runAsync(
-          "INSERT INTO goals (id, name, targetAmount, currentAmount, deadline, currency, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO goals (id, name, targetAmount, currentAmount, deadline, currency, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           [
             id,
             validName,
@@ -118,6 +118,7 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
             0,
             validDeadline,
             validCurrency,
+            Date.now(),
             Date.now(),
           ],
         );
@@ -184,24 +185,26 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
         const db = await getDatabase();
         if (validCurrency) {
           await db.runAsync(
-            "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ?, currency = ? WHERE id = ?",
+            "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ?, currency = ?, updatedAt = ? WHERE id = ?",
             [
               validName,
               validTargetAmount,
               validCurrentAmount,
               validDeadline,
               validCurrency,
+              Date.now(),
               validId,
             ],
           );
         } else {
           await db.runAsync(
-            "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ? WHERE id = ?",
+            "UPDATE goals SET name = ?, targetAmount = ?, currentAmount = ?, deadline = ?, updatedAt = ? WHERE id = ?",
             [
               validName,
               validTargetAmount,
               validCurrentAmount,
               validDeadline,
+              Date.now(),
               validId,
             ],
           );
@@ -231,7 +234,10 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
         const validId = validateId(id, "id");
 
         const db = await getDatabase();
-        await db.runAsync("DELETE FROM goals WHERE id = ?", [validId]);
+        await db.runAsync(
+          "UPDATE goals SET deletedAt = ?, updatedAt = ? WHERE id = ?",
+          [Date.now(), Date.now(), validId],
+        );
 
         await loadGoals();
         widgetService
@@ -274,10 +280,10 @@ export function GoalProvider({ children }: { children: React.ReactNode }) {
 
         setError(null);
         const db = await getDatabase();
-        await db.runAsync("UPDATE goals SET currentAmount = ? WHERE id = ?", [
-          validCurrentAmount,
-          validId,
-        ]);
+        await db.runAsync(
+          "UPDATE goals SET currentAmount = ?, updatedAt = ? WHERE id = ?",
+          [validCurrentAmount, Date.now(), validId],
+        );
         widgetService
           .updateAllWidgets()
           .catch((err) => console.error("[v0] Widget update failed:", err));

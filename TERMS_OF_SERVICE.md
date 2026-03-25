@@ -9,6 +9,7 @@ By accessing and using Cents and Sense ("the app", "we", "our"), you accept and 
 ## Description of Service
 
 Cents and Sense is a personal finance management mobile application that helps users:
+
 - Track income and expenses
 - Manage multiple accounts
 - Set and monitor budgets
@@ -26,6 +27,7 @@ We grant you a revocable, non-exclusive, non-transferable, limited license to do
 ### Open Source License
 
 Cents and Sense is licensed under the MIT License. You are free to:
+
 - Use the app for personal or commercial purposes
 - Modify the source code
 - Distribute copies of the app
@@ -36,6 +38,7 @@ Subject to the conditions of the MIT License. See the LICENSE file in the reposi
 ## User Responsibilities
 
 You agree to:
+
 - Provide accurate information when using the app
 - Keep your device secure and protected
 - Maintain backup copies of your important financial data
@@ -45,13 +48,16 @@ You agree to:
 ## Data and Privacy
 
 ### Your Data
+
 - All financial data is stored locally on your device
 - You are responsible for backing up your data
 - We do not access, collect, or transmit your personal financial data
 - You can export and delete your data at any time
 
 ### Data Loss
+
 We are not responsible for any data loss that may occur due to:
+
 - Device malfunction or damage
 - App uninstallation
 - Operating system issues
@@ -91,11 +97,13 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW:
 ## Intellectual Property
 
 ### Our Rights
+
 - The app name, logo, and design are our intellectual property
 - The source code is licensed under the MIT License
 - Third-party libraries and components retain their respective licenses
 
 ### Your Rights
+
 - You retain rights to all data you create in the app
 - You can export your data at any time
 - You can delete your data at any time
@@ -103,6 +111,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW:
 ## User Content
 
 You are solely responsible for:
+
 - All financial data you enter into the app
 - The accuracy and completeness of your records
 - Compliance with tax and financial reporting requirements
@@ -111,6 +120,7 @@ You are solely responsible for:
 ## Prohibited Uses
 
 You may not use the app to:
+
 - Engage in illegal activities
 - Track unauthorized or illegal financial transactions
 - Violate any applicable laws or regulations
@@ -121,18 +131,21 @@ You may not use the app to:
 ## Updates and Modifications
 
 We reserve the right to:
+
 - Update the app at any time
 - Modify features or functionality
 - Change these Terms of Service (with notice)
 - Discontinue the app (with reasonable notice)
 
 ### Notification of Changes
+
 - You will be notified of significant changes through app updates
 - Continued use after changes constitutes acceptance of new terms
 
 ## Third-Party Services
 
 The app may include or link to third-party services. We are not responsible for:
+
 - Third-party privacy policies or practices
 - Third-party service availability or functionality
 - Content or accuracy of third-party resources
@@ -140,11 +153,13 @@ The app may include or link to third-party services. We are not responsible for:
 ## Termination
 
 We may terminate or suspend your access to the app:
+
 - If you violate these Terms of Service
 - If required by law
 - For any reason, with or without notice
 
 You may terminate your use by:
+
 - Uninstalling the app
 - Deleting all your data through Settings
 
@@ -155,6 +170,7 @@ These Terms shall be governed by and construed in accordance with applicable loc
 ## Dispute Resolution
 
 For any disputes arising from these terms:
+
 1. First contact us through GitHub Issues or Discussions
 2. Attempt good faith resolution
 3. Seek mediation if necessary
@@ -179,6 +195,7 @@ For questions about these Terms:
 ## Open Source Information
 
 Cents and Sense is open-source software:
+
 - **License**: MIT License
 - **Repository**: https://github.com/waqarilyas/budget-tracker-app-development
 - **Contributing**: See CONTRIBUTING.md for guidelines

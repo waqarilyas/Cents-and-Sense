@@ -52,6 +52,7 @@ export default function TransactionsScreen() {
     updateTransaction,
     deleteTransaction,
     getMonthlyStats,
+    refreshTransactions,
   } = useTransactions();
   const { categories, expenseCategories, incomeCategories } = useCategories();
   const { accounts, defaultAccount, refreshAccounts } = useAccounts();
@@ -77,9 +78,9 @@ export default function TransactionsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshAccounts();
+    await Promise.all([refreshAccounts(), refreshTransactions()]);
     setTimeout(() => setRefreshing(false), 500);
-  }, [refreshAccounts]);
+  }, [refreshAccounts, refreshTransactions]);
 
   const resetForm = () => {
     setAmount("");
