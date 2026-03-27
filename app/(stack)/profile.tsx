@@ -13,7 +13,6 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   spacing,
   borderRadius,
-  formatCurrency,
   useThemeColors,
   ThemeColors,
   ThemeMode,
@@ -39,7 +38,11 @@ import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import { getCurrency } from "../../lib/currencies";
 import { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { exportAllData, deleteAllData } from "../../lib/utils/dataManagement";
+import {
+  exportAllData,
+  deleteAllData,
+  generateLargeDebugData,
+} from "../../lib/utils/dataManagement";
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -64,17 +67,17 @@ export default function ProfileScreen() {
 
   const { accounts, refreshAccounts } = useAccounts();
   const { goals, refreshGoals } = useGoals();
-  const { budgets, refreshBudgets } = useBudgets();
+  const { refreshBudgets } = useBudgets();
   const { transactions, refreshTransactions } = useTransactions();
-  const { categories, refreshCategories } = useCategories();
-  const { activeSubscriptions, getMonthlyTotal, refreshSubscriptions } =
-    useSubscriptions();
+  const { refreshCategories } = useCategories();
+  const { refreshSubscriptions } = useSubscriptions();
   const { defaultCurrencyCode, setDefaultCurrency } = useCurrency();
   const { settings, updateSetting } = useSettings();
   const { userName, updateDefaultCurrency, refreshUserProfile } = useUser();
-  const { authState, email, signOut } = useAuth();
-  const { isPremium, source, purchasePlan, restorePurchases } = useEntitlements();
-  const { syncNow } = useSync();
+  const { authState, email, userId, signOut } = useAuth();
+  const { isPremium, source, restorePurchases } = useEntitlements();
+  const { syncNow, syncStatus, lastSyncAt, syncError, unsyncedChanges, isOnline } =
+    useSync();
 
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
@@ -118,164 +121,33 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // Calculate some stats for display
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const activeGoals = goals.filter(
-    (g) => g.currentAmount < g.targetAmount,
-  ).length;
-  const activeBudgets = budgets.length;
-  const monthlySubscriptionCost = getMonthlyTotal();
+  const profileSubtitle =
+    authState === "guest"
+      ? "Guest mode. Sign in to sync across devices."
+      : email
+      ? `Signed in as ${email}`
+      : "Signed in account";
 
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
-      title: "Finance Management",
+      title: "Account & Sync",
       items: [
         {
-          icon: "business-outline",
-          label: "Accounts",
-          subtitle: `${accounts.length} accounts • Total: ${formatCurrency(totalBalance, defaultCurrencyCode)}`,
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/accounts");
-          },
-          badge: accounts.length,
-          showArrow: true,
-        },
-        {
-          icon: "pie-chart-outline",
-          label: "Budgets",
-          subtitle: `${activeBudgets} active budgets`,
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/budgets");
-          },
-          badge: activeBudgets,
-          showArrow: true,
-        },
-        {
-          icon: "flag-outline",
-          label: "Goals",
-          subtitle: `${activeGoals} active goals`,
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/goals");
-          },
-          badge: activeGoals,
-          showArrow: true,
-        },
-        {
-          icon: "pricetags-outline",
-          label: "Categories",
-          subtitle: `${categories.length} categories`,
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/categories");
-          },
-          showArrow: true,
-        },
-        {
-          icon: "repeat-outline",
-          label: "Subscriptions",
-          subtitle: `${activeSubscriptions.length} active • ${formatCurrency(monthlySubscriptionCost, defaultCurrencyCode)}/mo`,
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/subscriptions");
-          },
-          badge: activeSubscriptions.length,
-          showArrow: true,
-        },
-      ],
-    },
-    {
-      title: "Analytics",
-      items: [
-        {
-          icon: "bar-chart-outline",
-          label: "Analytics & Insights",
-          subtitle: "Advanced spending trends and reports",
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/analysis");
-          },
-          showArrow: true,
-        },
-      ],
-    },
-    {
-      title: "Learn",
-      items: [
-        {
-          icon: "book-outline",
-          label: "User Guide",
-          subtitle: "Learn how to use the app effectively",
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(stack)/guide");
-          },
-          showArrow: true,
-        },
-      ],
-    },
-    {
-      title: "App Settings",
-      items: [
-        {
-          icon: "repeat-outline",
-          label: "Subscription Processing",
+          icon: authState === "guest" ? "person-add" : "person-circle",
+          label: authState === "guest" ? "Sign In for Cloud Sync" : "Account",
           subtitle:
-            SUBSCRIPTION_MODE_LABELS[settings.subscriptionProcessingMode],
-          onPress: handleSubscriptionModeChange,
-          showArrow: true,
-        },
-        {
-          icon: "notifications-outline",
-          label: "Notifications",
-          subtitle: "Coming soon",
-          onPress: () =>
-            Alert.alert(
-              "Notifications",
-              "Push notifications will be available in a future update.",
-            ),
-        },
-        {
-          icon: "moon-outline",
-          label: "Appearance",
-          subtitle:
-            theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light",
-          onPress: handleThemeChange,
-          showArrow: true,
-        },
-        {
-          icon: "cash-outline",
-          label: "Default Currency",
-          subtitle: currentCurrency
-            ? `${currentCurrency.code} (${currentCurrency.symbolNative})`
-            : "USD ($)",
+            authState === "guest"
+              ? `Guest mode • ${isOnline ? "Online" : "Offline"}`
+              : `${email || "Signed in"} • ${isPremium ? `Premium (${source})` : "Free"} • ${isOnline ? "Online" : "Offline"}`,
           onPress: () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowCurrencyDropdown((prev) => !prev);
-          },
-          showArrow: true,
-        },
-        {
-          icon: authState !== "guest" ? "person-circle" : "person-add",
-          label:
-            authState !== "guest"
-              ? "Signed In Account"
-              : "Sign In for Sync",
-          subtitle:
-            authState !== "guest"
-              ? email || "Authenticated"
-              : "Log in to sync across devices",
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            if (authState !== "guest") {
-              Alert.alert("Account", `Signed in${email ? ` as ${email}` : ""}`);
-            } else {
+            if (authState === "guest") {
               router.push("/(stack)/auth");
+              return;
             }
+            router.push("/(stack)/profile-setup");
           },
-          showArrow: authState === "guest",
+          showArrow: true,
         },
         {
           icon: "diamond-outline",
@@ -284,94 +156,79 @@ export default function ProfileScreen() {
             ? `Analytics + Sync + Export unlocked (${source})`
             : "Unlock analytics, sync, export, backup",
           onPress: () => {
-            if (isPremium) {
-              Alert.alert("Premium", "Your premium access is active.");
-              return;
-            }
-            Alert.alert("Choose Plan", "Select a plan", [
-              {
-                text: "Monthly",
-                onPress: async () => {
-                  try {
-                    await purchasePlan("monthly");
-                  } catch (error) {
-                    Alert.alert(
-                      "Purchase Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to complete purchase",
-                    );
-                  }
-                },
-              },
-              {
-                text: "Yearly",
-                onPress: async () => {
-                  try {
-                    await purchasePlan("yearly");
-                  } catch (error) {
-                    Alert.alert(
-                      "Purchase Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to complete purchase",
-                    );
-                  }
-                },
-              },
-              {
-                text: "Lifetime",
-                onPress: async () => {
-                  try {
-                    await purchasePlan("lifetime");
-                  } catch (error) {
-                    Alert.alert(
-                      "Purchase Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to complete purchase",
-                    );
-                  }
-                },
-              },
-              { text: "Cancel", style: "cancel" },
-            ]);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/(stack)/paywall");
           },
           showArrow: true,
         },
-        {
-          icon: "sync-outline",
-          label: "Sync Now",
-          subtitle: "Sync data across devices",
-          onPress: async () => {
-            if (!isPremium) {
-              Alert.alert("Premium Required", "Cloud sync requires Premium.");
-              return;
-            }
-            if (authState === "guest") {
-              router.push("/(stack)/auth");
-              return;
-            }
-            try {
-              await syncNow();
-              Alert.alert("Sync Complete", "Your data is synced.");
-            } catch (error) {
-              Alert.alert(
-                "Sync Failed",
-                error instanceof Error ? error.message : "Unable to sync data",
-              );
-            }
-          },
-          showArrow: true,
-        },
+        ...(isPremium
+          ? [
+              {
+                icon: "sync-outline" as const,
+                label: "Sync Now",
+                subtitle:
+                  syncStatus === "error" && syncError
+                    ? `Sync error: ${syncError}`
+                    : lastSyncAt
+                    ? `Last sync: ${new Date(lastSyncAt).toLocaleString()} • Unsynced: ${unsyncedChanges}`
+                    : `Unsynced changes: ${unsyncedChanges}`,
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await syncNow();
+                    Alert.alert("Sync Complete", "Your data is synced.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Sync Failed",
+                      error instanceof Error ? error.message : "Unable to sync data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+              {
+                icon: "git-merge-outline" as const,
+                label: "Sync Strategy Setup",
+                subtitle: "Choose merge/local/cloud behavior and review conflicts",
+                onPress: () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  router.push("/(stack)/sync-setup");
+                },
+                showArrow: true,
+              },
+            ]
+          : [
+              {
+                icon: "lock-closed-outline" as const,
+                label: "Cloud Sync Locked",
+                subtitle: "Subscribe to Premium to enable sync across devices",
+                onPress: () => router.push("/(stack)/paywall"),
+                showArrow: true,
+              },
+            ]),
         {
           icon: "refresh-outline",
           label: "Restore Purchases",
           subtitle: "Recover your purchases",
           onPress: async () => {
             try {
-              await restorePurchases();
-              Alert.alert("Restore Complete", "Purchases were restored.");
+              const result = await restorePurchases();
+              if (result.restoredPremium) {
+                Alert.alert("Restore Complete", "Premium purchase restored successfully.");
+              } else {
+                Alert.alert(
+                  "No Purchases Found",
+                  authState === "guest"
+                    ? "No active premium purchases were found for this guest session. If you purchased on another device, sign in with the same account and try restore again."
+                    : "No active premium purchases were found for this account.",
+                );
+              }
             } catch (error) {
               Alert.alert(
                 "Restore Failed",
@@ -401,90 +258,208 @@ export default function ProfileScreen() {
           },
           showArrow: true,
         },
+        ...(authState !== "guest"
+          ? [
+              {
+                icon: "log-out-outline" as const,
+                label: "Sign Out",
+                subtitle: "Switch back to guest mode",
+                onPress: async () => {
+                  try {
+                    await signOut();
+                    Alert.alert("Signed Out", "You are now using guest mode.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Sign Out Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to sign out",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      title: "Preferences",
+      items: [
         {
-          icon: "log-out-outline",
-          label: "Sign Out",
-          subtitle: "Switch back to guest mode",
-          onPress: async () => {
-            try {
-              await signOut();
-              Alert.alert("Signed Out", "You are now using guest mode.");
-            } catch (error) {
-              Alert.alert(
-                "Sign Out Failed",
-                error instanceof Error
-                  ? error.message
-                  : "Unable to sign out",
-              );
-            }
+          icon: "repeat-outline",
+          label: "Subscription Processing",
+          subtitle:
+            SUBSCRIPTION_MODE_LABELS[settings.subscriptionProcessingMode],
+          onPress: handleSubscriptionModeChange,
+          showArrow: true,
+        },
+        {
+          icon: "moon-outline",
+          label: "Appearance",
+          subtitle:
+            theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light",
+          onPress: handleThemeChange,
+          showArrow: true,
+        },
+        {
+          icon: "cash-outline",
+          label: "Default Currency",
+          subtitle: currentCurrency
+            ? `${currentCurrency.code} (${currentCurrency.symbolNative})`
+            : "USD ($)",
+          onPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowCurrencyDropdown((prev) => !prev);
           },
           showArrow: true,
         },
       ],
     },
     {
-      title: "Support",
+      title: "Data",
       items: [
         {
-          icon: "help-circle-outline",
-          label: "Help & FAQ",
+          icon: "cloud-upload-outline",
+          label: "Export Data",
+          subtitle: "Download your data as JSON",
           onPress: () =>
             Alert.alert(
-              "Help",
-              "Visit our website for help and frequently asked questions.",
+              "Export Data",
+              "This will export all your financial data to a JSON file.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Export",
+                  onPress: async () => {
+                    if (!isPremium) {
+                      Alert.alert(
+                        "Premium Required",
+                        "Data export is available in Premium.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "View Plans",
+                            onPress: () => router.push("/(stack)/paywall"),
+                          },
+                        ],
+                      );
+                      return;
+                    }
+                    try {
+                      await exportAllData();
+                    } catch (error) {
+                      Alert.alert(
+                        "Export Failed",
+                        error instanceof Error
+                          ? error.message
+                          : "An error occurred while exporting data.",
+                      );
+                    }
+                  },
+                },
+              ],
             ),
           showArrow: true,
         },
         {
-          icon: "mail-outline",
-          label: "Contact Support",
-          onPress: () =>
-            Alert.alert("Contact", "Email us at support@budgettracker.app"),
-          showArrow: true,
-        },
-        {
-          icon: "star-outline",
-          label: "Rate App",
+          icon: "trash-outline",
+          label: "Clear All Data",
+          subtitle: "Delete all app data from this device",
           onPress: () =>
             Alert.alert(
-              "Thank You!",
-              "Thanks for using Budget Tracker! Your feedback helps us improve.",
+              "Clear All Data",
+              "This will permanently delete all your accounts, transactions, budgets, goals, and categories. This action cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Clear Data",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await deleteAllData();
+                      await Promise.all([
+                        refreshAccounts(),
+                        refreshTransactions(),
+                        refreshBudgets(),
+                        refreshGoals(),
+                        refreshCategories(),
+                        refreshSubscriptions(),
+                        refreshUserProfile(),
+                      ]);
+                      Alert.alert(
+                        "Data Deleted",
+                        "All app data has been deleted successfully.",
+                      );
+                    } catch (error) {
+                      Alert.alert(
+                        "Delete Failed",
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to delete all data.",
+                      );
+                    }
+                  },
+                },
+              ],
             ),
           showArrow: true,
         },
       ],
     },
-    {
-      title: "About",
-      items: [
-        {
-          icon: "information-circle-outline",
-          label: "App Version",
-          subtitle: "1.0.0",
-          onPress: () => Alert.alert("Budget Tracker", "Version 1.0.0"),
-        },
-        {
-          icon: "shield-checkmark-outline",
-          label: "Privacy Policy",
-          onPress: () =>
-            Alert.alert(
-              "Privacy Policy",
-              "Your data is stored locally on your device and is never shared.",
-            ),
-          showArrow: true,
-        },
-        {
-          icon: "document-text-outline",
-          label: "Terms of Service",
-          onPress: () =>
-            Alert.alert(
-              "Terms",
-              "By using this app, you agree to use it responsibly for personal finance tracking.",
-            ),
-          showArrow: true,
-        },
-      ],
-    },
+    ...(__DEV__
+      ? [
+          {
+            title: "Debug Tools",
+            items: [
+              {
+                icon: "flask-outline" as const,
+                label: "Generate Large Test Data",
+                subtitle: "Seed many records locally for sync stress testing",
+                onPress: () =>
+                  Alert.alert(
+                    "Generate Test Data",
+                    "This will insert a large synthetic dataset into local storage for sync testing.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Generate",
+                        onPress: async () => {
+                          try {
+                            const result = await generateLargeDebugData({
+                              userId: authState === "guest" ? null : userId || null,
+                              scale: "large",
+                            });
+                            await Promise.all([
+                              refreshAccounts(),
+                              refreshTransactions(),
+                              refreshBudgets(),
+                              refreshGoals(),
+                              refreshCategories(),
+                              refreshSubscriptions(),
+                            ]);
+                            Alert.alert(
+                              "Debug Data Ready",
+                              `Inserted ${result.transactions} transactions, ${result.accounts} accounts, ${result.categories} categories, ${result.budgets} budgets, ${result.monthlyBudgets} monthly budgets, ${result.goals} goals, ${result.subscriptions} subscriptions.`,
+                            );
+                          } catch (error) {
+                            Alert.alert(
+                              "Seed Failed",
+                              error instanceof Error
+                                ? error.message
+                                : "Unable to generate debug data.",
+                            );
+                          }
+                        },
+                      },
+                    ],
+                  ),
+                showArrow: true,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -500,7 +475,7 @@ export default function ProfileScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -517,7 +492,7 @@ export default function ProfileScreen() {
           <Text style={styles.profileName}>
             {userName || "Budget Tracker User"}
           </Text>
-          <Text style={styles.profileEmail}>Manage your finances wisely</Text>
+          <Text style={styles.profileEmail}>{profileSubtitle}</Text>
 
           <View style={styles.profileStats}>
             <View style={styles.profileStatItem}>
@@ -586,127 +561,9 @@ export default function ProfileScreen() {
           </View>
         ))}
 
-        {/* Export/Import Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Management</Text>
-          <Card style={styles.menuCard}>
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemBorder]}
-              onPress={() =>
-                Alert.alert(
-                  "Export Data",
-                  "This will export all your financial data to a JSON file.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Export",
-                      onPress: async () => {
-                        if (!isPremium) {
-                          Alert.alert(
-                            "Premium Required",
-                            "Data export is available in Premium.",
-                          );
-                          return;
-                        }
-                        try {
-                          await exportAllData();
-                        } catch (error) {
-                          Alert.alert(
-                            "Export Failed",
-                            error instanceof Error
-                              ? error.message
-                              : "An error occurred while exporting data.",
-                          );
-                        }
-                      },
-                    },
-                  ],
-                )
-              }
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons
-                  name="cloud-upload-outline"
-                  size={22}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.menuItemContent}>
-                <Text style={styles.menuItemLabel}>Export Data</Text>
-                <Text style={styles.menuItemSubtitle}>
-                  Download your data as JSON
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() =>
-                Alert.alert(
-                  "Clear All Data",
-                  "This will permanently delete all your accounts, transactions, budgets, goals, and categories. This action cannot be undone.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Clear Data",
-                      style: "destructive",
-                      onPress: async () => {
-                        try {
-                          await deleteAllData();
-                          await Promise.all([
-                            refreshAccounts(),
-                            refreshTransactions(),
-                            refreshBudgets(),
-                            refreshGoals(),
-                            refreshCategories(),
-                            refreshSubscriptions(),
-                            refreshUserProfile(),
-                          ]);
-                          Alert.alert(
-                            "✅ Data Deleted",
-                            "All app data has been deleted successfully.",
-                          );
-                        } catch (error) {
-                          Alert.alert(
-                            "Delete Failed",
-                            error instanceof Error
-                              ? error.message
-                              : "Failed to delete all data.",
-                          );
-                        }
-                      },
-                    },
-                  ],
-                )
-              }
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="trash-outline" size={22} color={colors.error} />
-              </View>
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemLabel, { color: colors.error }]}>
-                  Clear All Data
-                </Text>
-                <Text style={styles.menuItemSubtitle}>Delete all app data</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
-          </Card>
-        </View>
-
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Budget Tracker v1.0.0</Text>
+          <Text style={styles.footerText}>Cents and Sense v1.0.0</Text>
           <Text style={styles.footerSubtext}>
             Made with care for better finances
           </Text>

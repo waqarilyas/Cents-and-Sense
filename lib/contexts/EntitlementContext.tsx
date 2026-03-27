@@ -13,7 +13,7 @@ interface EntitlementContextType {
   loading: boolean;
   refreshEntitlements: () => Promise<void>;
   purchasePlan: (plan: ProductPlan) => Promise<void>;
-  restorePurchases: () => Promise<void>;
+  restorePurchases: () => Promise<{ restoredPremium: boolean }>;
 }
 
 const EntitlementContext = createContext<EntitlementContextType | undefined>(
@@ -26,21 +26,28 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [source, setSource] = useState<"live" | "cache" | "none">("none");
   const [loading, setLoading] = useState(true);
 
+  const configureBilling = useCallback(async () => {
+    const apiKey =
+      Platform.OS === "ios"
+        ? CLOUD_CONFIG.revenueCatApiKeyIos
+        : CLOUD_CONFIG.revenueCatApiKeyAndroid;
+
+    if (!apiKey) {
+      throw new Error(
+        "RevenueCat API key is missing. Set REVENUECAT_API_KEY_IOS/ANDROID in your environment.",
+      );
+    }
+
+    await billingService.configure(
+      apiKey,
+      authState === "guest" ? undefined : userId || undefined,
+    );
+  }, [authState, userId]);
+
   const refreshEntitlements = useCallback(async () => {
     try {
       setLoading(true);
-
-      const apiKey =
-        Platform.OS === "ios"
-          ? CLOUD_CONFIG.revenueCatApiKeyIos
-          : CLOUD_CONFIG.revenueCatApiKeyAndroid;
-
-      if (apiKey) {
-        await billingService.configure(
-          apiKey,
-          authState === "guest" ? undefined : userId || undefined,
-        );
-      }
+      await configureBilling();
 
       const [live, cached] = await Promise.all([
         billingService.getEntitlements().catch(() => null),
@@ -59,7 +66,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     } finally {
       setLoading(false);
     }
-  }, [authState, userId]);
+  }, [configureBilling]);
 
   useEffect(() => {
     refreshEntitlements();
@@ -75,14 +82,19 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, [refreshEntitlements]);
 
   const purchasePlan = useCallback(async (plan: ProductPlan) => {
+    await configureBilling();
     await billingService.purchase(plan);
     await refreshEntitlements();
-  }, [refreshEntitlements]);
+  }, [configureBilling, refreshEntitlements]);
 
   const restorePurchases = useCallback(async () => {
-    await billingService.restorePurchases();
+    await configureBilling();
+    const restored = await billingService.restorePurchases();
     await refreshEntitlements();
-  }, [refreshEntitlements]);
+    return {
+      restoredPremium: Boolean(restored.pro_subscription || restored.pro_lifetime),
+    };
+  }, [configureBilling, refreshEntitlements]);
 
   const value = useMemo(
     () => ({

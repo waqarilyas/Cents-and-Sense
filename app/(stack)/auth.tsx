@@ -9,13 +9,14 @@ import {
   Alert,
 } from "react-native";
 import { Text } from "react-native-paper";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors, ThemeColors, spacing, borderRadius } from "../../lib/theme";
 import { useAuth } from "../../lib/contexts/AuthContext";
 
 export default function AuthScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ pendingPlan?: string }>();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { sendOtp, verifyOtp, continueAsGuest } = useAuth();
@@ -34,7 +35,10 @@ export default function AuthScreen() {
     try {
       await sendOtp(email);
       setStep("verify");
-      Alert.alert("Check your email", "Enter the OTP code we sent.");
+      Alert.alert(
+        "Check your email",
+        "Enter the OTP code from your email. If you requested multiple codes, only the latest one works.",
+      );
     } catch (e) {
       Alert.alert("Sign in failed", e instanceof Error ? e.message : "Unable to send OTP.");
     } finally {
@@ -51,7 +55,13 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await verifyOtp(email, code);
-      router.back();
+      Alert.alert("Signed In", "Now complete your profile setup.");
+      router.replace({
+        pathname: "/(stack)/profile-setup",
+        params: params.pendingPlan
+          ? { pendingPlan: params.pendingPlan }
+          : {},
+      });
     } catch (e) {
       Alert.alert("Verification failed", e instanceof Error ? e.message : "Unable to verify OTP.");
     } finally {
@@ -73,7 +83,9 @@ export default function AuthScreen() {
 
       <View style={styles.content}>
         <Text style={styles.subtitle}>
-          Sign in to sync data across devices and restore premium on any device.
+          Sign in to restore premium on any device and prepare account sync.
+          Cloud sync activates after you subscribe to a Premium plan.
+          OTP codes are one-time use and expire quickly.
         </Text>
 
         <TextInput

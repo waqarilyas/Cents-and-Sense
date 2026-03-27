@@ -11,6 +11,11 @@ export interface BillingEntitlements {
   validatedAt: number;
 }
 
+export interface OfferingStatus {
+  hasCurrentOffering: boolean;
+  availablePackageIds: string[];
+}
+
 class BillingService {
   private purchasesModule: any = null;
 
@@ -80,25 +85,43 @@ class BillingService {
 
     const offerings = await purchases.getOfferings();
     const current = offerings?.current;
-    if (!current) throw new Error("No active offering available");
+    if (!current) {
+      throw new Error(
+        "No active offering available. Configure a Current Offering in RevenueCat with monthly/yearly/lifetime packages.",
+      );
+    }
 
     const pkg = current.availablePackages.find(
       (p: any) => p.identifier === entitlementToPackage[plan],
     );
     if (!pkg) {
-      throw new Error(`Package not found for ${plan}`);
+      const availableIds =
+        current.availablePackages?.map((p: any) => p.identifier).join(", ") ||
+        "none";
+      throw new Error(
+        `Package not found for ${plan}. Available packages: ${availableIds}`,
+      );
     }
 
     await purchases.purchasePackage(pkg);
   }
 
-  async restorePurchases(): Promise<void> {
+  async restorePurchases(): Promise<BillingEntitlements> {
     const purchases = this.getPurchasesModule();
     if (!purchases) {
       throw new Error("Billing SDK is not installed. Add react-native-purchases to enable restore.");
     }
 
-    await purchases.restorePurchases();
+    const info = await purchases.restorePurchases();
+    const active = info?.entitlements?.active || {};
+    const entitlements: BillingEntitlements = {
+      pro_subscription: Boolean(active.pro_subscription),
+      pro_lifetime: Boolean(active.pro_lifetime),
+      validatedAt: Date.now(),
+    };
+
+    await AsyncStorage.setItem(ENTITLEMENT_CACHE_KEY, JSON.stringify(entitlements));
+    return entitlements;
   }
 
   async getCachedEntitlements(): Promise<BillingEntitlements | null> {
@@ -109,6 +132,22 @@ class BillingService {
     } catch {
       return null;
     }
+  }
+
+  async getOfferingStatus(): Promise<OfferingStatus | null> {
+    const purchases = this.getPurchasesModule();
+    if (!purchases) return null;
+
+    const offerings = await purchases.getOfferings();
+    const current = offerings?.current;
+    const availablePackageIds = (current?.availablePackages || []).map(
+      (p: any) => p.identifier,
+    );
+
+    return {
+      hasCurrentOffering: Boolean(current),
+      availablePackageIds,
+    };
   }
 
   async openManageSubscriptionPortal(): Promise<void> {

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Linking } from "react-native";
 import { supabaseService } from "../services/SupabaseService";
 import { billingService } from "../services/BillingService";
 
@@ -32,16 +33,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const applySession = useCallback(async (session: { user: { id: string; email?: string } }) => {
+    await billingService.logIn(session.user.id);
+    const entitlements = await billingService.getEntitlements().catch(() => null);
+    setAuthState(resolveAuthStateFromEntitlements(entitlements));
+    setUserId(session.user.id);
+    setEmail(session.user.email || null);
+  }, []);
+
   const hydrate = useCallback(async () => {
     try {
       setLoading(true);
       const session = await supabaseService.getSession();
       if (session?.user?.id) {
-        await billingService.logIn(session.user.id);
-        const entitlements = await billingService.getEntitlements().catch(() => null);
-        setAuthState(resolveAuthStateFromEntitlements(entitlements));
-        setUserId(session.user.id);
-        setEmail(session.user.email || null);
+        await applySession(session);
       } else {
         setAuthState("guest");
         setUserId(null);
@@ -50,11 +55,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applySession]);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    const handleUrl = async (url: string) => {
+      const session = await supabaseService.consumeAuthRedirect(url);
+      if (session?.user?.id) {
+        await applySession(session);
+      }
+    };
+
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) {
+          return handleUrl(url);
+        }
+        return undefined;
+      })
+      .catch(() => undefined);
+
+    const sub = Linking.addEventListener("url", (event) => {
+      handleUrl(event.url).catch(() => undefined);
+    });
+
+    return () => sub.remove();
+  }, [applySession]);
 
   const sendOtp = useCallback(async (value: string) => {
     await supabaseService.signInWithEmailOtp(value.trim().toLowerCase());
@@ -65,12 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value.trim().toLowerCase(),
       token.trim(),
     );
-    await billingService.logIn(session.user.id);
-    const entitlements = await billingService.getEntitlements().catch(() => null);
-    setAuthState(resolveAuthStateFromEntitlements(entitlements));
-    setUserId(session.user.id);
-    setEmail(session.user.email || value.trim().toLowerCase());
-  }, []);
+    await applySession({
+      user: { id: session.user.id, email: session.user.email || value.trim().toLowerCase() },
+    });
+  }, [applySession]);
 
   const continueAsGuest = useCallback(async () => {
     setAuthState("guest");

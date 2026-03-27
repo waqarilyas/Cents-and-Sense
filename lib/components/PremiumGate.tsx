@@ -25,7 +25,7 @@ export function PremiumGate({
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: colors.primary }]}
-        onPress={() => router.push("/(stack)/profile")}
+        onPress={() => router.push("/(stack)/paywall")}
       >
         <Text style={styles.buttonText}>Upgrade Now</Text>
       </TouchableOpacity>

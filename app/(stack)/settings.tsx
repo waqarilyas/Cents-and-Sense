@@ -33,7 +33,11 @@ import { useEntitlements } from "../../lib/contexts/EntitlementContext";
 import { useSync } from "../../lib/contexts/SyncContext";
 import { billingService } from "../../lib/services/BillingService";
 import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
-import { exportAllData, deleteAllData } from "../../lib/utils/dataManagement";
+import {
+  exportAllData,
+  deleteAllData,
+  generateLargeDebugData,
+} from "../../lib/utils/dataManagement";
 import { useMemo, useState } from "react";
 
 interface MenuItem {
@@ -61,9 +65,18 @@ export default function SettingsScreen() {
   const { userName, defaultCurrency, updateDefaultCurrency, refreshUserProfile } =
     useUser();
   const { setDefaultCurrency } = useCurrency();
-  const { authState, email, signOut } = useAuth();
-  const { isPremium, source, purchasePlan, restorePurchases } = useEntitlements();
-  const { syncNow, backupNow, restoreFromCloud, syncStatus, lastSyncAt } =
+  const { authState, email, userId, signOut } = useAuth();
+  const { isPremium, source, restorePurchases } = useEntitlements();
+  const {
+    syncNow,
+    backupNow,
+    restoreFromCloud,
+    syncStatus,
+    lastSyncAt,
+    syncError,
+    isOnline,
+    unsyncedChanges,
+  } =
     useSync();
 
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -178,6 +191,10 @@ export default function SettingsScreen() {
               Alert.alert(
                 "Premium Required",
                 "Data export is part of Premium. Upgrade to unlock export and cloud backup.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "View Plans", onPress: () => router.push("/(stack)/paywall") },
+                ],
               );
               return;
             }
@@ -283,6 +300,52 @@ export default function SettingsScreen() {
           color: "#F44336",
           showArrow: true,
         },
+        ...(__DEV__
+          ? [
+              {
+                icon: "flask-outline" as const,
+                label: "Generate Large Test Data",
+                subtitle: "Debug: seed thousands of records for sync testing",
+                onPress: () =>
+                  Alert.alert(
+                    "Generate Debug Data",
+                    "This will insert a large synthetic dataset into local storage for sync stress testing.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Generate",
+                        onPress: async () => {
+                          try {
+                            const result = await generateLargeDebugData({
+                              userId: authState === "guest" ? null : userId || null,
+                              scale: "large",
+                            });
+                            await Promise.all([
+                              refreshAccounts(),
+                              refreshTransactions(),
+                              refreshBudgets(),
+                              refreshGoals(),
+                              refreshCategories(),
+                              refreshSubscriptions(),
+                            ]);
+                            Alert.alert(
+                              "Debug Data Ready",
+                              `Inserted ${result.transactions} transactions, ${result.accounts} accounts, ${result.categories} categories, ${result.budgets} budgets, ${result.monthlyBudgets} monthly budgets, ${result.goals} goals, ${result.subscriptions} subscriptions.`,
+                            );
+                          } catch (error) {
+                            Alert.alert(
+                              "Seed Failed",
+                              error instanceof Error ? error.message : "Unable to generate debug data.",
+                            );
+                          }
+                        },
+                      },
+                    ],
+                  ),
+                showArrow: true,
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -293,105 +356,120 @@ export default function SettingsScreen() {
           label: "Account",
           subtitle:
             authState !== "guest"
-              ? `Signed in${email ? ` as ${email}` : ""}`
-              : "Guest mode (not syncing)",
+              ? `Signed in${email ? ` as ${email}` : ""} • ${isPremium ? `Premium (${source})` : "Free"} • ${isOnline ? "Online" : "Offline"}`
+              : `Guest mode (not syncing) • ${isOnline ? "Online" : "Offline"}`,
           onPress: () =>
             authState !== "guest"
               ? Alert.alert("Account", "You are signed in.")
               : router.push("/(stack)/auth"),
           showArrow: authState === "guest",
         },
-        {
-          icon: "sync-outline",
-          label: "Sync Now",
-          subtitle:
-            lastSyncAt && syncStatus !== "error"
-              ? `Last sync: ${new Date(lastSyncAt).toLocaleString()}`
-              : "Push & pull latest changes",
-          onPress: async () => {
-            if (!isPremium) {
-              Alert.alert("Premium Required", "Cloud sync requires Premium.");
-              return;
-            }
-            if (authState === "guest") {
-              router.push("/(stack)/auth");
-              return;
-            }
-            try {
-              await syncNow();
-              Alert.alert("Sync Complete", "Your data is synced.");
-            } catch (error) {
-              Alert.alert(
-                "Sync Failed",
-                error instanceof Error ? error.message : "Unable to sync data",
-              );
-            }
-          },
-          showArrow: true,
-        },
-        {
-          icon: "cloud-upload-outline",
-          label: "Backup to Cloud",
-          subtitle: "Upload latest device data",
-          onPress: async () => {
-            if (!isPremium) {
-              Alert.alert("Premium Required", "Cloud backup requires Premium.");
-              return;
-            }
-            if (authState === "guest") {
-              router.push("/(stack)/auth");
-              return;
-            }
-            try {
-              await backupNow();
-              Alert.alert("Backup Complete", "Cloud backup finished.");
-            } catch (error) {
-              Alert.alert(
-                "Backup Failed",
-                error instanceof Error
-                  ? error.message
-                  : "Unable to back up data",
-              );
-            }
-          },
-          showArrow: true,
-        },
-        {
-          icon: "cloud-download-outline",
-          label: "Restore from Cloud",
-          subtitle: "Pull latest cloud snapshot",
-          onPress: async () => {
-            if (!isPremium) {
-              Alert.alert("Premium Required", "Cloud restore requires Premium.");
-              return;
-            }
-            if (authState === "guest") {
-              router.push("/(stack)/auth");
-              return;
-            }
-            try {
-              await restoreFromCloud();
-              await Promise.all([
-                refreshAccounts(),
-                refreshTransactions(),
-                refreshBudgets(),
-                refreshGoals(),
-                refreshCategories(),
-                refreshSubscriptions(),
-                refreshUserProfile(),
-              ]);
-              Alert.alert("Restore Complete", "Cloud data restored.");
-            } catch (error) {
-              Alert.alert(
-                "Restore Failed",
-                error instanceof Error
-                  ? error.message
-                  : "Unable to restore data",
-              );
-            }
-          },
-          showArrow: true,
-        },
+        ...(isPremium
+          ? [
+              {
+                icon: "sync-outline" as const,
+                label: "Sync Now",
+                subtitle:
+                  syncStatus === "error" && syncError
+                    ? `Sync error: ${syncError}`
+                    : lastSyncAt && syncStatus !== "error"
+                    ? `Last sync: ${new Date(lastSyncAt).toLocaleString()} • Unsynced: ${unsyncedChanges}`
+                    : `Unsynced changes: ${unsyncedChanges}`,
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await syncNow();
+                    Alert.alert("Sync Complete", "Your data is synced.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Sync Failed",
+                      error instanceof Error ? error.message : "Unable to sync data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+              {
+                icon: "git-merge-outline" as const,
+                label: "Sync Strategy Setup",
+                subtitle: "Review merge/local/cloud strategy and conflict summary",
+                onPress: () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  router.push("/(stack)/sync-setup");
+                },
+                showArrow: true,
+              },
+              {
+                icon: "cloud-upload-outline" as const,
+                label: "Backup to Cloud",
+                subtitle: "Upload latest device data",
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await backupNow();
+                    Alert.alert("Backup Complete", "Cloud backup finished.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Backup Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to back up data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+              {
+                icon: "cloud-download-outline" as const,
+                label: "Restore from Cloud",
+                subtitle: "Pull latest cloud snapshot",
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await restoreFromCloud();
+                    await Promise.all([
+                      refreshAccounts(),
+                      refreshTransactions(),
+                      refreshBudgets(),
+                      refreshGoals(),
+                      refreshCategories(),
+                      refreshSubscriptions(),
+                      refreshUserProfile(),
+                    ]);
+                    Alert.alert("Restore Complete", "Cloud data restored.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Restore Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to restore data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : [
+              {
+                icon: "lock-closed-outline" as const,
+                label: "Cloud Sync Locked",
+                subtitle: "Subscribe to Premium to enable sync and cloud backup",
+                onPress: () => router.push("/(stack)/paywall"),
+                showArrow: true,
+              },
+            ]),
       ],
     },
     {
@@ -403,60 +481,7 @@ export default function SettingsScreen() {
           subtitle: isPremium
             ? `Analytics, sync, export, and backup unlocked (${source})`
             : "Unlock analytics + sync + export + cloud backup",
-          onPress: () => {
-            if (isPremium) {
-              Alert.alert("Premium", "Your premium access is active.");
-              return;
-            }
-            Alert.alert("Choose Plan", "Select a plan to continue", [
-              {
-                text: "Monthly",
-                onPress: async () => {
-                  try {
-                    await purchasePlan("monthly");
-                  } catch (error) {
-                    Alert.alert(
-                      "Purchase Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to complete purchase",
-                    );
-                  }
-                },
-              },
-              {
-                text: "Yearly",
-                onPress: async () => {
-                  try {
-                    await purchasePlan("yearly");
-                  } catch (error) {
-                    Alert.alert(
-                      "Purchase Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to complete purchase",
-                    );
-                  }
-                },
-              },
-              {
-                text: "Lifetime",
-                onPress: async () => {
-                  try {
-                    await purchasePlan("lifetime");
-                  } catch (error) {
-                    Alert.alert(
-                      "Purchase Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to complete purchase",
-                    );
-                  }
-                },
-              },
-              { text: "Cancel", style: "cancel" },
-            ]);
-          },
+          onPress: () => router.push("/(stack)/paywall"),
           showArrow: true,
         },
         {
@@ -465,8 +490,17 @@ export default function SettingsScreen() {
           subtitle: "Recover purchases on this device",
           onPress: async () => {
             try {
-              await restorePurchases();
-              Alert.alert("Restore Complete", "Purchases were restored.");
+              const result = await restorePurchases();
+              if (result.restoredPremium) {
+                Alert.alert("Restore Complete", "Premium purchase restored successfully.");
+              } else {
+                Alert.alert(
+                  "No Purchases Found",
+                  authState === "guest"
+                    ? "No active premium purchases were found for this guest session. If you purchased on another device, sign in with the same account and try restore again."
+                    : "No active premium purchases were found for this account.",
+                );
+              }
             } catch (error) {
               Alert.alert(
                 "Restore Failed",
@@ -496,25 +530,29 @@ export default function SettingsScreen() {
           },
           showArrow: true,
         },
-        {
-          icon: "log-out-outline",
-          label: "Sign Out",
-          subtitle: "Stay on this device as guest",
-          onPress: async () => {
-            try {
-              await signOut();
-              Alert.alert("Signed Out", "You are now using guest mode.");
-            } catch (error) {
-              Alert.alert(
-                "Sign Out Failed",
-                error instanceof Error
-                  ? error.message
-                  : "Unable to sign out",
-              );
-            }
-          },
-          showArrow: true,
-        },
+        ...(authState !== "guest"
+          ? [
+              {
+                icon: "log-out-outline" as const,
+                label: "Sign Out",
+                subtitle: "Stay on this device as guest",
+                onPress: async () => {
+                  try {
+                    await signOut();
+                    Alert.alert("Signed Out", "You are now using guest mode.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Sign Out Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to sign out",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : []),
       ],
     },
     {

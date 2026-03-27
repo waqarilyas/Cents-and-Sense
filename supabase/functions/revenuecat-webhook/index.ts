@@ -1,10 +1,10 @@
 // Deno Edge Function for RevenueCat webhook ingestion.
-// Deploy with Supabase CLI and set REVENUECAT_WEBHOOK_SECRET + SUPABASE_SERVICE_ROLE_KEY.
+// Deploy with Supabase CLI and set REVENUECAT_WEBHOOK_SECRET + SERVICE_ROLE_KEY.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const url = Deno.env.get("SUPABASE_URL")!;
-const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const serviceRole = Deno.env.get("SERVICE_ROLE_KEY")!;
 const webhookSecret = Deno.env.get("REVENUECAT_WEBHOOK_SECRET") || "";
 
 const supabase = createClient(url, serviceRole);
@@ -39,8 +39,14 @@ function deriveEntitlementActiveState(
 Deno.serve(async (req) => {
   try {
     const signature = req.headers.get("X-RevenueCat-Signature") || "";
-    if (webhookSecret && signature !== webhookSecret) {
-      return new Response("Unauthorized", { status: 401 });
+    const authHeader = req.headers.get("Authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ")
+      ? authHeader.replace("Bearer ", "").trim()
+      : "";
+    const providedSecret = signature || bearerToken;
+
+    if (webhookSecret && providedSecret !== webhookSecret) {
+      return new Response("Unauthorized (invalid webhook secret)", { status: 401 });
     }
 
     const payload = await req.json();
