@@ -1,10 +1,11 @@
 // Design System Constants - Ensure consistency across all screens
+import { Ionicons } from "@expo/vector-icons";
 
 // Color Palette
 export const COLORS = {
-  PRIMARY: "#26C6A0", // Teal - Main brand color
-  PRIMARY_LIGHT: "#E8F8F5", // Light teal background
-  SECONDARY: "#4A90FF", // Blue - Secondary actions
+  PRIMARY: "#2563EB", // Brand blue
+  PRIMARY_LIGHT: "#DBEAFE", // Soft blue background
+  SECONDARY: "#0F766E", // Teal - Secondary emphasis
   WHITE: "#FFFFFF",
   TEXT_DARK: "#1a1a1a",
   TEXT_LIGHT: "#999999",
@@ -92,26 +93,29 @@ export const SIZES = {
 } as const;
 
 // Category Icons
-export const CATEGORY_ICONS: Record<string, string> = {
-  food: "🍽️",
-  transport: "🚗",
-  medicine: "💊",
-  groceries: "🛒",
-  rent: "🏠",
-  gifts: "🎁",
-  savings: "💰",
-  entertainment: "🎬",
-  salary: "📦",
-  others: "📋",
-  income: "📈",
-  expense: "📉",
+export const CATEGORY_ICONS: Record<
+  string,
+  keyof typeof Ionicons.glyphMap
+> = {
+  food: "restaurant",
+  transport: "car",
+  medicine: "medical",
+  groceries: "cart",
+  rent: "home",
+  gifts: "gift",
+  savings: "wallet",
+  entertainment: "film",
+  salary: "cash",
+  others: "ellipsis-horizontal",
+  income: "trending-up",
+  expense: "trending-down",
 };
 
 // Tab Icons
-export const TAB_ICONS: Record<string, string> = {
-  home: "🏠",
-  analytics: "📊",
-  transactions: "↔️",
-  categories: "📑",
-  profile: "👤",
+export const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  home: "home",
+  analytics: "stats-chart",
+  transactions: "swap-vertical",
+  categories: "pricetags",
+  profile: "person-circle",
 };

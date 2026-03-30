@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -18,6 +18,7 @@ import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import { useSync } from "../../lib/contexts/SyncContext";
 import { useEntitlements } from "../../lib/contexts/EntitlementContext";
 import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
+import { useFeatureFlags } from "../../lib/contexts/FeatureFlagsContext";
 
 export default function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
@@ -25,6 +26,7 @@ export default function ProfileSetupScreen() {
   const params = useLocalSearchParams<{ pendingPlan?: string }>();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { userName, defaultCurrency, setUserProfile, updateDefaultCurrency } = useUser();
   const { setDefaultCurrency } = useCurrency();
   const { syncProfileNow } = useSync();
@@ -33,6 +35,16 @@ export default function ProfileSetupScreen() {
   const [name, setName] = useState(userName || "");
   const [currency, setCurrency] = useState(defaultCurrency || "USD");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!flagsLoading && !flags.profileSetupEnabled) {
+      router.replace("/(tabs)");
+    }
+  }, [flags.profileSetupEnabled, flagsLoading, router]);
+
+  if (flagsLoading || !flags.profileSetupEnabled) {
+    return null;
+  }
 
   const onSave = async () => {
     const trimmed = name.trim();

@@ -98,7 +98,7 @@ describe("TransactionContext — Initial State", () => {
 describe("TransactionContext — addTransaction", () => {
   it("creates a transaction with valid inputs", async () => {
     // Mock account and category existence
-    mockDb.getFirstAsync
+    (mockDb.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce({
         id: "acc-1",
         currency: "USD",
@@ -150,7 +150,7 @@ describe("TransactionContext — addTransaction", () => {
   });
 
   it("rejects when category does not exist", async () => {
-    mockDb.getFirstAsync
+    (mockDb.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce({
         id: "acc-1",
         currency: "USD",
@@ -257,7 +257,7 @@ describe("TransactionContext — deleteTransaction", () => {
     });
 
     // Mock: transaction exists in DB
-    mockDb.getFirstAsync.mockResolvedValueOnce({
+    (mockDb.getFirstAsync as jest.Mock).mockResolvedValueOnce({
       id: "txn-1",
       accountId: "acc-1",
       amount: 50,

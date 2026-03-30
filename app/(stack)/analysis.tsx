@@ -22,6 +22,7 @@ import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import { useEntitlements } from "../../lib/contexts/EntitlementContext";
+import { useFeatureFlags } from "../../lib/contexts/FeatureFlagsContext";
 import {
   spacing,
   borderRadius,
@@ -75,13 +76,41 @@ type AnalyticsTab =
 type CompareMode = "previous" | "year";
 type TypeFilter = "all" | "income" | "expense";
 
+const PRIMARY_TABS: {
+  id: AnalyticsTab | "more";
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { id: "overview", label: "Overview", icon: "grid" },
+  { id: "spending", label: "Spending", icon: "pie-chart" },
+  { id: "cashflow", label: "Cash Flow", icon: "swap-vertical" },
+  { id: "goals", label: "Goals", icon: "flag" },
+  { id: "more", label: "More Views", icon: "apps" },
+];
+
+const SECONDARY_TABS: {
+  id: AnalyticsTab;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { id: "income", label: "Income", icon: "cash" },
+  { id: "budgets", label: "Budgets", icon: "wallet" },
+  { id: "subscriptions", label: "Subscriptions", icon: "repeat" },
+  { id: "insights", label: "Insights", icon: "bulb" },
+];
+
 export default function AnalysisScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, activeTheme } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { defaultCurrency } = useCurrency();
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { isPremium, loading: entitlementLoading } = useEntitlements();
+  const analyticsRequiresPremium =
+    flags.analyticsEnabled &&
+    flags.premiumEnabled &&
+    flags.analyticsRequiresPremium;
   const currencySymbol = defaultCurrency?.symbol || "$";
   const currencyCode = defaultCurrency?.code || "USD";
   const {
@@ -102,6 +131,7 @@ export default function AnalysisScreen() {
   const [compareMode, setCompareMode] = useState<CompareMode>("previous");
   const [showRangeModal, setShowRangeModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [customRange, setCustomRange] = useState(() => {
     const end = new Date();
     const start = new Date();
@@ -953,11 +983,28 @@ export default function AnalysisScreen() {
     return max || 100;
   }, [dailyTrend]);
 
-  if (txLoading || catLoading || entitlementLoading) {
+  if (
+    txLoading ||
+    catLoading ||
+    flagsLoading ||
+    (analyticsRequiresPremium && entitlementLoading)
+  ) {
     return <LoadingState />;
   }
 
-  if (!isPremium) {
+  if (!flags.analyticsEnabled) {
+    return (
+      <View style={[styles.container, styles.centeredState]}>
+        <Ionicons name="bar-chart" size={44} color={colors.textMuted} />
+        <Text style={styles.unavailableTitle}>Analytics unavailable</Text>
+        <Text style={styles.unavailableText}>
+          Analytics is disabled in this release.
+        </Text>
+      </View>
+    );
+  }
+
+  if (analyticsRequiresPremium && !isPremium) {
     return (
       <PremiumGate
         title="Analytics Is Premium"
@@ -991,13 +1038,12 @@ export default function AnalysisScreen() {
 
   const getChangeIndicator = (change: number) => {
     if (change > 0) return { icon: "arrow-up", color: colors.expense };
-    if (change < 0) return { icon: "arrow-down", color: colors.income };
+    if (change < 0) return { icon: "arrow-down", color: colors.success };
     return { icon: "remove", color: colors.textMuted };
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Premium Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
@@ -1007,10 +1053,12 @@ export default function AnalysisScreen() {
             <Ionicons name="chevron-back" size={26} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Analytics</Text>
-          <View style={styles.premiumBadge}>
-            <Ionicons name="diamond" size={12} color={colors.warning} />
-            <Text style={styles.premiumBadgeText}>PRO</Text>
-          </View>
+          {analyticsRequiresPremium ? (
+            <View style={styles.premiumBadge}>
+              <Ionicons name="diamond" size={12} color={colors.warning} />
+              <Text style={styles.premiumBadgeText}>PRO</Text>
+            </View>
+          ) : null}
         </View>
         <Text style={styles.headerSubtitle}>{getPeriodLabel()}</Text>
       </View>
@@ -1040,14 +1088,14 @@ export default function AnalysisScreen() {
                 ]}
               >
                 {period === "week"
-                  ? "W"
+                  ? "Week"
                   : period === "month"
-                    ? "M"
+                    ? "Month"
                     : period === "quarter"
-                      ? "3M"
+                      ? "Quarter"
                       : period === "year"
-                        ? "Y"
-                        : "C"}
+                        ? "Year"
+                        : "Custom"}
               </Text>
             </TouchableOpacity>
           ),
@@ -1099,46 +1147,42 @@ export default function AnalysisScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.tabBar]}
-        style={{
-          maxHeight: 60,
-        }}
       >
-        {(
-          [
-            { id: "overview", label: "Overview", icon: "grid" },
-            { id: "spending", label: "Spending", icon: "pie-chart" },
-            { id: "income", label: "Income", icon: "cash" },
-            { id: "cashflow", label: "Cash Flow", icon: "swap-vertical" },
-            { id: "budgets", label: "Budgets", icon: "wallet" },
-            { id: "subscriptions", label: "Subs", icon: "repeat" },
-            { id: "goals", label: "Goals", icon: "flag" },
-            { id: "insights", label: "Insights", icon: "bulb" },
-          ] as {
-            id: AnalyticsTab;
-            label: string;
-            icon: keyof typeof Ionicons.glyphMap;
-          }[]
-        ).map((tab) => (
+        {PRIMARY_TABS.map((tab) => (
           <TouchableOpacity
             key={tab.id}
             style={[
               styles.tabButton,
-              activeTab === tab.id && styles.tabButtonActive,
+              (tab.id === "more"
+                ? SECONDARY_TABS.some((secondaryTab) => secondaryTab.id === activeTab)
+                : activeTab === tab.id) && styles.tabButtonActive,
             ]}
             onPress={() => {
               hapticFeedback();
+              if (tab.id === "more") {
+                setShowViewModal(true);
+                return;
+              }
               setActiveTab(tab.id);
             }}
           >
             <Ionicons
               name={tab.icon}
               size={18}
-              color={activeTab === tab.id ? colors.primary : colors.textMuted}
+              color={
+                (tab.id === "more"
+                  ? SECONDARY_TABS.some((secondaryTab) => secondaryTab.id === activeTab)
+                  : activeTab === tab.id)
+                  ? colors.primary
+                  : colors.textMuted
+              }
             />
             <Text
               style={[
                 styles.tabButtonText,
-                activeTab === tab.id && styles.tabButtonTextActive,
+                (tab.id === "more"
+                  ? SECONDARY_TABS.some((secondaryTab) => secondaryTab.id === activeTab)
+                  : activeTab === tab.id) && styles.tabButtonTextActive,
               ]}
             >
               {tab.label}
@@ -1146,6 +1190,84 @@ export default function AnalysisScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      <Modal
+        visible={showViewModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowViewModal(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowViewModal(false)}
+        >
+          <Pressable
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>More Analytics Views</Text>
+                <Text style={styles.modalSubtitle}>
+                  Choose a focused report
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowViewModal(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.viewList}>
+              {SECONDARY_TABS.map((tab) => (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[
+                    styles.viewListItem,
+                    activeTab === tab.id && styles.viewListItemActive,
+                  ]}
+                  onPress={() => {
+                    hapticFeedback();
+                    setActiveTab(tab.id);
+                    setShowViewModal(false);
+                  }}
+                >
+                  <View style={styles.viewListItemLeft}>
+                    <Ionicons
+                      name={tab.icon}
+                      size={20}
+                      color={
+                        activeTab === tab.id ? colors.primary : colors.textMuted
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.viewListItemText,
+                        activeTab === tab.id && styles.viewListItemTextActive,
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={
+                      activeTab === tab.id
+                        ? "checkmark-circle"
+                        : "chevron-forward"
+                    }
+                    size={20}
+                    color={
+                      activeTab === tab.id ? colors.primary : colors.textMuted
+                    }
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={showRangeModal}
@@ -1360,11 +1482,7 @@ export default function AnalysisScreen() {
             </View>
 
             <Text style={styles.filterSectionTitle}>Accounts</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterRow}
-            >
+            <View style={styles.filterRow}>
               <TouchableOpacity
                 style={[
                   styles.filterChip,
@@ -1401,14 +1519,10 @@ export default function AnalysisScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
             <Text style={styles.filterSectionTitle}>Categories</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterRow}
-            >
+            <View style={styles.filterRow}>
               <TouchableOpacity
                 style={[
                   styles.filterChip,
@@ -1446,7 +1560,7 @@ export default function AnalysisScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
             <View style={styles.modalActions}>
               <Pressable
@@ -1479,6 +1593,8 @@ export default function AnalysisScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
             progressViewOffset={0}
           />
         }
@@ -1500,11 +1616,11 @@ export default function AnalysisScreen() {
                       Alert.alert(
                         "Health Score",
                         "Your financial health score (0-100) is calculated based on:\n\n" +
-                          "• Savings Rate (up to 30 pts)\n" +
+                          "Savings Rate (up to 30 pts)\n" +
                           "  - 30%+ savings = 30 pts\n" +
                           "  - 20%+ savings = 25 pts\n" +
                           "  - 10%+ savings = 15 pts\n\n" +
-                          "• Budget Adherence (up to 20 pts)\n" +
+                          "Budget Adherence (up to 20 pts)\n" +
                           "  - Based on staying within budgets\n\n" +
                           "Base score: 50 points\n" +
                           "Aim for 70+ for excellent financial health!",
@@ -1811,7 +1927,7 @@ export default function AnalysisScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons
-                    name="pie-chart-outline"
+                    name="pie-chart"
                     size={48}
                     color={colors.textMuted}
                   />
@@ -2132,7 +2248,7 @@ export default function AnalysisScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons
-                    name="pie-chart-outline"
+                    name="pie-chart"
                     size={48}
                     color={colors.textMuted}
                   />
@@ -2201,7 +2317,7 @@ export default function AnalysisScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons
-                    name="wallet-outline"
+                    name="wallet"
                     size={48}
                     color={colors.textMuted}
                   />
@@ -2333,10 +2449,10 @@ export default function AnalysisScreen() {
               <View style={styles.summaryGrid}>
                 {transactionSizeBuckets.map((bucket, index) => {
                   const iconNames = [
-                    "cart-outline",
-                    "restaurant-outline",
-                    "home-outline",
-                    "diamond-outline",
+                    "cart",
+                    "restaurant",
+                    "home",
+                    "diamond",
                   ];
                   const bgColors = [
                     colors.primaryLight,
@@ -3083,7 +3199,7 @@ export default function AnalysisScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <Ionicons
-                    name="wallet-outline"
+                    name="wallet"
                     size={48}
                     color={colors.textMuted}
                   />
@@ -3727,7 +3843,7 @@ export default function AnalysisScreen() {
           <>
             {/* AI Insights */}
             <View style={styles.insightsHeader}>
-              <Ionicons name="sparkles" size={24} color={colors.primary} />
+              <Ionicons name="stats-chart" size={24} color={colors.primary} />
               <Text style={styles.insightsTitle}>Smart Insights</Text>
             </View>
 
@@ -3787,7 +3903,7 @@ export default function AnalysisScreen() {
             ) : (
               <Card style={styles.noInsightsCard}>
                 <Ionicons
-                  name="analytics-outline"
+                  name="analytics"
                   size={48}
                   color={colors.textMuted}
                 />
@@ -4052,6 +4168,24 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    centeredState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.xl,
+      gap: spacing.sm,
+    },
+    unavailableTitle: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      textAlign: "center",
+    },
+    unavailableText: {
+      fontSize: 14,
+      lineHeight: 22,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
     header: {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
@@ -4098,11 +4232,13 @@ const createStyles = (colors: ThemeColors) =>
     },
     periodSelector: {
       flexDirection: "row",
+      flexWrap: "wrap",
       marginHorizontal: spacing.lg,
       backgroundColor: colors.surfaceSecondary,
       borderRadius: borderRadius.lg,
       padding: 4,
       marginBottom: spacing.sm,
+      gap: 4,
     },
     controlsRow: {
       flexDirection: "row",
@@ -4129,11 +4265,11 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "500",
     },
     periodButton: {
-      flex: 1,
+      flexGrow: 1,
+      flexBasis: "31%",
       paddingVertical: spacing.sm,
       alignItems: "center",
       borderRadius: borderRadius.md,
-      minWidth: 0,
     },
     periodButtonActive: {
       backgroundColor: colors.surface,
@@ -4157,7 +4293,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.lg,
       marginBottom: spacing.sm,
       gap: spacing.sm,
-      height: 44,
+      paddingBottom: spacing.xs,
     },
     tabButton: {
       flexDirection: "row",
@@ -4166,7 +4302,7 @@ const createStyles = (colors: ThemeColors) =>
       gap: 4,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      minWidth: 110,
+      minWidth: 104,
       height: 44,
       borderRadius: borderRadius.md,
       backgroundColor: colors.surfaceSecondary,
@@ -4207,6 +4343,40 @@ const createStyles = (colors: ThemeColors) =>
       padding: 0,
       maxHeight: "80%",
       width: "100%",
+    },
+    viewList: {
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      gap: spacing.sm,
+    },
+    viewListItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    viewListItemActive: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primaryLight,
+    },
+    viewListItemLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    viewListItemText: {
+      fontSize: 15,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+    viewListItemTextActive: {
+      color: colors.primary,
+      fontWeight: "600",
     },
     modalHeader: {
       flexDirection: "row",
@@ -4325,6 +4495,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     filterRow: {
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: spacing.sm,
       paddingBottom: spacing.xs,
     },
@@ -4333,6 +4504,8 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: spacing.xs,
       borderRadius: borderRadius.full,
       backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     filterChipActive: {
       backgroundColor: colors.primaryLight,

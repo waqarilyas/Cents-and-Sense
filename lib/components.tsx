@@ -23,6 +23,7 @@ import {
   useThemeColors,
   ThemeColors,
 } from "./theme";
+import { Ionicons } from "@expo/vector-icons";
 
 const useComponentStyles = () => {
   const { colors } = useThemeColors();
@@ -114,6 +115,48 @@ export const Button: React.FC<ButtonProps> = ({
           <Text style={textStyles}>{title}</Text>
         </View>
       )}
+    </TouchableOpacity>
+  );
+};
+
+// ========================================
+// ACTION CHIP COMPONENT
+// ========================================
+interface ActionChipProps {
+  label: string;
+  onPress: () => void;
+  icon?: React.ReactNode;
+  variant?: "default" | "primary" | "danger";
+  compact?: boolean;
+  accessibilityLabel?: string;
+}
+
+export const ActionChip: React.FC<ActionChipProps> = ({
+  label,
+  onPress,
+  icon,
+  variant = "default",
+  compact = false,
+  accessibilityLabel,
+}) => {
+  const { styles } = useComponentStyles();
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.actionChip,
+        styles[`actionChip_${variant}`],
+        compact && styles.actionChipCompact,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || label}
+    >
+      {icon ? <View style={styles.actionChipIcon}>{icon}</View> : null}
+      <Text style={[styles.actionChipText, styles[`actionChipText_${variant}`]]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -495,7 +538,11 @@ export const Select: React.FC<SelectProps> = ({
             placeholder
           )}
         </Text>
-        <Text style={styles.selectArrow}>▼</Text>
+        <Ionicons
+          name="chevron-down-outline"
+          size={16}
+          color={colors.textSecondary}
+        />
       </TouchableOpacity>
 
       <BottomSheet
@@ -527,7 +574,11 @@ export const Select: React.FC<SelectProps> = ({
               {option.label}
             </Text>
             {option.value === value && (
-              <Text style={styles.selectCheckmark}>✓</Text>
+              <Ionicons
+                name="checkmark-circle"
+                size={18}
+                color={colors.primary}
+              />
             )}
           </TouchableOpacity>
         ))}
@@ -667,6 +718,51 @@ const createStyles = (colors: ThemeColors) =>
     },
     buttonText_lg: {
       fontSize: 18,
+    },
+
+    // Action chip
+    actionChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      gap: spacing.xs,
+    },
+    actionChip_default: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.border,
+    },
+    actionChip_primary: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primary,
+    },
+    actionChip_danger: {
+      backgroundColor: colors.errorLight,
+      borderColor: colors.error,
+    },
+    actionChipCompact: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    actionChipIcon: {
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    actionChipText: {
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    actionChipText_default: {
+      color: colors.textPrimary,
+    },
+    actionChipText_primary: {
+      color: colors.primary,
+    },
+    actionChipText_danger: {
+      color: colors.error,
     },
 
     // Input

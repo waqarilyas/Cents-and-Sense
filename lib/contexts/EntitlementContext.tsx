@@ -4,6 +4,7 @@ import { billingService, ProductPlan } from "../services/BillingService";
 import { useAuth } from "./AuthContext";
 import { CLOUD_CONFIG } from "../config/cloud";
 import { resolveEntitlementState } from "../utils/entitlements";
+import { useFeatureFlags } from "./FeatureFlagsContext";
 
 const ENTITLEMENT_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -21,6 +22,7 @@ const EntitlementContext = createContext<EntitlementContextType | undefined>(
 );
 
 export function EntitlementProvider({ children }: { children: React.ReactNode }) {
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { authState, userId } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
   const [source, setSource] = useState<"live" | "cache" | "none">("none");
@@ -45,6 +47,14 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, [authState, userId]);
 
   const refreshEntitlements = useCallback(async () => {
+    if (flagsLoading) return;
+    if (!flags.premiumEnabled) {
+      setIsPremium(false);
+      setSource("none");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       await configureBilling();
@@ -66,46 +76,56 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     } finally {
       setLoading(false);
     }
-  }, [configureBilling]);
+  }, [configureBilling, flags.premiumEnabled, flagsLoading]);
 
   useEffect(() => {
     refreshEntitlements();
   }, [refreshEntitlements]);
 
   useEffect(() => {
+    if (flagsLoading || !flags.premiumEnabled) {
+      return;
+    }
+
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         refreshEntitlements().catch(() => undefined);
       }
     });
     return () => subscription.remove();
-  }, [refreshEntitlements]);
+  }, [flags.premiumEnabled, flagsLoading, refreshEntitlements]);
 
   const purchasePlan = useCallback(async (plan: ProductPlan) => {
+    if (!flags.premiumEnabled) {
+      throw new Error("Premium is currently unavailable.");
+    }
     await configureBilling();
     await billingService.purchase(plan);
     await refreshEntitlements();
-  }, [configureBilling, refreshEntitlements]);
+  }, [configureBilling, flags.premiumEnabled, refreshEntitlements]);
 
   const restorePurchases = useCallback(async () => {
+    if (!flags.premiumEnabled || !flags.restorePurchasesEnabled) {
+      return { restoredPremium: false };
+    }
     await configureBilling();
     const restored = await billingService.restorePurchases();
     await refreshEntitlements();
     return {
       restoredPremium: Boolean(restored.pro_subscription || restored.pro_lifetime),
     };
-  }, [configureBilling, refreshEntitlements]);
+  }, [configureBilling, flags.premiumEnabled, flags.restorePurchasesEnabled, refreshEntitlements]);
 
   const value = useMemo(
     () => ({
       isPremium,
       source,
-      loading,
+      loading: flagsLoading || loading,
       refreshEntitlements,
       purchasePlan,
       restorePurchases,
     }),
-    [isPremium, source, loading, refreshEntitlements, purchasePlan, restorePurchases],
+    [isPremium, source, flagsLoading, loading, refreshEntitlements, purchasePlan, restorePurchases],
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

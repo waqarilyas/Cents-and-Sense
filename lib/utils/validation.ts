@@ -51,6 +51,10 @@ export const validateAmount = (
     throw new ValidationError(`${fieldName} cannot be zero`, fieldName, amount);
   }
 
+  if (options.allowZero && amount === 0) {
+    return 0;
+  }
+
   // Check negative
   if (!options.allowNegative && amount < 0) {
     throw new ValidationError(

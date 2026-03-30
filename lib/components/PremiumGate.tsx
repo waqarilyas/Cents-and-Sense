@@ -4,6 +4,7 @@ import { Text } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useThemeColors } from "../theme";
+import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 
 interface PremiumGateProps {
   title?: string;
@@ -16,6 +17,8 @@ export function PremiumGate({
 }: PremiumGateProps) {
   const { colors } = useThemeColors();
   const router = useRouter();
+  const { flags } = useFeatureFlags();
+  const canShowPaywall = flags.premiumEnabled && flags.paywallEnabled;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}> 
@@ -23,12 +26,14 @@ export function PremiumGate({
       <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
 
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: colors.primary }]}
-        onPress={() => router.push("/(stack)/paywall")}
-      >
-        <Text style={styles.buttonText}>Upgrade Now</Text>
-      </TouchableOpacity>
+      {canShowPaywall ? (
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          onPress={() => router.push("/(stack)/paywall")}
+        >
+          <Text style={styles.buttonText}>Upgrade Now</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

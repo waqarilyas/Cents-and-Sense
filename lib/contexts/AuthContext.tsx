@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { Linking } from "react-native";
 import { supabaseService } from "../services/SupabaseService";
 import { billingService } from "../services/BillingService";
+import { useFeatureFlags } from "./FeatureFlagsContext";
 
 export type AuthState = "guest" | "authenticated" | "authenticated_premium";
 
@@ -28,6 +29,7 @@ function resolveAuthStateFromEntitlements(
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const [authState, setAuthState] = useState<AuthState>("guest");
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -42,6 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hydrate = useCallback(async () => {
+    if (flagsLoading) return;
+    if (!flags.authEnabled) {
+      setAuthState("guest");
+      setUserId(null);
+      setEmail(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const session = await supabaseService.getSession();
@@ -55,13 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [applySession]);
+  }, [applySession, flags.authEnabled, flagsLoading]);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
   useEffect(() => {
+    if (flagsLoading || !flags.authEnabled) {
+      return;
+    }
+
     const handleUrl = async (url: string) => {
       const session = await supabaseService.consumeAuthRedirect(url);
       if (session?.user?.id) {
@@ -83,13 +98,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => sub.remove();
-  }, [applySession]);
+  }, [applySession, flags.authEnabled, flagsLoading]);
 
   const sendOtp = useCallback(async (value: string) => {
+    if (!flags.authEnabled) {
+      throw new Error("Sign-in is currently unavailable.");
+    }
     await supabaseService.signInWithEmailOtp(value.trim().toLowerCase());
-  }, []);
+  }, [flags.authEnabled]);
 
   const verifyOtp = useCallback(async (value: string, token: string) => {
+    if (!flags.authEnabled) {
+      throw new Error("Sign-in is currently unavailable.");
+    }
     const session = await supabaseService.verifyEmailOtp(
       value.trim().toLowerCase(),
       token.trim(),
@@ -97,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await applySession({
       user: { id: session.user.id, email: session.user.email || value.trim().toLowerCase() },
     });
-  }, [applySession]);
+  }, [applySession, flags.authEnabled]);
 
   const continueAsGuest = useCallback(async () => {
     setAuthState("guest");
@@ -106,24 +127,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!flags.authEnabled) {
+      setAuthState("guest");
+      setUserId(null);
+      setEmail(null);
+      return;
+    }
     await Promise.all([supabaseService.signOut(), billingService.logOut()]);
     setAuthState("guest");
     setUserId(null);
     setEmail(null);
-  }, []);
+  }, [flags.authEnabled]);
 
   const value = useMemo(
     () => ({
       authState,
       userId,
       email,
-      loading,
+      loading: flagsLoading || loading,
       sendOtp,
       verifyOtp,
       continueAsGuest,
       signOut,
     }),
-    [authState, userId, email, loading, sendOtp, verifyOtp, continueAsGuest, signOut],
+    [authState, userId, email, flagsLoading, loading, sendOtp, verifyOtp, continueAsGuest, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

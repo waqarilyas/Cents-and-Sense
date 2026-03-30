@@ -167,9 +167,9 @@ describe("E2E: Subscriptions Flow", () => {
 
     const subTx = transactions.find((t: any) => t.subscriptionId === "sub_1");
     expect(subTx).toBeTruthy();
-    expect(subTx.amount).toBe(15.99);
-    expect(subTx.type).toBe("expense");
-    expect(subTx.categoryId).toBe("cat_entertainment");
+    expect(subTx!.amount).toBe(15.99);
+    expect(subTx!.type).toBe("expense");
+    expect(subTx!.categoryId).toBe("cat_entertainment");
 
     // Account balance should have decreased
     const accounts = testDB.getTable("accounts");

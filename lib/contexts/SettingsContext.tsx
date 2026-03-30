@@ -4,9 +4,14 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  AccentThemeId,
+  DEFAULT_ACCENT_THEME,
+} from "../accentThemes";
 
 // Subscription processing modes
 export type SubscriptionProcessingMode = "auto" | "manual" | "notify";
@@ -25,6 +30,7 @@ export interface Settings {
 
   // Appearance
   theme: ThemeMode;
+  accentTheme: AccentThemeId;
 
   // Privacy
   hideBalances: boolean;
@@ -41,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultCurrencyCode: "USD",
   hideBalances: false,
   theme: "system",
+  accentTheme: DEFAULT_ACCENT_THEME,
   budgetPeriodStartDay: 1, // Start on 1st of month by default
   enableBudgetCarryover: true, // Enable YNAB-style carryover by default
 };
@@ -62,20 +69,46 @@ const SettingsContext = createContext<SettingsContextType | undefined>(
 
 export const SETTINGS_STORAGE_KEY = "@budget_tracker_settings";
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+export async function loadStoredSettings(): Promise<Settings> {
+  const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
+  if (!stored) {
+    return DEFAULT_SETTINGS;
+  }
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...JSON.parse(stored),
+  };
+}
+
+export function SettingsProvider({
+  children,
+  initialSettings,
+}: {
+  children: ReactNode;
+  initialSettings?: Settings;
+}) {
+  const [settings, setSettings] = useState<Settings>(
+    initialSettings ?? DEFAULT_SETTINGS,
+  );
+  const [loading, setLoading] = useState(!initialSettings);
+  const settingsRef = useRef<Settings>(initialSettings ?? DEFAULT_SETTINGS);
 
   // Load settings from AsyncStorage on mount
   useEffect(() => {
+    if (initialSettings) {
+      const hydratedSettings = { ...DEFAULT_SETTINGS, ...initialSettings };
+      settingsRef.current = hydratedSettings;
+      setSettings(hydratedSettings);
+      setLoading(false);
+      return;
+    }
+
     const loadSettings = async () => {
       try {
-        const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // Merge with defaults to handle new settings added in updates
-          setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-        }
+        const storedSettings = await loadStoredSettings();
+        settingsRef.current = storedSettings;
+        setSettings(storedSettings);
       } catch (error) {
         console.error("Error loading settings:", error);
       } finally {
@@ -84,7 +117,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     loadSettings();
-  }, []);
+  }, [initialSettings]);
 
   // Save settings to AsyncStorage whenever they change
   const saveSettings = useCallback(async (newSettings: Settings) => {
@@ -100,23 +133,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSetting = useCallback(
     async <K extends keyof Settings>(key: K, value: Settings[K]) => {
-      const newSettings = { ...settings, [key]: value };
+      const newSettings = { ...settingsRef.current, [key]: value };
+      settingsRef.current = newSettings;
       setSettings(newSettings);
       await saveSettings(newSettings);
     },
-    [settings, saveSettings],
+    [saveSettings],
   );
 
   const updateSettings = useCallback(
     async (updates: Partial<Settings>) => {
-      const newSettings = { ...settings, ...updates };
+      const newSettings = { ...settingsRef.current, ...updates };
+      settingsRef.current = newSettings;
       setSettings(newSettings);
       await saveSettings(newSettings);
     },
-    [settings, saveSettings],
+    [saveSettings],
   );
 
   const resetSettings = useCallback(async () => {
+    settingsRef.current = DEFAULT_SETTINGS;
     setSettings(DEFAULT_SETTINGS);
     await saveSettings(DEFAULT_SETTINGS);
   }, [saveSettings]);

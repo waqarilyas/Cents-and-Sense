@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { Alert } from "react-native";
@@ -25,6 +26,7 @@ interface AccountContextType {
     name: string,
     type: Account["type"],
     currency?: string,
+    balance?: number,
   ) => Promise<void>;
   updateAccount: (
     id: string,
@@ -45,6 +47,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const accountMap = useMemo(
+    () => new Map(accounts.map((account) => [account.id, account])),
+    [accounts],
+  );
 
   // Derive default account from accounts list
   const defaultAccount = React.useMemo(() => {
@@ -82,7 +88,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   }, [loadAccounts]);
 
   const addAccount = useCallback(
-    async (name: string, type: Account["type"], currency: string = "USD") => {
+    async (
+      name: string,
+      type: Account["type"],
+      currency: string = "USD",
+      balance: number = 0,
+    ) => {
       try {
         // Validate inputs
         const validName = validateString(name, "name", {
@@ -95,6 +106,11 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           required: true,
           minLength: 3,
           maxLength: 3,
+        });
+        const validBalance = validateAmount(balance, "balance", {
+          allowZero: true,
+          allowNegative: true,
+          max: 999999999,
         });
 
         const id = `account_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -112,7 +128,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             id,
             validName,
             validType,
-            0,
+            validBalance,
             validCurrency,
             shouldBeDefault,
             Date.now(),
@@ -304,31 +320,49 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const getAccount = useCallback(
     (id: string) => {
-      return accounts.find((a) => a.id === id);
+      return accountMap.get(id);
     },
+    [accountMap],
+  );
+
+  const totalBalance = useMemo(
+    () => accounts.reduce((sum, account) => sum + account.balance, 0),
     [accounts],
   );
 
-  const getTotalBalance = useCallback(() => {
-    return accounts.reduce((sum, account) => sum + account.balance, 0);
-  }, [accounts]);
+  const getTotalBalance = useCallback(() => totalBalance, [totalBalance]);
+
+  const value = useMemo(
+    () => ({
+      accounts,
+      defaultAccount,
+      loading,
+      error,
+      addAccount,
+      updateAccount,
+      deleteAccount,
+      setDefaultAccount,
+      getAccount,
+      getTotalBalance,
+      refreshAccounts: loadAccounts,
+    }),
+    [
+      accounts,
+      defaultAccount,
+      loading,
+      error,
+      addAccount,
+      updateAccount,
+      deleteAccount,
+      setDefaultAccount,
+      getAccount,
+      getTotalBalance,
+      loadAccounts,
+    ],
+  );
 
   return (
-    <AccountContext.Provider
-      value={{
-        accounts,
-        defaultAccount,
-        loading,
-        error,
-        addAccount,
-        updateAccount,
-        deleteAccount,
-        setDefaultAccount,
-        getAccount,
-        getTotalBalance,
-        refreshAccounts: loadAccounts,
-      }}
-    >
+    <AccountContext.Provider value={value}>
       {children}
     </AccountContext.Provider>
   );

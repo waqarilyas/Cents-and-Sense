@@ -122,10 +122,10 @@ describe("GoalContext — addGoal", () => {
     const insertCall = mockDb.runAsync.mock.calls.find(
       (call: any[]) =>
         typeof call[0] === "string" && call[0].includes("INSERT"),
-    );
+    ) as any[] | undefined;
     if (insertCall) {
       // currentAmount should be 0
-      expect(insertCall[1]).toContain(0);
+      expect((insertCall[1] as any[]) || []).toContain(0);
     }
   });
 

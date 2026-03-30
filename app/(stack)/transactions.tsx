@@ -24,6 +24,7 @@ import {
   spacing,
   borderRadius,
   formatCurrency,
+  formatReadableCurrency,
   formatShortDate,
   useThemeColors,
   ThemeColors,
@@ -35,6 +36,7 @@ import {
   Input,
   Select,
   BottomSheet,
+  ActionChip,
 } from "../../lib/components";
 import { Transaction } from "../../lib/database";
 
@@ -257,7 +259,7 @@ export default function TransactionsScreen() {
         }}
       >
         <Animated.View style={{ transform: [{ translateX: trans }] }}>
-          <Ionicons name="trash-outline" size={24} color={colors.textInverse} />
+          <Ionicons name="trash" size={24} color={colors.textInverse} />
         </Animated.View>
       </TouchableOpacity>
     );
@@ -284,6 +286,8 @@ export default function TransactionsScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Ionicons name="chevron-back" size={26} color={colors.primary} />
           </TouchableOpacity>
@@ -298,11 +302,13 @@ export default function TransactionsScreen() {
                     "\u2022 Expense: Money spent\n" +
                     "\u2022 Assign to categories for organization\n" +
                     "\u2022 Link to accounts to track balances\n\n" +
-                    "Swipe left on a transaction to delete it.\n" +
-                    "Tap a transaction to edit details.",
+                    "Use the Edit and Delete actions on each transaction card.\n" +
+                    "You can still swipe for a faster delete shortcut.",
                   [{ text: "Got it!" }],
                 )
               }
+              accessibilityRole="button"
+              accessibilityLabel="Learn about transactions"
             >
               <Ionicons
                 name="help-circle-outline"
@@ -317,6 +323,8 @@ export default function TransactionsScreen() {
               resetForm();
               setShowAddModal(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Add transaction"
           >
             <Text style={styles.addButtonText}>+ Add</Text>
           </TouchableOpacity>
@@ -327,7 +335,7 @@ export default function TransactionsScreen() {
           <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
             <View style={styles.statLabelRow}>
               <Ionicons
-                name="wallet-outline"
+                name="wallet"
                 size={16}
                 color={colors.textSecondary}
               />
@@ -339,7 +347,7 @@ export default function TransactionsScreen() {
                 { color: totalBalance >= 0 ? colors.income : colors.expense },
               ]}
             >
-              {formatCurrency(totalBalance, defaultCurrency)}
+              {formatReadableCurrency(totalBalance, defaultCurrency)}
             </Text>
           </Card>
           <Card style={[styles.statCard, { backgroundColor: colors.surface }]}>
@@ -367,7 +375,7 @@ export default function TransactionsScreen() {
               ]}
             >
               {activeTab === "income" ? "+" : "-"}
-              {formatCurrency(
+              {formatReadableCurrency(
                 activeTab === "income"
                   ? monthlyStats.income
                   : monthlyStats.expense,
@@ -407,16 +415,6 @@ export default function TransactionsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Swipe Hint */}
-        {Object.keys(monthGroups).length > 0 && (
-          <View style={styles.swipeHint}>
-            <Ionicons name="arrow-back" size={12} color={colors.textMuted} />
-            <Text style={styles.swipeHintText}>
-              Swipe to delete, tap to edit.
-            </Text>
-          </View>
-        )}
-
         {/* Transaction List */}
         <SectionList
           sections={sections}
@@ -430,6 +428,8 @@ export default function TransactionsScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               colors={[colors.primary]}
+              tintColor={colors.primary}
+              progressBackgroundColor={colors.surface}
             />
           }
           renderSectionHeader={({ section: { title } }) => (
@@ -510,6 +510,35 @@ export default function TransactionsScreen() {
                           transaction.currency,
                         )}
                       </Text>
+                    </View>
+                    <View style={styles.actionRow}>
+                      <ActionChip
+                        label="Edit"
+                        compact
+                        onPress={() => openEditModal(transaction)}
+                        accessibilityLabel={`Edit transaction ${transaction.description || category?.name || ""}`}
+                      />
+                      <ActionChip
+                        label="Delete"
+                        compact
+                        variant="danger"
+                        onPress={() => {
+                          Alert.alert(
+                            "Delete Transaction",
+                            "Are you sure you want to delete this transaction?",
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              {
+                                text: "Delete",
+                                style: "destructive",
+                                onPress: () =>
+                                  handleDeleteTransaction(transaction.id),
+                              },
+                            ],
+                          );
+                        }}
+                        accessibilityLabel={`Delete transaction ${transaction.description || category?.name || ""}`}
+                      />
                     </View>
                   </Card>
                 </TouchableOpacity>
@@ -977,17 +1006,11 @@ const createStyles = (colors: ThemeColors) =>
     typeButtonTextActive: {
       color: colors.textInverse,
     },
-    swipeHint: {
+    actionRow: {
       flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: spacing.xs,
-      gap: 4,
-      marginBottom: spacing.sm,
-    },
-    swipeHintText: {
-      fontSize: 11,
-      color: colors.textMuted,
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
     },
     deleteAction: {
       backgroundColor: colors.expense,

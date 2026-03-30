@@ -172,8 +172,8 @@ describe("UserContext — updateUserName", () => {
     });
 
     expect(result.current.userName).toBe("Charlie");
-    const call = mockDb.runAsync.mock.calls[0];
-    expect(call[0]).toContain("UPDATE user_profile SET name");
+    const call = mockDb.runAsync.mock.calls[0] as any[] | undefined;
+    expect(call?.[0]).toContain("UPDATE user_profile SET name");
   });
 });
 
@@ -192,8 +192,8 @@ describe("UserContext — updateDefaultCurrency", () => {
     });
 
     expect(result.current.defaultCurrency).toBe("PKR");
-    const call = mockDb.runAsync.mock.calls[0];
-    expect(call[0]).toContain("UPDATE user_profile SET defaultCurrency");
+    const call = mockDb.runAsync.mock.calls[0] as any[] | undefined;
+    expect(call?.[0]).toContain("UPDATE user_profile SET defaultCurrency");
   });
 });
 
@@ -214,8 +214,8 @@ describe("UserContext — completeOnboarding", () => {
     expect(result.current.isOnboardingComplete).toBe(true);
 
     // DB updated
-    const dbCall = mockDb.runAsync.mock.calls[0];
-    expect(dbCall[0]).toContain("onboardingCompleted");
+    const dbCall = mockDb.runAsync.mock.calls[0] as any[] | undefined;
+    expect(dbCall?.[0]).toContain("onboardingCompleted");
 
     // AsyncStorage set
     expect(AsyncStorage.setItem).toHaveBeenCalledWith(ONBOARDING_KEY, "true");

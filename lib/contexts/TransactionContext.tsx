@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { Transaction, getDatabase, Account } from "../database";
@@ -68,6 +69,11 @@ export function TransactionProvider({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const transactionMap = useMemo(
+    () => new Map(transactions.map((transaction) => [transaction.id, transaction])),
+    [transactions],
+  );
 
   const loadTransactions = useCallback(async () => {
     try {
@@ -404,9 +410,9 @@ export function TransactionProvider({
 
   const getTransaction = useCallback(
     (id: string) => {
-      return transactions.find((t) => t.id === id);
+      return transactionMap.get(id);
     },
-    [transactions],
+    [transactionMap],
   );
 
   const getTransactionsByCategory = useCallback(
@@ -439,7 +445,7 @@ export function TransactionProvider({
     [transactions],
   );
 
-  const getMonthlyStats = useCallback(() => {
+  const monthlyStats = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -464,29 +470,55 @@ export function TransactionProvider({
     return { income, expense, balance: income - expense };
   }, [transactions]);
 
-  const getMonthlyStatsByCurrencyMethod = useCallback(() => {
-    return getMonthlyStatsByCurrency(transactions);
-  }, [transactions]);
+  const monthlyStatsByCurrencyData = useMemo(
+    () => getMonthlyStatsByCurrency(transactions),
+    [transactions],
+  );
+
+  const getMonthlyStats = useCallback(() => monthlyStats, [monthlyStats]);
+
+  const getMonthlyStatsByCurrencyMethod = useCallback(
+    () => monthlyStatsByCurrencyData,
+    [monthlyStatsByCurrencyData],
+  );
+
+  const value = useMemo(
+    () => ({
+      transactions,
+      loading,
+      error,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      getTransaction,
+      getTransactionsByAccount,
+      getTransactionsByCategory,
+      getTransactionsByDateRange,
+      getTransactionsByType,
+      getMonthlyStats,
+      getMonthlyStatsByCurrency: getMonthlyStatsByCurrencyMethod,
+      refreshTransactions: loadTransactions,
+    }),
+    [
+      transactions,
+      loading,
+      error,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      getTransaction,
+      getTransactionsByAccount,
+      getTransactionsByCategory,
+      getTransactionsByDateRange,
+      getTransactionsByType,
+      getMonthlyStats,
+      getMonthlyStatsByCurrencyMethod,
+      loadTransactions,
+    ],
+  );
 
   return (
-    <TransactionContext.Provider
-      value={{
-        transactions,
-        loading,
-        error,
-        addTransaction,
-        updateTransaction,
-        deleteTransaction,
-        getTransaction,
-        getTransactionsByAccount,
-        getTransactionsByCategory,
-        getTransactionsByDateRange,
-        getTransactionsByType,
-        getMonthlyStats,
-        getMonthlyStatsByCurrency: getMonthlyStatsByCurrencyMethod,
-        refreshTransactions: loadTransactions,
-      }}
-    >
+    <TransactionContext.Provider value={value}>
       {children}
     </TransactionContext.Provider>
   );

@@ -233,7 +233,7 @@ describe("CategoryContext — deleteCategory", () => {
 
   it("rejects deletion when category has linked subscriptions", async () => {
     // Simulate linked subscription found
-    mockDb.getFirstAsync.mockResolvedValueOnce({ id: "sub-1" }); // subscription exists
+    (mockDb.getFirstAsync as jest.Mock).mockResolvedValueOnce({ id: "sub-1" }); // subscription exists
 
     const { result } = renderHook(() => useCategories(), { wrapper });
     await act(async () => {
@@ -249,7 +249,7 @@ describe("CategoryContext — deleteCategory", () => {
 
   it("rejects deletion when category has linked budgets", async () => {
     // No subscription, but budget exists
-    mockDb.getFirstAsync
+    (mockDb.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce(null) // no subscription
       .mockResolvedValueOnce({ id: "bud-1" }); // budget exists
 

@@ -18,22 +18,82 @@ import { BudgetProvider } from "../lib/contexts/BudgetContext";
 import { GoalProvider } from "../lib/contexts/GoalContext";
 import { SubscriptionProvider } from "../lib/contexts/SubscriptionContext";
 import { CurrencyProvider } from "../lib/contexts/CurrencyContext";
-import { SettingsProvider } from "../lib/contexts/SettingsContext";
+import {
+  DEFAULT_SETTINGS,
+  loadStoredSettings,
+  Settings,
+  SettingsProvider,
+} from "../lib/contexts/SettingsContext";
 import { AuthProvider } from "../lib/contexts/AuthContext";
 import { EntitlementProvider } from "../lib/contexts/EntitlementContext";
 import { SyncProvider } from "../lib/contexts/SyncContext";
+import {
+  FeatureFlagsProvider,
+  useFeatureFlags,
+} from "../lib/contexts/FeatureFlagsContext";
 import { useThemeColors } from "../lib/theme";
 import { widgetService } from "../lib/services/WidgetService";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function RootLayout() {
+  const [bootSettings, setBootSettings] = useState<Settings | null>(null);
+  const [bootSettingsReady, setBootSettingsReady] = useState(false);
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const bootstrapSettings = async () => {
+      try {
+        setBootSettings(await loadStoredSettings());
+      } catch (error) {
+        console.error("Settings bootstrap failed:", error);
+        setBootSettings(DEFAULT_SETTINGS);
+      } finally {
+        setBootSettingsReady(true);
+      }
+    };
+
+    bootstrapSettings();
+  }, []);
+
+  if (!bootSettingsReady || !bootSettings) {
+    return null;
+  }
+
+  return (
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <SettingsProvider initialSettings={bootSettings}>
+          <BootstrapApp
+            dbReady={dbReady}
+            dbError={dbError}
+            setDbReady={setDbReady}
+            setDbError={setDbError}
+          />
+        </SettingsProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
+  );
+}
+
+function BootstrapApp({
+  dbReady,
+  dbError,
+  setDbReady,
+  setDbError,
+}: {
+  dbReady: boolean;
+  dbError: string | null;
+  setDbReady: (value: boolean) => void;
+  setDbError: (value: string | null) => void;
+}) {
+  const { colors } = useThemeColors();
 
   const initDb = async () => {
     try {
       setDbError(null);
+      setDbReady(false);
       await initializeDatabase();
       setDbReady(true);
 
@@ -60,107 +120,117 @@ export default function RootLayout() {
   // DB failed to init — show error screen, NOT the app
   if (dbError) {
     return (
-      <SafeAreaProvider>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+          padding: 24,
+        }}
+      >
         <View
           style={{
-            flex: 1,
-            justifyContent: "center",
+            width: 84,
+            height: 84,
+            borderRadius: 42,
             alignItems: "center",
-            backgroundColor: "#0B1120",
-            padding: 24,
+            justifyContent: "center",
+            backgroundColor: colors.errorLight,
           }}
         >
-          <Ionicons name="alert-circle" size={64} color="#EF4444" />
-          <Text
-            style={{
-              color: "#FFFFFF",
-              fontSize: 20,
-              fontWeight: "700",
-              marginTop: 16,
-              textAlign: "center",
-            }}
-          >
-            Unable to Start
-          </Text>
-          <Text
-            style={{
-              color: "#94A3B8",
-              fontSize: 14,
-              marginTop: 8,
-              textAlign: "center",
-              lineHeight: 22,
-            }}
-          >
-            The database could not be initialized. Your data is safe — please
-            try again.
-          </Text>
-          {__DEV__ && (
-            <Text
-              style={{
-                color: "#F87171",
-                fontSize: 12,
-                marginTop: 12,
-                fontFamily: "monospace",
-                textAlign: "center",
-              }}
-            >
-              {dbError}
-            </Text>
-          )}
-          <TouchableOpacity
-            onPress={initDb}
-            style={{
-              marginTop: 24,
-              backgroundColor: "#6366F1",
-              paddingHorizontal: 32,
-              paddingVertical: 14,
-              borderRadius: 12,
-            }}
-          >
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600" }}>
-              Retry
-            </Text>
-          </TouchableOpacity>
+          <Ionicons name="alert-circle" size={42} color={colors.error} />
         </View>
-      </SafeAreaProvider>
+        <Text
+          style={{
+            color: colors.textPrimary,
+            fontSize: 20,
+            fontWeight: "700",
+            marginTop: 16,
+            textAlign: "center",
+          }}
+        >
+          Unable to Start
+        </Text>
+        <Text
+          style={{
+            color: colors.textSecondary,
+            fontSize: 14,
+            marginTop: 8,
+            textAlign: "center",
+            lineHeight: 22,
+          }}
+        >
+          The database could not be initialized. Your data is safe. Please try
+          again.
+        </Text>
+        {__DEV__ && (
+          <Text
+            style={{
+              color: colors.error,
+              fontSize: 12,
+              marginTop: 12,
+              fontFamily: "monospace",
+              textAlign: "center",
+            }}
+          >
+            {dbError}
+          </Text>
+        )}
+        <TouchableOpacity
+          onPress={initDb}
+          style={{
+            marginTop: 24,
+            backgroundColor: colors.primary,
+            paddingHorizontal: 32,
+            paddingVertical: 14,
+            borderRadius: 12,
+          }}
+        >
+          <Text
+            style={{
+              color: colors.textInverse,
+              fontSize: 16,
+              fontWeight: "600",
+            }}
+          >
+            Retry
+          </Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 
   if (!dbReady) {
     return (
-      <SafeAreaProvider>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "#0B1120",
-          }}
-        >
-          <ActivityIndicator size="large" color="#10B981" />
-        </View>
-      </SafeAreaProvider>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
     );
   }
 
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <SettingsProvider>
-          <AuthProvider>
-            <UserProvider>
-              <ThemedApp />
-            </UserProvider>
-          </AuthProvider>
-        </SettingsProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <FeatureFlagsProvider>
+      <AuthProvider>
+        <UserProvider>
+          <ThemedApp />
+        </UserProvider>
+      </AuthProvider>
+    </FeatureFlagsProvider>
   );
 }
 
 function ThemedApp() {
   const { colors, activeTheme } = useThemeColors();
   const { isOnboardingComplete, loading } = useUser();
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const router = useRouter();
   const segments = useSegments();
 
@@ -172,8 +242,18 @@ function ThemedApp() {
         ...base.colors,
         primary: colors.primary,
         secondary: colors.accent,
+        onPrimary: colors.textInverse,
+        onSecondary: colors.textInverse,
+        primaryContainer: colors.primaryLight,
+        secondaryContainer: colors.accentLight,
         background: colors.background,
         surface: colors.surface,
+        surfaceVariant: colors.surfaceSecondary,
+        onBackground: colors.textPrimary,
+        onSurface: colors.textPrimary,
+        onSurfaceVariant: colors.textSecondary,
+        outline: colors.border,
+        outlineVariant: colors.borderLight,
         error: colors.error,
       },
     };
@@ -181,21 +261,30 @@ function ThemedApp() {
 
   // Handle onboarding navigation
   useEffect(() => {
-    if (loading) return;
+    if (loading || flagsLoading) return;
 
     const inOnboarding = segments[0] === "onboarding";
+    const inStack = segments[0] === "(stack)";
+    const currentStackRoute = inStack ? segments.slice(1)[0] ?? "" : "";
+    const isDisabledStackRoute =
+      (currentStackRoute === "auth" && !flags.authEnabled) ||
+      (currentStackRoute === "profile-setup" && !flags.profileSetupEnabled) ||
+      (currentStackRoute === "paywall" &&
+        (!flags.premiumEnabled || !flags.paywallEnabled)) ||
+      (currentStackRoute === "sync-setup" && !flags.syncEnabled) ||
+      (currentStackRoute === "analysis" && !flags.analyticsEnabled);
 
     if (!isOnboardingComplete && !inOnboarding) {
-      // User hasn't completed onboarding, redirect to onboarding
       router.replace("/onboarding");
+    } else if (isDisabledStackRoute) {
+      router.replace("/(tabs)");
     } else if (isOnboardingComplete && inOnboarding) {
-      // User has completed onboarding but is on onboarding screen, redirect to main app
       router.replace("/(tabs)");
     }
-  }, [isOnboardingComplete, loading, segments]);
+  }, [flags, flagsLoading, isOnboardingComplete, loading, router, segments]);
 
   // Show loading while checking onboarding status
-  if (loading) {
+  if (loading || flagsLoading) {
     return (
       <View
         style={{

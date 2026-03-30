@@ -732,7 +732,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                     }}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="wallet-outline" size={20} color="#FFF" />
+                    <Ionicons name="wallet" size={20} color="#FFF" />
                     <Text style={styles.continueButtonText}>
                       Create Account First
                     </Text>
@@ -783,11 +783,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
 
               {/* Description Input */}
               <View style={styles.descriptionInputContainer}>
-                <Ionicons
-                  name="create-outline"
-                  size={22}
-                  color={colors.textSecondary}
-                />
+                <Ionicons name="create" size={22} color={colors.textSecondary} />
                 <TextInput
                   ref={descriptionInputRef}
                   style={styles.descriptionInput}
@@ -842,10 +838,10 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                       const isDefault = defaultAccount?.id === account.id;
                       const iconName =
                         account.type === "checking"
-                          ? "business-outline"
+                          ? "business"
                           : account.type === "savings"
-                            ? "wallet-outline"
-                            : "card-outline";
+                            ? "wallet"
+                            : "card";
                       return (
                         <TouchableOpacity
                           key={account.id}
@@ -910,7 +906,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
               ) : (
                 <View style={styles.noAccountsContainer}>
                   <Ionicons
-                    name="wallet-outline"
+                    name="wallet"
                     size={32}
                     color={colors.textSecondary}
                   />
@@ -935,10 +931,13 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
               {/* Smart Suggestion Banner */}
               {suggestedCategory && (
                 <View style={styles.smartMatchBanner}>
-                  <Ionicons name="sparkles" size={14} color={colors.primary} />
+                  <Ionicons
+                    name={suggestedCategory.icon}
+                    size={14}
+                    color={colors.primary}
+                  />
                   <Text style={styles.smartMatchText}>
-                    Smart match: {suggestedCategory.emoji}{" "}
-                    {suggestedCategory.name}
+                    Smart match: {suggestedCategory.name}
                   </Text>
                 </View>
               )}
@@ -973,9 +972,11 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                             setSelectedCategoryId(dbCategory.id);
                           }}
                         >
-                          <Text style={styles.suggestionEmoji}>
-                            {cat.emoji}
-                          </Text>
+                          <Ionicons
+                            name={cat.icon}
+                            size={16}
+                            color={cat.color}
+                          />
                           <Text
                             style={[
                               styles.suggestionChipText,
@@ -1023,7 +1024,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                         { color: colors.primary },
                       ]}
                     >
-                      Subscription
+                      Make Recurring
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1276,7 +1277,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
                 {/* Yearly estimate */}
                 <View style={styles.estimateCard}>
                   <Ionicons
-                    name="calculator-outline"
+                    name="calculator"
                     size={20}
                     color={colors.textSecondary}
                   />

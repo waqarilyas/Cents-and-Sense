@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -13,18 +13,30 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors, ThemeColors, spacing, borderRadius } from "../../lib/theme";
 import { useAuth } from "../../lib/contexts/AuthContext";
+import { useFeatureFlags } from "../../lib/contexts/FeatureFlagsContext";
 
 export default function AuthScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ pendingPlan?: string }>();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { sendOtp, verifyOtp, continueAsGuest } = useAuth();
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"email" | "verify">("email");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!flagsLoading && !flags.authEnabled) {
+      router.replace("/(tabs)");
+    }
+  }, [flags.authEnabled, flagsLoading, router]);
+
+  if (flagsLoading || !flags.authEnabled) {
+    return null;
+  }
 
   const onSend = async () => {
     if (!email.trim()) {

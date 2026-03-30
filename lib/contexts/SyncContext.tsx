@@ -13,6 +13,7 @@ import { createSyncSafetyBackup } from "../utils/dataManagement";
 import { supabaseService } from "../services/SupabaseService";
 import { useAuth } from "./AuthContext";
 import { useEntitlements } from "./EntitlementContext";
+import { useFeatureFlags } from "./FeatureFlagsContext";
 
 type SyncStatus = "idle" | "syncing" | "error" | "success";
 export type SyncSetupStrategy = "merge" | "local_to_cloud" | "cloud_to_local" | "skip";
@@ -114,8 +115,11 @@ function countConflicts(localRows: Record<string, any>[], remoteRows: Record<str
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const netInfo = useNetInfo();
   const isOnline = Boolean(netInfo.isConnected && netInfo.isInternetReachable !== false);
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { authState, userId } = useAuth();
   const { isPremium } = useEntitlements();
+  const syncAvailable =
+    !flagsLoading && flags.syncEnabled && flags.authEnabled && flags.premiumEnabled;
   const profileAutoSyncUserRef = useRef<string | null>(null);
   const premiumAutoSyncUserRef = useRef<string | null>(null);
   const lastAutoSyncAttemptRef = useRef(0);
@@ -125,16 +129,22 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [unsyncedChanges, setUnsyncedChanges] = useState(0);
 
   const requireAuthenticated = useCallback(() => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     if (authState === "guest" || !userId) {
       throw new Error("Please log in to sync across devices");
     }
-  }, [authState, userId]);
+  }, [authState, syncAvailable, userId]);
 
   const requirePremium = useCallback(() => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     if (!isPremium) {
       throw new Error("Cloud sync is a premium feature");
     }
-  }, [isPremium]);
+  }, [isPremium, syncAvailable]);
 
   const ensureSession = useCallback(async () => {
     const isSupabaseReady = await supabaseService.isConfigured();
@@ -179,7 +189,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   const rowsForCloud = useCallback(
     (rows: Record<string, any>[], targetUserId: string) =>
-      rows.map((row) => ({
+      rows.map<Record<string, any>>((row) => ({
         ...row,
         userId: targetUserId,
         updatedAt: row.updatedAt || row.createdAt || Date.now(),
@@ -243,7 +253,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   );
 
   const refreshUnsyncedChanges = useCallback(async () => {
-    if (authState === "guest" || !userId || !isPremium) {
+    if (!syncAvailable || authState === "guest" || !userId || !isPremium) {
       setUnsyncedChanges(0);
       return;
     }
@@ -259,7 +269,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       total += Number(result?.count || 0);
     }
     setUnsyncedChanges(total);
-  }, [authState, getLastPushedAt, isPremium, userId]);
+  }, [authState, getLastPushedAt, isPremium, syncAvailable, userId]);
 
   const markSyncSetupCompleted = useCallback(async () => {
     const db = await getDatabase();
@@ -444,22 +454,37 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   );
 
   const syncProfileNow = useCallback(async () => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     await executeSyncMode("merge", { profileOnly: true, requirePremium: true });
-  }, [executeSyncMode]);
+  }, [executeSyncMode, syncAvailable]);
 
   const syncNow = useCallback(async () => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     await executeSyncMode("merge", { requirePremium: true });
-  }, [executeSyncMode]);
+  }, [executeSyncMode, syncAvailable]);
 
   const backupNow = useCallback(async () => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     await executeSyncMode("local_to_cloud", { requirePremium: true });
-  }, [executeSyncMode]);
+  }, [executeSyncMode, syncAvailable]);
 
   const restoreFromCloud = useCallback(async () => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     await executeSyncMode("cloud_to_local", { requirePremium: true });
-  }, [executeSyncMode]);
+  }, [executeSyncMode, syncAvailable]);
 
   const getSyncReadiness = useCallback(async (): Promise<SyncReadiness> => {
+    if (!syncAvailable) {
+      throw new Error("Cloud sync is currently unavailable.");
+    }
     requireAuthenticated();
     requirePremium();
     const targetUserId = userId as string;
@@ -504,18 +529,22 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     requireAuthenticated,
     requirePremium,
     rowsForCloud,
+    syncAvailable,
     userId,
   ]);
 
   const runSyncSetup = useCallback(
     async (strategy: Exclude<SyncSetupStrategy, "skip">) => {
+      if (!syncAvailable) {
+        throw new Error("Cloud sync is currently unavailable.");
+      }
       return executeSyncMode(strategy, { requirePremium: true });
     },
-    [executeSyncMode],
+    [executeSyncMode, syncAvailable],
   );
 
   useEffect(() => {
-    if (authState === "guest" || !userId || !isPremium) {
+    if (!syncAvailable || authState === "guest" || !userId || !isPremium) {
       profileAutoSyncUserRef.current = null;
       premiumAutoSyncUserRef.current = null;
       setUnsyncedChanges(0);
@@ -532,19 +561,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       syncNow().catch(() => undefined);
     }
     refreshUnsyncedChanges().catch(() => undefined);
-  }, [authState, isPremium, syncNow, syncProfileNow, userId, refreshUnsyncedChanges]);
+  }, [authState, isPremium, refreshUnsyncedChanges, syncAvailable, syncNow, syncProfileNow, userId]);
 
   useEffect(() => {
-    if (authState === "guest" || !userId || !isPremium) return;
+    if (!syncAvailable || authState === "guest" || !userId || !isPremium) return;
     refreshUnsyncedChanges().catch(() => undefined);
     const interval = setInterval(() => {
       refreshUnsyncedChanges().catch(() => undefined);
     }, 15000);
     return () => clearInterval(interval);
-  }, [authState, isPremium, userId, refreshUnsyncedChanges]);
+  }, [authState, isPremium, refreshUnsyncedChanges, syncAvailable, userId]);
 
   useEffect(() => {
-    if (authState === "guest" || !userId || !isPremium) return;
+    if (!syncAvailable || authState === "guest" || !userId || !isPremium) return;
     if (!isOnline) return;
     if (syncStatus === "syncing") return;
     if (unsyncedChanges <= 0) return;
@@ -553,7 +582,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     if (now - lastAutoSyncAttemptRef.current < 20000) return;
     lastAutoSyncAttemptRef.current = now;
     syncNow().catch(() => undefined);
-  }, [authState, isOnline, isPremium, syncNow, syncStatus, unsyncedChanges, userId]);
+  }, [authState, isOnline, isPremium, syncAvailable, syncNow, syncStatus, unsyncedChanges, userId]);
 
   const value = useMemo(
     () => ({

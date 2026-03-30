@@ -126,7 +126,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
             await db.runAsync("DELETE FROM categories WHERE id = ?", [cat.id]);
 
             await db.execAsync("COMMIT");
-            console.log(`✅ Fixed category ID: ${cat.id} -> ${newId}`);
+            console.log(`Fixed category ID: ${cat.id} -> ${newId}`);
           } catch (err) {
             await db.execAsync("ROLLBACK");
             console.error(`❌ Failed to fix category ID ${cat.id}:`, err);

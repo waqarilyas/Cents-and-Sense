@@ -1105,6 +1105,7 @@ export function formatCurrencyAmount(
     showCode?: boolean;
     useNativeSymbol?: boolean;
     compact?: boolean;
+    compactThreshold?: number;
   },
 ): string {
   const currency = currencyMap.get(currencyCode);
@@ -1116,14 +1117,34 @@ export function formatCurrencyAmount(
     ? currency.symbolNative
     : currency.symbol;
   let formattedAmount: string;
+  const absAmount = Math.abs(amount);
+  const compactThreshold = options?.compactThreshold ?? 1000;
 
-  if (options?.compact && Math.abs(amount) >= 1000) {
-    if (Math.abs(amount) >= 1000000) {
-      formattedAmount = (amount / 1000000).toFixed(1) + "M";
-    } else if (Math.abs(amount) >= 1000) {
-      formattedAmount = (amount / 1000).toFixed(1) + "K";
+  if (options?.compact && absAmount >= compactThreshold) {
+    const scales = [
+      { value: 1000000000, suffix: "B" },
+      { value: 1000000, suffix: "M" },
+      { value: 1000, suffix: "K" },
+    ];
+    const scale = scales.find((entry) => absAmount >= entry.value);
+
+    if (scale) {
+      const scaledAmount = amount / scale.value;
+      const compactDigits =
+        Math.abs(scaledAmount) >= 100
+          ? 0
+          : Math.abs(scaledAmount) >= 10
+            ? 1
+            : 2;
+      formattedAmount =
+        scaledAmount
+          .toFixed(compactDigits)
+          .replace(/\.0+$|(\.\d*[1-9])0+$/, "$1") + scale.suffix;
     } else {
-      formattedAmount = amount.toFixed(currency.decimalDigits);
+      formattedAmount = amount.toLocaleString(undefined, {
+        minimumFractionDigits: currency.decimalDigits,
+        maximumFractionDigits: currency.decimalDigits,
+      });
     }
   } else {
     formattedAmount = amount.toLocaleString(undefined, {

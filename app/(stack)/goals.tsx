@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -20,6 +20,7 @@ import {
   spacing,
   borderRadius,
   formatCurrency,
+  formatReadableCurrency,
   formatDate,
   useThemeColors,
   ThemeColors,
@@ -31,6 +32,7 @@ import {
   Input,
   BottomSheet,
   ProgressBar,
+  ActionChip,
 } from "../../lib/components";
 import { Goal } from "../../lib/database";
 
@@ -48,6 +50,7 @@ export default function GoalsScreen() {
     updateGoal,
     updateGoalProgress,
     deleteGoal,
+    refreshGoals,
   } = useGoals();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -68,6 +71,12 @@ export default function GoalsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [contribution, setContribution] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshGoals();
+    setRefreshing(false);
+  }, [refreshGoals]);
 
   const getGoalProgress = (goal: Goal) => {
     const progress = Math.min(
@@ -244,6 +253,8 @@ export default function GoalsScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
@@ -259,10 +270,12 @@ export default function GoalsScreen() {
                   "\u2022 Deadline: When you want to reach it\n" +
                   "\u2022 Add contributions to track progress\n\n" +
                   "Goals marked complete when target is reached!\n\n" +
-                  "Tap a goal to contribute, long-press to delete.",
+                  "Each goal now includes visible contribute, edit, and delete actions.",
                 [{ text: "Got it!" }],
               )
             }
+            accessibilityRole="button"
+            accessibilityLabel="Learn about goals"
           >
             <Ionicons
               name="help-circle-outline"
@@ -274,6 +287,8 @@ export default function GoalsScreen() {
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Create goal"
         >
           <Text style={styles.addButtonText}>+ Add</Text>
         </TouchableOpacity>
@@ -330,10 +345,10 @@ export default function GoalsScreen() {
         <View style={styles.summaryAmount}>
           <Text style={styles.summaryAmountLabel}>Total Saved</Text>
           <Text style={styles.summaryAmountValue}>
-            {formatCurrency(totalSaved, defaultCurrency)}
+            {formatReadableCurrency(totalSaved, defaultCurrency)}
           </Text>
           <Text style={styles.summaryAmountTarget}>
-            of {formatCurrency(totalTarget, defaultCurrency)} target
+            of {formatReadableCurrency(totalTarget, defaultCurrency)} target
           </Text>
         </View>
       </Card>
@@ -346,8 +361,10 @@ export default function GoalsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => setRefreshing(false)}
+            onRefresh={onRefresh}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
@@ -443,13 +460,37 @@ export default function GoalsScreen() {
                     {goal.progress.toFixed(0)}%
                   </Text>
                 </View>
+                <View style={styles.goalActions}>
+                  {!goal.isCompleted && (
+                    <ActionChip
+                      label="Add Money"
+                      compact
+                      variant="primary"
+                      onPress={() => openContributeModal(goal)}
+                      accessibilityLabel={`Add contribution to ${goal.name}`}
+                    />
+                  )}
+                  <ActionChip
+                    label="Edit"
+                    compact
+                    onPress={() => openEditModal(goal)}
+                    accessibilityLabel={`Edit ${goal.name}`}
+                  />
+                  <ActionChip
+                    label="Delete"
+                    compact
+                    variant="danger"
+                    onPress={() => handleDeleteGoal(goal)}
+                    accessibilityLabel={`Delete ${goal.name}`}
+                  />
+                </View>
               </Card>
             </TouchableOpacity>
           ))
         ) : (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="flag-outline" size={32} color={colors.primary} />
+              <Ionicons name="flag" size={32} color={colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>No goals yet</Text>
             <Text style={styles.emptyDescription}>
@@ -467,7 +508,7 @@ export default function GoalsScreen() {
           <View style={styles.hintContainer}>
             <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
             <Text style={styles.hint}>
-              Tap to contribute, long press to edit.
+              Each goal shows visible contribute, edit, and delete actions.
             </Text>
           </View>
         )}
@@ -925,6 +966,12 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: "row",
       justifyContent: "space-between",
       marginTop: spacing.sm,
+    },
+    goalActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
     },
     goalRemaining: {
       fontSize: 13,

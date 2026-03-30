@@ -1,23 +1,13 @@
-import { Tabs, usePathname, useLocalSearchParams } from "expo-router";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Platform,
-} from "react-native";
+import { Tabs } from "expo-router";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors, ThemeColors } from "../../lib/theme";
-import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState, useRef, useEffect } from "react";
-import { QuickAddModal } from "../../lib/components/QuickAddModal";
-import * as Haptics from "expo-haptics";
-
-type IconName = "home" | "home-outline" | "time" | "time-outline";
+import { useMemo } from "react";
+import { AppIcon, AppIconName } from "../../lib/icons";
 
 interface TabIconProps {
-  name: IconName;
+  name: AppIconName;
   focused: boolean;
 }
 
@@ -31,10 +21,11 @@ const TabIcon = ({
   styles: ReturnType<typeof createStyles>;
 }) => (
   <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-    <Ionicons
+    <AppIcon
       name={name}
-      size={24}
-      color={focused ? colors.primary : colors.textPrimary}
+      size="nav"
+      variant={focused ? "filled" : "outline"}
+      color={focused ? colors.primary : colors.textSecondary}
     />
   </View>
 );
@@ -77,197 +68,105 @@ const TabBarButton = (props: BottomTabBarButtonProps) => {
   );
 };
 
-// FAB Component - Floating above tab bar
-const FloatingActionButton = ({
-  onPress,
-  styles,
-  colors,
-}: {
-  onPress: () => void;
-  styles: ReturnType<typeof createStyles>;
-  colors: ThemeColors;
-}) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.9,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  return (
-    <TouchableOpacity
-      activeOpacity={1}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onPress={onPress}
-      style={styles.fabTouchable}
-    >
-      <Animated.View
-        style={[styles.fab, { transform: [{ scale: scaleAnim }] }]}
-      >
-        <Ionicons name="add" size={32} color={colors.textInverse} />
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
-
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(insets.bottom, 12);
-  const [quickAddVisible, setQuickAddVisible] = useState(false);
-  const pathname = usePathname();
-  const searchParams = useLocalSearchParams();
+  const bottomPadding = Math.max(insets.bottom, 10);
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Handle deep link to open quick add modal
-  useEffect(() => {
-    if (searchParams.openQuickAdd === "true") {
-      setQuickAddVisible(true);
-    }
-  }, [searchParams.openQuickAdd]);
-
-  // Only show FAB on main screens (Home and History)
-  const showFab = pathname === "/" || pathname === "/history";
-
-  const handleFabPress = () => {
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    setQuickAddVisible(true);
-  };
-
   return (
-    <View style={{ flex: 1 }}>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textSecondary,
-          tabBarShowLabel: false,
-          tabBarButton: TabBarButton,
-          tabBarStyle: {
-            position: "absolute",
-            bottom: bottomPadding,
-            left: 16,
-            right: 16,
-            backgroundColor: colors.primaryLight,
-            borderRadius: 28,
-            height: 64,
-            borderTopWidth: 0,
-            elevation: 6,
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.18,
-            shadowRadius: 10,
-          },
-          tabBarItemStyle: {
-            height: 64,
-            paddingVertical: 10,
-            alignItems: "center",
-            justifyContent: "center",
-          },
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarShowLabel: false,
+        tabBarButton: TabBarButton,
+        tabBarStyle: {
+          position: "absolute",
+          bottom: bottomPadding,
+          left: 16,
+          right: 16,
+          backgroundColor: colors.surface,
+          borderRadius: 24,
+          height: 64,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.border,
+          elevation: 10,
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+        },
+        tabBarItemStyle: {
+          height: 64,
+          paddingVertical: 10,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          tabBarAccessibilityLabel: "Home",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name="home"
+              focused={focused}
+              colors={colors}
+              styles={styles}
+            />
+          ),
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Home",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                name={focused ? "home" : "home-outline"}
-                focused={focused}
-                colors={colors}
-                styles={styles}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="history"
-          options={{
-            title: "History",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                name={focused ? "time" : "time-outline"}
-                focused={focused}
-                colors={colors}
-                styles={styles}
-              />
-            ),
-          }}
-        />
-      </Tabs>
-
-      {/* Floating Action Button - Above Tab Bar (only on main screens) */}
-      {showFab && (
-        <View
-          pointerEvents="box-none"
-          style={[styles.fabContainer, { bottom: bottomPadding + 26 }]}
-        >
-          <FloatingActionButton
-            onPress={handleFabPress}
-            styles={styles}
-            colors={colors}
-          />
-        </View>
-      )}
-
-      {/* Quick Add Modal */}
-      <QuickAddModal
-        visible={quickAddVisible}
-        onClose={() => setQuickAddVisible(false)}
       />
-    </View>
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: "History",
+          tabBarAccessibilityLabel: "History",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name="history"
+              focused={focused}
+              colors={colors}
+              styles={styles}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: "More",
+          tabBarAccessibilityLabel: "More",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name="more"
+              focused={focused}
+              colors={colors}
+              styles={styles}
+            />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     iconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "transparent",
     },
     iconContainerActive: {
-      backgroundColor: colors.surface,
-    },
-    fabContainer: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      alignItems: "center",
-      zIndex: 100,
-    },
-    fabTouchable: {
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    fab: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      elevation: 8,
+      backgroundColor: colors.primaryLight,
     },
   });

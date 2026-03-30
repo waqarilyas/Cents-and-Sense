@@ -1,7 +1,12 @@
 import * as SQLite from "expo-sqlite";
+import {
+  APP_FEATURE_FLAG_DB_KEYS,
+  DEFAULT_APP_FEATURE_FLAGS,
+  serializeFeatureFlagValue,
+} from "./featureFlags";
 
 const DATABASE_NAME = "budget_planner.db";
-const SCHEMA_VERSION = 12; // Increment this when schema changes
+const SCHEMA_VERSION = 13; // Increment this when schema changes
 
 export interface UserProfile {
   id: string;
@@ -143,6 +148,22 @@ export interface BudgetPeriodSnapshot {
 
 let db: SQLite.SQLiteDatabase | null = null;
 let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+
+async function seedAppFeatureFlags(
+  database: SQLite.SQLiteDatabase,
+): Promise<void> {
+  const timestamp = Date.now();
+
+  for (const [field, key] of Object.entries(APP_FEATURE_FLAG_DB_KEYS) as [
+    keyof typeof DEFAULT_APP_FEATURE_FLAGS,
+    string,
+  ][]) {
+    await database.runAsync(
+      "INSERT OR IGNORE INTO app_feature_flags (key, value, updatedAt) VALUES (?, ?, ?)",
+      [key, serializeFeatureFlagValue(DEFAULT_APP_FEATURE_FLAGS[field]), timestamp],
+    );
+  }
+}
 
 /**
  * Safely migrate database from one version to another
@@ -465,6 +486,18 @@ async function applyMigration(
       `);
       break;
 
+    case 13:
+      console.log("Version 13 - Adding app feature flags");
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS app_feature_flags (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updatedAt INTEGER NOT NULL
+        );
+      `);
+      await seedAppFeatureFlags(database);
+      break;
+
     default:
       console.warn(`No migration defined for version ${version}`);
   }
@@ -672,6 +705,12 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
         updatedAt INTEGER NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS app_feature_flags (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS budget_period_snapshots (
         id TEXT PRIMARY KEY,
         budgetId TEXT NOT NULL,
@@ -704,7 +743,10 @@ export async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
       CREATE INDEX IF NOT EXISTS idx_goals_userId ON goals(userId);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_userId ON subscriptions(userId);
       CREATE INDEX IF NOT EXISTS idx_sync_state_updatedAt ON sync_state(updatedAt);
+      CREATE INDEX IF NOT EXISTS idx_app_feature_flags_updatedAt ON app_feature_flags(updatedAt);
     `);
+
+    await seedAppFeatureFlags(database);
 
     db = database;
     return database;

@@ -17,6 +17,7 @@ import { useEntitlements } from "../../lib/contexts/EntitlementContext";
 import { useAuth } from "../../lib/contexts/AuthContext";
 import { useUser } from "../../lib/contexts/UserContext";
 import { billingService } from "../../lib/services/BillingService";
+import { useFeatureFlags } from "../../lib/contexts/FeatureFlagsContext";
 
 interface PlanCardProps {
   title: string;
@@ -83,6 +84,7 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { isPremium, source, purchasePlan, restorePurchases, loading } = useEntitlements();
   const { authState, email } = useAuth();
   const { userName } = useUser();
@@ -90,42 +92,30 @@ export default function PaywallScreen() {
   const pendingPlan = params.pendingPlan as "monthly" | "yearly" | "lifetime" | undefined;
   const [offeringStatus, setOfferingStatus] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!flagsLoading && (!flags.premiumEnabled || !flags.paywallEnabled)) {
+      router.replace("/(tabs)");
+    }
+  }, [flags.paywallEnabled, flags.premiumEnabled, flagsLoading, router]);
+
+  if (flagsLoading || !flags.premiumEnabled || !flags.paywallEnabled) {
+    return null;
+  }
+
   const onPurchase = async (plan: "monthly" | "yearly" | "lifetime") => {
     if (authState === "guest") {
-      Alert.alert(
-        "Login Required",
-        "Please log in first, then complete your profile setup before purchasing a plan.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Log In",
-            onPress: () =>
-              router.push({
-                pathname: "/(stack)/auth",
-                params: { pendingPlan: plan },
-              }),
-          },
-        ],
-      );
+      router.push({
+        pathname: "/(stack)/auth",
+        params: { pendingPlan: plan },
+      });
       return;
     }
 
     if (!userName?.trim()) {
-      Alert.alert(
-        "Profile Setup Required",
-        "Please set up your profile before purchasing so your data sync works correctly.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Set Up Profile",
-            onPress: () =>
-              router.push({
-                pathname: "/(stack)/profile-setup",
-                params: { pendingPlan: plan },
-              }),
-          },
-        ],
-      );
+      router.push({
+        pathname: "/(stack)/profile-setup",
+        params: { pendingPlan: plan },
+      });
       return;
     }
 
@@ -186,7 +176,7 @@ export default function PaywallScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.hero}>
-          <Ionicons name="diamond-outline" size={36} color={colors.primary} />
+          <Ionicons name="diamond" size={36} color={colors.primary} />
           <Text style={styles.heroTitle}>
             {isPremium ? "Premium is Active" : "Unlock Premium Features"}
           </Text>
@@ -204,6 +194,11 @@ export default function PaywallScreen() {
           {!isPremium && authState === "guest" ? (
             <Text style={styles.statusText}>
               Login is required before purchase so your subscription syncs across devices.
+            </Text>
+          ) : null}
+          {!isPremium && authState !== "guest" && !userName?.trim() ? (
+            <Text style={styles.statusText}>
+              Complete your profile before checkout so purchases and sync stay linked to your account.
             </Text>
           ) : null}
           {pendingPlan && authState !== "guest" ? (
@@ -273,7 +268,7 @@ export default function PaywallScreen() {
               }
             }}
           >
-            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            <Ionicons name="refresh" size={20} color={colors.primary} />
             <Text style={styles.secondaryText}>Restore Purchases</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -291,7 +286,7 @@ export default function PaywallScreen() {
               }
             }}
           >
-            <Ionicons name="card-outline" size={20} color={colors.primary} />
+            <Ionicons name="card" size={20} color={colors.primary} />
             <Text style={styles.secondaryText}>Manage Subscription</Text>
           </TouchableOpacity>
         </Card>

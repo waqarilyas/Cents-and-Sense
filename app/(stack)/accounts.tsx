@@ -17,7 +17,7 @@ import { getCurrency } from "../../lib/currencies";
 import {
   spacing,
   borderRadius,
-  formatCurrency,
+  formatReadableCurrency,
   useThemeColors,
   ThemeColors,
 } from "../../lib/theme";
@@ -29,15 +29,16 @@ import {
   Select,
   BottomSheet,
   ProgressBar,
+  ActionChip,
 } from "../../lib/components";
 import { Account } from "../../lib/database";
 
 type AccountType = Account["type"];
 
 const ACCOUNT_ICONS: Record<AccountType, keyof typeof Ionicons.glyphMap> = {
-  checking: "business-outline",
-  savings: "wallet-outline",
-  credit_card: "card-outline",
+  checking: "business",
+  savings: "wallet",
+  credit_card: "card",
 };
 
 const ACCOUNT_LABELS: Record<AccountType, string> = {
@@ -109,9 +110,16 @@ export default function AccountsScreen() {
       return;
     }
 
+    const openingBalance = parseFloat(accountBalance) || 0;
+
     setIsSubmitting(true);
     try {
-      await addAccount(accountName.trim(), accountType, accountCurrency);
+      await addAccount(
+        accountName.trim(),
+        accountType,
+        accountCurrency,
+        openingBalance,
+      );
       setShowAddModal(false);
       resetForm();
       Alert.alert("Success", "Account added successfully!");
@@ -243,6 +251,8 @@ export default function AccountsScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
@@ -258,10 +268,12 @@ export default function AccountsScreen() {
                   "\u2022 View balances across all accounts\n" +
                   "\u2022 Set a default account for quick transactions\n" +
                   "\u2022 Cannot delete your last account\n\n" +
-                  "Tap an account to edit, long-press for more options.",
+                  "Use the actions on each card to edit, delete, or set a default account.",
                 [{ text: "Got it!" }],
               )
             }
+            accessibilityRole="button"
+            accessibilityLabel="Learn about accounts"
           >
             <Ionicons
               name="help-circle-outline"
@@ -273,13 +285,35 @@ export default function AccountsScreen() {
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Add account"
         >
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Ionicons name="add" size={16} color={colors.textInverse} />
+          <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
       {/* Total Balance Card */}
       <Card style={styles.balanceCard}>
+        <View style={styles.balanceCardHeader}>
+          <View style={styles.balanceBadge}>
+            <Ionicons name="wallet" size={16} color={colors.primary} />
+            <Text style={styles.balanceBadgeText}>Portfolio</Text>
+          </View>
+          <View style={styles.balanceStatus}>
+            <Text
+              style={[
+                styles.balanceStatusText,
+                {
+                  color:
+                    totalBalance >= 0 ? colors.income : colors.expense,
+                },
+              ]}
+            >
+              {totalBalance >= 0 ? "In good shape" : "Needs attention"}
+            </Text>
+          </View>
+        </View>
         <Text style={styles.balanceLabel}>Total Balance</Text>
         <Text
           style={[
@@ -287,16 +321,15 @@ export default function AccountsScreen() {
             { color: totalBalance >= 0 ? colors.income : colors.expense },
           ]}
         >
-          {formatCurrency(totalBalance, defaultCurrency)}
+          {formatReadableCurrency(totalBalance, defaultCurrency)}
         </Text>
         <View style={styles.balanceStats}>
           <View style={styles.balanceStat}>
             <Text style={styles.balanceStatLabel}>Accounts</Text>
             <Text style={styles.balanceStatValue}>{accounts.length}</Text>
           </View>
-          <View style={styles.balanceStatDivider} />
           <View style={styles.balanceStat}>
-            <Text style={styles.balanceStatLabel}>Active</Text>
+            <Text style={styles.balanceStatLabel}>Positive</Text>
             <Text style={[styles.balanceStatValue, { color: colors.income }]}>
               {accounts.filter((a) => a.balance > 0).length}
             </Text>
@@ -314,6 +347,8 @@ export default function AccountsScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
@@ -342,14 +377,18 @@ export default function AccountsScreen() {
                       />
                     </View>
                     <View style={styles.accountInfo}>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
+                      <View style={styles.accountTitleRow}>
                         <Text style={styles.accountName}>{account.name}</Text>
+                      </View>
+                      <Text style={styles.accountType}>
+                        {ACCOUNT_LABELS[account.type]}
+                      </Text>
+                      <View style={styles.accountMetaRow}>
+                        <View style={styles.accountMetaPill}>
+                          <Text style={styles.accountMetaText}>
+                            {account.currency}
+                          </Text>
+                        </View>
                         {account.isDefault && (
                           <View
                             style={[
@@ -373,9 +412,6 @@ export default function AccountsScreen() {
                           </View>
                         )}
                       </View>
-                      <Text style={styles.accountType}>
-                        {ACCOUNT_LABELS[account.type]}
-                      </Text>
                     </View>
                     <View style={styles.accountBalanceContainer}>
                       <Text
@@ -389,7 +425,13 @@ export default function AccountsScreen() {
                           },
                         ]}
                       >
-                        {formatCurrency(account.balance, account.currency)}
+                        {formatReadableCurrency(
+                          account.balance,
+                          account.currency,
+                        )}
+                      </Text>
+                      <Text style={styles.accountBalanceCaption}>
+                        {account.balance >= 0 ? "Available" : "Overdrawn"}
                       </Text>
                     </View>
                   </View>
@@ -402,6 +444,38 @@ export default function AccountsScreen() {
                       height={4}
                     />
                   </View>
+                  <View style={styles.accountActions}>
+                    <ActionChip
+                      label="Edit"
+                      compact
+                      onPress={() => openEditModal(account)}
+                      accessibilityLabel={`Edit ${account.name}`}
+                    />
+                    {!account.isDefault && (
+                      <ActionChip
+                        label="Set Default"
+                        compact
+                        variant="primary"
+                        onPress={async () => {
+                          try {
+                            await setDefaultAccount(account.id);
+                          } catch (error) {
+                            Alert.alert("Error", "Failed to set default account");
+                          }
+                        }}
+                        accessibilityLabel={`Set ${account.name} as default account`}
+                      />
+                    )}
+                    {accounts.length > 1 && (
+                      <ActionChip
+                        label="Delete"
+                        compact
+                        variant="danger"
+                        onPress={() => handleDeleteAccount(account)}
+                        accessibilityLabel={`Delete ${account.name}`}
+                      />
+                    )}
+                  </View>
                 </Card>
               </TouchableOpacity>
             );
@@ -410,7 +484,7 @@ export default function AccountsScreen() {
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <Ionicons
-                name="business-outline"
+                name="business"
                 size={32}
                 color={colors.primary}
               />
@@ -429,7 +503,9 @@ export default function AccountsScreen() {
 
         <View style={styles.hintContainer}>
           <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.hint}>Tap to edit, long press for options.</Text>
+          <Text style={styles.hint}>
+            Edit, default, and delete actions are available on each card.
+          </Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -461,6 +537,14 @@ export default function AccountsScreen() {
           ]}
           onSelect={(v) => setAccountType(v as AccountType)}
           placeholder="Select account type"
+        />
+
+        <Input
+          label="Opening Balance"
+          value={accountBalance}
+          onChangeText={setAccountBalance}
+          placeholder="0.00"
+          keyboardType="numeric"
         />
 
         <View style={{ marginTop: spacing.md }}>
@@ -678,15 +762,15 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: spacing.md,
     },
     backButton: {
-      paddingVertical: spacing.sm,
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: colors.primary,
-      fontWeight: "600",
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceSecondary,
     },
     headerTitle: {
-      fontSize: 20,
+      fontSize: 24,
       fontWeight: "700",
       color: colors.textPrimary,
     },
@@ -695,6 +779,9 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.md,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
     },
     addButtonText: {
       color: colors.textInverse,
@@ -704,43 +791,73 @@ const createStyles = (colors: ThemeColors) =>
     balanceCard: {
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
-      backgroundColor: colors.primary,
-      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
       paddingVertical: spacing.xl,
+    },
+    balanceCardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.lg,
+    },
+    balanceBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.primaryLight,
+    },
+    balanceBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+    balanceStatus: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surfaceSecondary,
+    },
+    balanceStatusText: {
+      fontSize: 12,
+      fontWeight: "600",
     },
     balanceLabel: {
       fontSize: 14,
-      color: colors.textInverse + "CC",
+      color: colors.textSecondary,
       marginBottom: spacing.xs,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
     },
     balanceAmount: {
       fontSize: 36,
       fontWeight: "700",
-      color: colors.textInverse,
       marginBottom: spacing.lg,
     },
     balanceStats: {
       flexDirection: "row",
-      alignItems: "center",
+      gap: spacing.md,
     },
     balanceStat: {
       alignItems: "center",
-      paddingHorizontal: spacing.xl,
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceSecondary,
     },
     balanceStatLabel: {
       fontSize: 12,
-      color: colors.textInverse + "B3",
+      color: colors.textSecondary,
       marginBottom: 4,
     },
     balanceStatValue: {
       fontSize: 18,
       fontWeight: "700",
-      color: colors.textInverse,
-    },
-    balanceStatDivider: {
-      width: 1,
-      height: 30,
-      backgroundColor: colors.textInverse + "33",
+      color: colors.textPrimary,
     },
     scrollView: {
       flex: 1,
@@ -750,10 +867,12 @@ const createStyles = (colors: ThemeColors) =>
     },
     accountCard: {
       marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     accountHeader: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       marginBottom: spacing.md,
     },
     accountIcon: {
@@ -767,10 +886,34 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       marginLeft: spacing.md,
     },
+    accountTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
     accountName: {
       fontSize: 16,
       fontWeight: "600",
       color: colors.textPrimary,
+    },
+    accountMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+      flexWrap: "wrap",
+    },
+    accountMetaPill: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surfaceSecondary,
+    },
+    accountMetaText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.textSecondary,
+      letterSpacing: 0.3,
     },
     defaultBadge: {
       flexDirection: "row",
@@ -791,13 +934,26 @@ const createStyles = (colors: ThemeColors) =>
     },
     accountBalanceContainer: {
       alignItems: "flex-end",
+      marginLeft: spacing.md,
     },
     accountBalance: {
       fontSize: 18,
       fontWeight: "700",
     },
+    accountBalanceCaption: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
     accountProgress: {
       marginTop: spacing.sm,
+    },
+    accountActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
     },
     emptyState: {
       alignItems: "center",

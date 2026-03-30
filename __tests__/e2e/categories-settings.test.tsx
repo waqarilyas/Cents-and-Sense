@@ -82,8 +82,8 @@ describe("E2E: Categories & Settings", () => {
     const categories = testDB.getTable("categories");
     const petCare = categories.find((c: any) => c.name === "Pet Care");
     expect(petCare).toBeTruthy();
-    expect(petCare.type).toBe("expense");
-    expect(petCare.color).toBe("#E91E63");
+    expect(petCare!.type).toBe("expense");
+    expect(petCare!.color).toBe("#E91E63");
   });
 
   it("updates a category", async () => {
@@ -119,8 +119,8 @@ describe("E2E: Categories & Settings", () => {
     const cat = testDB
       .getTable("categories")
       .find((c: any) => c.id === "cat_food");
-    expect(cat.name).toBe("Groceries");
-    expect(cat.color).toBe("#4CAF50");
+    expect(cat!.name).toBe("Groceries");
+    expect(cat!.color).toBe("#4CAF50");
   });
 
   it("prevents deleting a category linked to a budget", async () => {
@@ -608,8 +608,8 @@ describe("E2E: Account Management", () => {
     const accounts = testDB.getTable("accounts");
     const primary = accounts.find((a: any) => a.id === "acc_1");
     const secondary = accounts.find((a: any) => a.id === "acc_2");
-    expect(primary.isDefault).toBe(0);
-    expect(secondary.isDefault).toBe(1);
+    expect(primary!.isDefault).toBe(0);
+    expect(secondary!.isDefault).toBe(1);
   });
 
   it("deleting an account also removes its transactions", async () => {

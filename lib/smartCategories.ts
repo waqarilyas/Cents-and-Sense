@@ -15,7 +15,7 @@ export interface CategoryDefinition {
   type: "expense" | "income";
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
-  emoji: string;
+  emoji?: string;
   keywords: string[];
   description: string;
 }
@@ -1820,7 +1820,7 @@ export function getCategoryIcon(
 }
 
 /**
- * Get emoji for a category name
+ * Legacy helper retained for compatibility during icon migration.
  */
 export function getCategoryEmoji(categoryName: string): string {
   const category = SMART_CATEGORIES.find(

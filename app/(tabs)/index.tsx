@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { useCallback, useState, useMemo, useRef } from "react";
 import {
   ScrollView,
   View,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Platform,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -23,19 +24,52 @@ import { useUser } from "../../lib/contexts/UserContext";
 import {
   getTotalBalanceByCurrency,
   getMonthlyStatsByCurrency,
-  formatCurrencyAmount,
 } from "../../lib/utils/currencyHelpers";
 import {
   spacing,
   borderRadius,
   formatCurrency,
+  formatReadableCurrency,
   formatShortDate,
 } from "../../lib/theme";
 import { useThemeColors, ThemeColors } from "../../lib/theme";
-import { Card, LoadingState } from "../../lib/components";
+import { ActionChip, Card, LoadingState } from "../../lib/components";
+import { QuickAddModal } from "../../lib/components/QuickAddModal";
 import { getCategoryIcon } from "../../lib/smartCategories";
 import { widgetService } from "../../lib/services/WidgetService";
 import { getCurrentPeriod } from "../../lib/utils/periodCalculations";
+import { AppIcon, AppIconName, getAppIconName } from "../../lib/icons";
+
+const QUICK_ACCESS_ITEMS: {
+  label: string;
+  route: string;
+  icon: AppIconName;
+  colorKey: "accent" | "warning" | "success" | "primary" | "income" | "expense" | "textSecondary";
+}[] = [
+  { label: "Accounts", route: "/(stack)/accounts", icon: "accounts", colorKey: "accent" },
+  { label: "Budgets", route: "/(stack)/budgets", icon: "budgets", colorKey: "warning" },
+  { label: "Goals", route: "/(stack)/goals", icon: "goals", colorKey: "success" },
+  {
+    label: "Subscriptions",
+    route: "/(stack)/subscriptions",
+    icon: "subscriptions",
+    colorKey: "primary",
+  },
+  { label: "Analytics", route: "/(stack)/analysis", icon: "analytics", colorKey: "income" },
+  {
+    label: "Transactions",
+    route: "/(stack)/transactions",
+    icon: "transactions",
+    colorKey: "expense",
+  },
+  {
+    label: "Categories",
+    route: "/(stack)/categories",
+    icon: "categories",
+    colorKey: "accent",
+  },
+  { label: "More", route: "/(stack)/settings", icon: "more", colorKey: "textSecondary" },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -65,20 +99,26 @@ export default function HomeScreen() {
     approveAllPending,
   } = useSubscriptions();
   const { budgets } = useBudgets();
-  const { getCategory } = useCategories();
+  const { categories } = useCategories();
   const { goals } = useGoals();
   const { settings } = useSettings();
   const { userName, defaultCurrency } = useUser();
+  const [quickAddVisible, setQuickAddVisible] = useState(false);
 
-  const balancesByCurrency = getTotalBalanceByCurrency(accounts);
+  const balancesByCurrency = useMemo(
+    () => getTotalBalanceByCurrency(accounts),
+    [accounts],
+  );
   const monthlyStats = getMonthlyStats();
-  const monthlyStatsByCurrency = getMonthlyStatsByCurrency(transactions);
+  const monthlyStatsByCurrency = useMemo(
+    () => getMonthlyStatsByCurrency(transactions),
+    [transactions],
+  );
   const upcomingSubscriptions = getUpcomingSubscriptions(7);
-
-  // Process due subscriptions on mount based on settings
-  useEffect(() => {
-    processDueSubscriptions(settings.subscriptionProcessingMode);
-  }, [settings.subscriptionProcessingMode]);
+  const categoryMap = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
 
   // Throttle focus refreshes to avoid excessive DB queries (once per 5s max)
   const lastRefresh = useRef(0);
@@ -119,69 +159,46 @@ export default function HomeScreen() {
     settings.subscriptionProcessingMode,
   ]);
 
+  const openQuickAdd = useCallback(() => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setQuickAddVisible(true);
+  }, []);
+
   // Handle approving a pending subscription
   const handleApprovePending = useCallback(
-    async (subscriptionId: string, subscriptionName: string) => {
+    async (subscriptionId: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Alert.alert(
-        "Add Subscription Expense",
-        `Add ${subscriptionName} to your expenses?`,
-        [
-          {
-            text: "Skip This Time",
-            style: "destructive",
-            onPress: async () => {
-              await skipPendingSubscription(subscriptionId);
-              refreshTransactions();
-            },
-          },
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Add Expense",
-            onPress: async () => {
-              await approvePendingSubscription(subscriptionId);
-              refreshTransactions();
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-            },
-          },
-        ],
-      );
+      await approvePendingSubscription(subscriptionId);
+      refreshTransactions();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
-    [approvePendingSubscription, skipPendingSubscription, refreshTransactions],
+    [approvePendingSubscription, refreshTransactions],
+  );
+
+  const handleSkipPending = useCallback(
+    async (subscriptionId: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await skipPendingSubscription(subscriptionId);
+      refreshTransactions();
+    },
+    [skipPendingSubscription, refreshTransactions],
   );
 
   // Handle approving all pending subscriptions
   const handleApproveAllPending = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const totalAmount = pendingSubscriptions.reduce(
-      (sum, p) => sum + p.subscription.amount,
-      0,
-    );
-    Alert.alert(
-      "Add All Subscription Expenses",
-      `Add ${pendingSubscriptions.length} subscriptions (${formatCurrency(totalAmount, defaultCurrency)}) to your expenses?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Add All",
-          onPress: async () => {
-            const count = await approveAllPending();
-            refreshTransactions();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert("Done", `Added ${count} subscription expenses`);
-          },
-        },
-      ],
-    );
-  }, [pendingSubscriptions, approveAllPending, refreshTransactions]);
+    const count = await approveAllPending();
+    refreshTransactions();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (count === 0) {
+      Alert.alert(
+        "Nothing Added",
+        "There were no pending subscriptions left to add.",
+      );
+    }
+  }, [approveAllPending, refreshTransactions]);
 
   // Get insight message
   const getInsight = useMemo(() => {
@@ -191,7 +208,7 @@ export default function HomeScreen() {
 
     if (transactions.length === 0) {
       return {
-        icon: "sparkles",
+        icon: getAppIconName("quickAdd"),
         message: "Start tracking your expenses!",
         color: colors.primary,
       };
@@ -199,44 +216,66 @@ export default function HomeScreen() {
 
     if (savingsRate >= 20) {
       return {
-        icon: "trending-up",
+        icon: getAppIconName("income"),
         message: `Great! You're saving ${savingsRate.toFixed(0)}% this month`,
         color: colors.income,
       };
     } else if (savingsRate >= 0) {
       return {
-        icon: "checkmark-circle",
+        icon: getAppIconName("success"),
         message: `You've saved ${formatCurrency(savings, defaultCurrency)} this month`,
         color: colors.income,
       };
     } else {
       return {
-        icon: "warning",
+        icon: getAppIconName("warning"),
         message: `You've overspent by ${formatCurrency(Math.abs(savings), defaultCurrency)}`,
         color: colors.expense,
       };
     }
   }, [monthlyStats, transactions]);
 
-  // Budget alert
+  const currentPeriod = useMemo(() => {
+    return getCurrentPeriod(settings.budgetPeriodStartDay || 1);
+  }, [settings.budgetPeriodStartDay]);
+
+  const { recentTransactions, unlinkedBalance, currentPeriodSpendByCategory } =
+    useMemo(() => {
+      const spendByCategory = new Map<string, number>();
+      let unlinked = 0;
+
+      for (const transaction of transactions) {
+        if (!transaction.accountId) {
+          unlinked +=
+            transaction.type === "income" ? transaction.amount : -transaction.amount;
+        }
+
+        if (
+          transaction.type === "expense" &&
+          transaction.date >= currentPeriod.start &&
+          transaction.date <= currentPeriod.end
+        ) {
+          spendByCategory.set(
+            transaction.categoryId,
+            (spendByCategory.get(transaction.categoryId) || 0) + transaction.amount,
+          );
+        }
+      }
+
+      return {
+        recentTransactions: transactions.slice(0, 5),
+        unlinkedBalance: unlinked,
+        currentPeriodSpendByCategory: spendByCategory,
+      };
+    }, [transactions, currentPeriod.end, currentPeriod.start]);
+
   const budgetAlert = useMemo(() => {
-    const periodStartDay = settings.budgetPeriodStartDay || 1;
-    const period = getCurrentPeriod(periodStartDay);
-
     for (const budget of budgets) {
-      const spent = transactions
-        .filter(
-          (t) =>
-            t.categoryId === budget.categoryId &&
-            t.type === "expense" &&
-            t.date >= period.start &&
-            t.date <= period.end,
-        )
-        .reduce((sum, t) => sum + t.amount, 0);
-
+      const spent = currentPeriodSpendByCategory.get(budget.categoryId) || 0;
       const percentage = (spent / budget.budget_limit) * 100;
+
       if (percentage >= 90) {
-        const category = getCategory(budget.categoryId);
+        const category = categoryMap.get(budget.categoryId);
         return {
           name: category?.name || "Budget",
           percentage: Math.min(percentage, 100),
@@ -245,20 +284,7 @@ export default function HomeScreen() {
       }
     }
     return null;
-  }, [budgets, transactions, getCategory, settings.budgetPeriodStartDay]);
-
-  const recentTransactions = useMemo(() => {
-    return [...transactions].sort((a, b) => b.date - a.date).slice(0, 5);
-  }, [transactions]);
-
-  const unlinkedBalance = useMemo(() => {
-    return transactions
-      .filter((t) => !t.accountId)
-      .reduce(
-        (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
-        0,
-      );
-  }, [transactions]);
+  }, [budgets, currentPeriodSpendByCategory, categoryMap]);
 
   // Active goals summary
   const activeGoals = useMemo(() => {
@@ -304,10 +330,12 @@ export default function HomeScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
-        {/* Premium Header with Greeting */}
+        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.headerGreeting}>{getGreeting()}</Text>
@@ -316,11 +344,13 @@ export default function HomeScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => router.push("/(stack)/profile")}
+            style={styles.headerIconButton}
+            onPress={() => router.push("/(stack)/settings")}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
           >
-            <View style={styles.profileAvatar}>
-              <Ionicons name="person" size={20} color={colors.primary} />
+            <View style={styles.headerIconBadge}>
+              <AppIcon name="settings" size="card" color={colors.primary} />
             </View>
           </TouchableOpacity>
         </View>
@@ -338,7 +368,7 @@ export default function HomeScreen() {
                     <Text style={styles.currencyBadgeText}>{currency}</Text>
                   </View>
                   <Text style={styles.currencyBalanceAmount}>
-                    {formatCurrencyAmount(balance, currency)}
+                    {formatReadableCurrency(balance, currency)}
                   </Text>
                 </View>
 
@@ -347,13 +377,13 @@ export default function HomeScreen() {
                   <View style={styles.monthSummaryRow}>
                     <View style={styles.monthStat}>
                       <Ionicons
-                        name="trending-up-outline"
+                        name="trending-up"
                         size={16}
                         color="rgba(255,255,255,0.9)"
                       />
                       <Text style={styles.monthStatLabel}>Income</Text>
                       <Text style={styles.monthStatValue}>
-                        {formatCurrencyAmount(
+                        {formatReadableCurrency(
                           monthlyStatsByCurrency[currency].income,
                           currency,
                         )}
@@ -362,13 +392,13 @@ export default function HomeScreen() {
                     <View style={styles.monthStatDivider} />
                     <View style={styles.monthStat}>
                       <Ionicons
-                        name="trending-down-outline"
+                        name="trending-down"
                         size={16}
                         color="rgba(255,255,255,0.9)"
                       />
                       <Text style={styles.monthStatLabel}>Expenses</Text>
                       <Text style={styles.monthStatValue}>
-                        {formatCurrencyAmount(
+                        {formatReadableCurrency(
                           monthlyStatsByCurrency[currency].expense,
                           currency,
                         )}
@@ -381,8 +411,8 @@ export default function HomeScreen() {
                           monthlyStatsByCurrency[currency].income -
                             monthlyStatsByCurrency[currency].expense >=
                           0
-                            ? "checkmark-circle-outline"
-                            : "alert-circle-outline"
+                            ? "checkmark-circle"
+                            : "alert-circle"
                         }
                         size={16}
                         color="rgba(255,255,255,0.9)"
@@ -396,12 +426,12 @@ export default function HomeScreen() {
                               monthlyStatsByCurrency[currency].income -
                                 monthlyStatsByCurrency[currency].expense >=
                               0
-                                ? "#4ade80"
-                                : "#f87171",
+                                ? "rgba(255,255,255,0.96)"
+                                : "#FECACA",
                           },
                         ]}
                       >
-                        {formatCurrencyAmount(
+                        {formatReadableCurrency(
                           monthlyStatsByCurrency[currency].income -
                             monthlyStatsByCurrency[currency].expense,
                           currency,
@@ -416,92 +446,54 @@ export default function HomeScreen() {
               <Text style={styles.noBalanceText}>No accounts yet</Text>
             )}
           </View>
+
+          <TouchableOpacity
+            style={styles.primaryAddButton}
+            onPress={openQuickAdd}
+            accessibilityRole="button"
+            accessibilityLabel="Quick add a transaction"
+          >
+            <View style={styles.primaryAddIcon}>
+              <AppIcon name="quickAdd" size="card" color={colors.primary} />
+            </View>
+            <View style={styles.primaryAddContent}>
+              <Text style={styles.primaryAddTitle}>Quick Add</Text>
+              <Text style={styles.primaryAddSubtitle}>
+                Record income, expense, or a recurring payment
+              </Text>
+            </View>
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color="rgba(255,255,255,0.85)"
+            />
+          </TouchableOpacity>
         </Card>
 
-        {/* Quick Access Shortcuts - Row 1 */}
-        <View style={styles.quickAccessRow}>
-          <TouchableOpacity
-            style={styles.quickAccessItem}
-            onPress={() => router.push("/(stack)/accounts")}
-          >
-            <View
-              style={[
-                styles.quickAccessIcon,
-                { backgroundColor: colors.accent + "15" },
-              ]}
-            >
-              <Ionicons name="wallet-outline" size={22} color={colors.accent} />
-            </View>
-            <Text style={styles.quickAccessLabel}>Accounts</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickAccessItem}
-            onPress={() => router.push("/(stack)/budgets")}
-          >
-            <View
-              style={[
-                styles.quickAccessIcon,
-                { backgroundColor: colors.warning + "15" },
-              ]}
-            >
-              <Ionicons
-                name="pie-chart-outline"
-                size={22}
-                color={colors.warning}
-              />
-            </View>
-            <Text style={styles.quickAccessLabel}>Budgets</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickAccessItem}
-            onPress={() => router.push("/(stack)/goals")}
-          >
-            <View
-              style={[
-                styles.quickAccessIcon,
-                { backgroundColor: colors.success + "15" },
-              ]}
-            >
-              <Ionicons name="flag-outline" size={22} color={colors.success} />
-            </View>
-            <Text style={styles.quickAccessLabel}>Goals</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickAccessItem}
-            onPress={() => router.push("/(stack)/subscriptions")}
-          >
-            <View
-              style={[
-                styles.quickAccessIcon,
-                { backgroundColor: colors.primary + "15" },
-              ]}
-            >
-              <Ionicons
-                name="repeat-outline"
-                size={22}
-                color={colors.primary}
-              />
-            </View>
-            <Text style={styles.quickAccessLabel}>Subscriptions</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickAccessItem}
-            onPress={() => router.push("/(stack)/analysis")}
-          >
-            <View
-              style={[
-                styles.quickAccessIcon,
-                { backgroundColor: colors.income + "15" },
-              ]}
-            >
-              <Ionicons
-                name="stats-chart-outline"
-                size={22}
-                color={colors.income}
-              />
-            </View>
-            <Text style={styles.quickAccessLabel}>Analytics</Text>
-          </TouchableOpacity>
+        {/* Quick Access Shortcuts */}
+        <View style={styles.quickAccessGrid}>
+          {QUICK_ACCESS_ITEMS.map((item) => {
+            const iconColor = colors[item.colorKey];
+            return (
+              <TouchableOpacity
+                key={item.label}
+                style={styles.quickAccessItem}
+                onPress={() => router.push(item.route as any)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${item.label.toLowerCase()}`}
+              >
+                <View
+                  style={[
+                    styles.quickAccessIcon,
+                    { backgroundColor: iconColor + "14" },
+                  ]}
+                >
+                  <AppIcon name={item.icon} size="card" color={iconColor} />
+                </View>
+                <Text style={styles.quickAccessLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Insight Card */}
@@ -581,16 +573,7 @@ export default function HomeScreen() {
               )}
             </View>
             {pendingSubscriptions.map((pending) => (
-              <TouchableOpacity
-                key={pending.subscription.id}
-                style={styles.pendingItem}
-                onPress={() =>
-                  handleApprovePending(
-                    pending.subscription.id,
-                    pending.subscription.name,
-                  )
-                }
-              >
+              <View key={pending.subscription.id} style={styles.pendingItem}>
                 <View style={styles.pendingItemIcon}>
                   <Ionicons name="repeat" size={18} color={colors.warning} />
                 </View>
@@ -608,8 +591,22 @@ export default function HomeScreen() {
                     pending.subscription.currency,
                   )}
                 </Text>
-                <Ionicons name="add-circle" size={24} color={colors.primary} />
-              </TouchableOpacity>
+                <View style={styles.pendingItemActions}>
+                  <ActionChip
+                    label="Skip"
+                    compact
+                    onPress={() => handleSkipPending(pending.subscription.id)}
+                    accessibilityLabel={`Skip ${pending.subscription.name} this time`}
+                  />
+                  <ActionChip
+                    label="Add"
+                    compact
+                    variant="primary"
+                    onPress={() => handleApprovePending(pending.subscription.id)}
+                    accessibilityLabel={`Add ${pending.subscription.name} expense`}
+                  />
+                </View>
+              </View>
             ))}
           </View>
         )}
@@ -710,7 +707,7 @@ export default function HomeScreen() {
 
           {recentTransactions.length > 0 ? (
             recentTransactions.map((transaction) => {
-              const category = getCategory(transaction.categoryId);
+              const category = categoryMap.get(transaction.categoryId);
               const categoryIcon = category
                 ? getCategoryIcon(category.name)
                 : "ellipsis-horizontal";
@@ -763,7 +760,7 @@ export default function HomeScreen() {
           ) : (
             <View style={styles.emptyState}>
               <Ionicons
-                name="receipt-outline"
+                name="receipt"
                 size={48}
                 color={colors.textMuted}
               />
@@ -778,6 +775,11 @@ export default function HomeScreen() {
         {/* Bottom spacing */}
         <View style={{ height: 140 }} />
       </ScrollView>
+
+      <QuickAddModal
+        visible={quickAddVisible}
+        onClose={() => setQuickAddVisible(false)}
+      />
     </View>
   );
 }
@@ -810,23 +812,57 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "700",
       color: colors.textPrimary,
     },
-    profileButton: {
+    headerIconButton: {
       padding: spacing.xs,
     },
-    profileAvatar: {
+    headerIconBadge: {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: colors.surface,
       alignItems: "center",
       justifyContent: "center",
-      borderWidth: 2,
-      borderColor: colors.primary,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     balanceCard: {
       backgroundColor: colors.primary,
       padding: spacing.xl,
       marginBottom: spacing.lg,
+    },
+    primaryAddButton: {
+      marginTop: spacing.lg,
+      backgroundColor: "rgba(255,255,255,0.14)",
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.18)",
+    },
+    primaryAddIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    primaryAddContent: {
+      flex: 1,
+    },
+    primaryAddTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.textInverse,
+      marginBottom: 2,
+    },
+    primaryAddSubtitle: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: "rgba(255,255,255,0.78)",
     },
     balanceLabel: {
       fontSize: 13,
@@ -951,14 +987,16 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.border,
       marginHorizontal: spacing.md,
     },
-    quickAccessRow: {
+    quickAccessGrid: {
       flexDirection: "row",
+      flexWrap: "wrap",
       justifyContent: "space-between",
+      rowGap: spacing.md,
       marginBottom: spacing.md,
     },
     quickAccessItem: {
       alignItems: "center",
-      flex: 1,
+      width: "24%",
     },
     quickAccessIcon: {
       width: 48,
@@ -1096,6 +1134,13 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "600",
       color: colors.expense,
       marginRight: spacing.xs,
+    },
+    pendingItemActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.xs,
+      alignItems: "center",
+      justifyContent: "flex-end",
     },
     subscriptionAlert: {
       flexDirection: "row",

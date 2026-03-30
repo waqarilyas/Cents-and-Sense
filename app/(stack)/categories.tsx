@@ -17,7 +17,7 @@ import { useUser } from "../../lib/contexts/UserContext";
 import {
   spacing,
   borderRadius,
-  formatCurrency,
+  formatReadableCurrency,
   useThemeColors,
   ThemeColors,
 } from "../../lib/theme";
@@ -27,12 +27,9 @@ import {
   Button,
   Input,
   BottomSheet,
+  ActionChip,
 } from "../../lib/components";
-import {
-  getCategoryIcon,
-  getCategoryEmoji,
-  SMART_CATEGORIES,
-} from "../../lib/smartCategories";
+import { getCategoryIcon } from "../../lib/smartCategories";
 
 type CategoryType = "expense" | "income";
 
@@ -59,7 +56,6 @@ export default function CategoriesScreen() {
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const {
-    categories,
     expenseCategories,
     incomeCategories,
     loading,
@@ -86,23 +82,6 @@ export default function CategoriesScreen() {
     name: string;
     color: string;
   } | null>(null);
-
-  const getCategorySpending = (categoryId: string) => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    return transactions
-      .filter((t) => {
-        const tDate = new Date(t.date);
-        return (
-          t.categoryId === categoryId &&
-          tDate.getMonth() === currentMonth &&
-          tDate.getFullYear() === currentYear
-        );
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-  };
 
   const resetForm = () => {
     setCategoryName("");
@@ -207,17 +186,33 @@ export default function CategoriesScreen() {
 
   const displayCategories =
     activeTab === "expense" ? expenseCategories : incomeCategories;
-  const totalThisMonth = transactions
-    .filter((t) => {
-      const now = new Date();
-      const tDate = new Date(t.date);
-      return (
-        t.type === activeTab &&
-        tDate.getMonth() === now.getMonth() &&
-        tDate.getFullYear() === now.getFullYear()
+  const monthlyTransactions = transactions.filter((t) => {
+    const now = new Date();
+    const tDate = new Date(t.date);
+    return (
+      t.type === activeTab &&
+      tDate.getMonth() === now.getMonth() &&
+      tDate.getFullYear() === now.getFullYear()
+    );
+  });
+  const totalThisMonth = monthlyTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const categorySummaries = displayCategories
+    .map((category) => {
+      const categoryTransactions = monthlyTransactions.filter(
+        (t) => t.categoryId === category.id,
       );
+      const amount = categoryTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const transactionCount = categoryTransactions.length;
+
+      return {
+        category,
+        amount,
+        transactionCount,
+        share: totalThisMonth > 0 ? amount / totalThisMonth : 0,
+      };
     })
-    .reduce((sum, t) => sum + t.amount, 0);
+    .sort((a, b) => b.amount - a.amount);
+  const topCategory = categorySummaries[0];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -226,6 +221,8 @@ export default function CategoriesScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
@@ -240,11 +237,13 @@ export default function CategoriesScreen() {
                   "\u2022 Income Categories: Where money comes in\n" +
                   "\u2022 Each category shows monthly totals\n" +
                   "\u2022 Use categories to set budgets\n\n" +
-                  "Tap to add, long-press a category to delete.\n\n" +
+                  "Use each category card to edit or delete it.\n\n" +
                   "Note: Categories with transactions cannot be deleted.",
                 [{ text: "Got it!" }],
               )
             }
+            accessibilityRole="button"
+            accessibilityLabel="Learn about categories"
           >
             <Ionicons
               name="help-circle-outline"
@@ -259,28 +258,35 @@ export default function CategoriesScreen() {
             setCategoryType(activeTab);
             setShowAddModal(true);
           }}
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${activeTab} category`}
         >
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Ionicons name="add" size={16} color={colors.textInverse} />
+          <Text style={styles.addButtonText}>Add Category</Text>
         </TouchableOpacity>
       </View>
 
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
-        <View style={styles.summaryLabelRow}>
-          <Ionicons
-            name={
-              activeTab === "expense"
-                ? "trending-down-outline"
-                : "trending-up-outline"
-            }
-            size={18}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.summaryLabel}>
-            {activeTab === "expense" ? "Total Expenses" : "Total Income"} This
-            Month
+        <View style={styles.summaryHeader}>
+          <View style={styles.summaryPill}>
+            <Ionicons
+              name={activeTab === "expense" ? "trending-down" : "trending-up"}
+              size={16}
+              color={colors.primary}
+            />
+            <Text style={styles.summaryPillText}>
+              {activeTab === "expense" ? "Expense view" : "Income view"}
+            </Text>
+          </View>
+          <Text style={styles.summarySubtext}>
+            {displayCategories.length} categories
           </Text>
         </View>
+        <Text style={styles.summaryLabel}>
+          {activeTab === "expense" ? "Total Expenses" : "Total Income"} This
+          Month
+        </Text>
         <Text
           style={[
             styles.summaryValue,
@@ -288,11 +294,22 @@ export default function CategoriesScreen() {
           ]}
         >
           {activeTab === "expense" ? "-" : "+"}
-          {formatCurrency(totalThisMonth, defaultCurrency)}
+          {formatReadableCurrency(totalThisMonth, defaultCurrency)}
         </Text>
-        <Text style={styles.summarySubtext}>
-          Across {displayCategories.length} categories
-        </Text>
+        <View style={styles.summaryStatsRow}>
+          <View style={styles.summaryStatCard}>
+            <Text style={styles.summaryStatLabel}>Leading Category</Text>
+            <Text style={styles.summaryStatValue} numberOfLines={1}>
+              {topCategory ? topCategory.category.name : "None yet"}
+            </Text>
+          </View>
+          <View style={styles.summaryStatCard}>
+            <Text style={styles.summaryStatLabel}>Top Share</Text>
+            <Text style={styles.summaryStatValue}>
+              {topCategory ? `${Math.round(topCategory.share * 100)}%` : "0%"}
+            </Text>
+          </View>
+        </View>
       </Card>
 
       {/* Tabs */}
@@ -339,40 +356,92 @@ export default function CategoriesScreen() {
               setRefreshing(false);
             }}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
         <View style={styles.categoriesGrid}>
-          {displayCategories.map((category) => {
-            const spending = getCategorySpending(category.id);
+          {categorySummaries.map(({ category, amount, transactionCount, share }) => {
             const icon = getCategoryIcon(category.name);
-            const emoji = getCategoryEmoji(category.name);
             return (
               <TouchableOpacity
                 key={category.id}
-                style={[styles.categoryCard, { borderColor: category.color }]}
+                style={styles.categoryCard}
                 onPress={() => openEditCategory(category)}
                 onLongPress={() =>
                   handleDeleteCategory(category.id, category.name)
                 }
                 delayLongPress={500}
               >
-                <View
-                  style={[
-                    styles.categoryIcon,
-                    { backgroundColor: category.color + "20" },
-                  ]}
-                >
-                  <Ionicons name={icon} size={24} color={category.color} />
+                <View style={styles.categoryHeader}>
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      { backgroundColor: category.color + "20" },
+                    ]}
+                  >
+                    <Ionicons name={icon} size={22} color={category.color} />
+                  </View>
+                  <View style={styles.categoryBody}>
+                    <View style={styles.categoryTitleRow}>
+                      <Text style={styles.categoryName} numberOfLines={1}>
+                        {category.name}
+                      </Text>
+                      <Text style={styles.categoryShare}>
+                        {Math.round(share * 100)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.categoryMeta}>
+                      {transactionCount}{" "}
+                      {transactionCount === 1 ? "transaction" : "transactions"}{" "}
+                      this month
+                    </Text>
+                  </View>
+                  <View style={styles.categoryAmountWrap}>
+                    <Text
+                      style={[
+                        styles.categorySpending,
+                        {
+                          color:
+                            activeTab === "expense"
+                              ? colors.expense
+                              : colors.income,
+                        },
+                      ]}
+                    >
+                      {formatReadableCurrency(amount, defaultCurrency)}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.categoryName} numberOfLines={1}>
-                  {category.name}
-                </Text>
-                <Text
-                  style={[styles.categorySpending, { color: category.color }]}
-                >
-                  {formatCurrency(spending, defaultCurrency)}
-                </Text>
+                <View style={styles.categoryProgressTrack}>
+                  <View
+                    style={[
+                      styles.categoryProgressFill,
+                      {
+                        width: `${Math.max(share * 100, amount > 0 ? 8 : 0)}%`,
+                        backgroundColor: category.color,
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.categoryActions}>
+                  <ActionChip
+                    label="Edit"
+                    compact
+                    onPress={() => openEditCategory(category)}
+                    accessibilityLabel={`Edit ${category.name}`}
+                  />
+                  <ActionChip
+                    label="Delete"
+                    compact
+                    variant="danger"
+                    onPress={() =>
+                      handleDeleteCategory(category.id, category.name)
+                    }
+                    accessibilityLabel={`Delete ${category.name}`}
+                  />
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -384,8 +453,8 @@ export default function CategoriesScreen() {
               <Ionicons
                 name={
                   activeTab === "expense"
-                    ? "arrow-up-outline"
-                    : "arrow-down-outline"
+                    ? "trending-down"
+                    : "trending-up"
                 }
                 size={32}
                 color={colors.primary}
@@ -408,7 +477,9 @@ export default function CategoriesScreen() {
 
         <View style={styles.hintContainer}>
           <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.hint}>Tap to edit, long press to delete</Text>
+          <Text style={styles.hint}>
+            Categories include visible edit and delete actions on each card.
+          </Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -433,7 +504,7 @@ export default function CategoriesScreen() {
             onPress={() => setCategoryType("expense")}
           >
             <Ionicons
-              name="arrow-up"
+              name="trending-down"
               size={16}
               color={
                 categoryType === "expense" ? colors.textInverse : colors.expense
@@ -456,7 +527,7 @@ export default function CategoriesScreen() {
             onPress={() => setCategoryType("income")}
           >
             <Ionicons
-              name="arrow-down"
+              name="trending-up"
               size={16}
               color={
                 categoryType === "income" ? colors.textInverse : colors.income
@@ -493,7 +564,7 @@ export default function CategoriesScreen() {
               onPress={() => setCategoryColor(color)}
             >
               {categoryColor === color && (
-                <Text style={styles.colorCheck}>✓</Text>
+                <Ionicons name="checkmark" size={18} color="#FFF" />
               )}
             </TouchableOpacity>
           ))}
@@ -509,8 +580,10 @@ export default function CategoriesScreen() {
                 { backgroundColor: categoryColor + "20" },
               ]}
             >
-              <View
-                style={[styles.categoryDot, { backgroundColor: categoryColor }]}
+              <Ionicons
+                name={getCategoryIcon(categoryName || "Other")}
+                size={22}
+                color={categoryColor}
               />
             </View>
             <Text style={styles.categoryName}>
@@ -558,7 +631,7 @@ export default function CategoriesScreen() {
               onPress={() => setCategoryColor(color)}
             >
               {categoryColor === color && (
-                <Text style={styles.colorCheck}>✓</Text>
+                <Ionicons name="checkmark" size={18} color="#FFF" />
               )}
             </TouchableOpacity>
           ))}
@@ -596,7 +669,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceSecondary,
     },
     headerTitle: {
       fontSize: 24,
@@ -608,6 +681,9 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.md,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
     },
     addButtonText: {
       color: colors.textInverse,
@@ -617,27 +693,68 @@ const createStyles = (colors: ThemeColors) =>
     summaryCard: {
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
-      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
       paddingVertical: spacing.xl,
     },
-    summaryLabelRow: {
+    summaryHeader: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      marginBottom: spacing.sm,
+      justifyContent: "space-between",
+      marginBottom: spacing.md,
+    },
+    summaryPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.primaryLight,
+    },
+    summaryPillText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.primary,
     },
     summaryLabel: {
       fontSize: 14,
       color: colors.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
     },
     summaryValue: {
       fontSize: 32,
       fontWeight: "700",
-      marginBottom: spacing.xs,
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
     },
     summarySubtext: {
       fontSize: 12,
       color: colors.textMuted,
+    },
+    summaryStatsRow: {
+      flexDirection: "row",
+      gap: spacing.md,
+    },
+    summaryStatCard: {
+      flex: 1,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+    },
+    summaryStatLabel: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    summaryStatValue: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginTop: 4,
     },
     tabContainer: {
       flexDirection: "row",
@@ -676,31 +793,44 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.lg,
     },
     categoriesGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
+      gap: spacing.md,
     },
     categoryCard: {
-      width: "48%",
       backgroundColor: colors.surface,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
-      marginBottom: spacing.md,
-      borderWidth: 2,
-      borderLeftWidth: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     categoryIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: spacing.sm,
     },
-    categoryDot: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
+    categoryHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      marginBottom: spacing.md,
+    },
+    categoryBody: {
+      flex: 1,
+    },
+    categoryTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+    },
+    categoryMeta: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    categoryAmountWrap: {
+      alignItems: "flex-end",
     },
     categoryName: {
       fontSize: 14,
@@ -711,6 +841,28 @@ const createStyles = (colors: ThemeColors) =>
     categorySpending: {
       fontSize: 16,
       fontWeight: "700",
+    },
+    categoryShare: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: colors.textSecondary,
+    },
+    categoryProgressTrack: {
+      height: 6,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surfaceSecondary,
+      overflow: "hidden",
+      marginBottom: spacing.md,
+    },
+    categoryProgressFill: {
+      height: 6,
+      borderRadius: borderRadius.full,
+    },
+    categoryActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.xs,
+      justifyContent: "flex-end",
     },
     emptyState: {
       alignItems: "center",
@@ -820,8 +972,9 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
-      borderWidth: 2,
-      borderLeftWidth: 4,
-      alignItems: "flex-start",
+      borderWidth: 1,
+      alignItems: "center",
+      flexDirection: "row",
+      gap: spacing.md,
     },
   });

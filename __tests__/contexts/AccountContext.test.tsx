@@ -147,10 +147,10 @@ describe("AccountContext — addAccount", () => {
     const insertCall = mockDb.runAsync.mock.calls.find(
       (call: any[]) =>
         typeof call[0] === "string" && call[0].includes("INSERT"),
-    );
+    ) as any[] | undefined;
     if (insertCall) {
       // The isDefault parameter should be 1
-      expect(insertCall[1]).toContain(1); // isDefault=1
+      expect((insertCall[1] as any[]) || []).toContain(1); // isDefault=1
     }
   });
 

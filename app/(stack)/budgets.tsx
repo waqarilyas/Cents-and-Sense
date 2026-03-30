@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   View,
@@ -21,6 +21,7 @@ import {
   spacing,
   borderRadius,
   formatCurrency,
+  formatReadableCurrency,
   useThemeColors,
   ThemeColors,
 } from "../../lib/theme";
@@ -32,6 +33,7 @@ import {
   Select,
   BottomSheet,
   ProgressBar,
+  ActionChip,
 } from "../../lib/components";
 import { Budget } from "../../lib/database";
 
@@ -54,6 +56,7 @@ export default function BudgetsScreen() {
     deleteBudget,
     setMonthlyBudget,
     clearMonthlyBudget,
+    refreshBudgets,
   } = useBudgets();
   const { categories, expenseCategories } = useCategories();
   const { transactions } = useTransactions();
@@ -71,6 +74,12 @@ export default function BudgetsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [monthlyBudgetValue, setMonthlyBudgetValue] = useState("");
   const [isMonthlySubmitting, setIsMonthlySubmitting] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshBudgets();
+    setRefreshing(false);
+  }, [refreshBudgets]);
 
   const getBudgetProgress = (budget: Budget) => {
     const now = new Date();
@@ -284,6 +293,8 @@ export default function BudgetsScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
@@ -294,14 +305,16 @@ export default function BudgetsScreen() {
               Alert.alert(
                 "About Budgets",
                 "Set spending limits for categories to control your expenses.\n\n" +
-                  "• Monthly budgets reset every month\n" +
-                  "• Yearly budgets reset every year\n" +
-                  "• Enable carryover to roll unused budget to next period\n" +
-                  "• Get alerts when you're close to limits\n\n" +
-                  "Tap a budget to edit, long-press to delete.",
+                "Monthly budgets reset every month.\n" +
+                  "Yearly budgets reset every year.\n" +
+                  "Enable carryover to roll unused budget to the next period.\n" +
+                  "Get alerts when you're close to limits.\n\n" +
+                  "Use the actions on each budget card to edit or delete it.",
                 [{ text: "Got it!" }],
               )
             }
+            accessibilityRole="button"
+            accessibilityLabel="Learn about budgets"
           >
             <Ionicons
               name="help-circle-outline"
@@ -313,6 +326,8 @@ export default function BudgetsScreen() {
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setShowAddModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Create budget"
         >
           <Text style={styles.addButtonText}>+ Add</Text>
         </TouchableOpacity>
@@ -326,7 +341,7 @@ export default function BudgetsScreen() {
               {monthlyBudget ? "Overall Monthly Budget" : "Monthly Budget"}
             </Text>
             <Text style={styles.summaryAmount}>
-              {formatCurrency(summaryBudget, userDefaultCurrency)}
+              {formatReadableCurrency(summaryBudget, userDefaultCurrency)}
             </Text>
           </View>
           <View style={styles.summaryStats}>
@@ -361,8 +376,8 @@ export default function BudgetsScreen() {
         />
         <View style={styles.summaryFooter}>
           <Text style={styles.summaryFooterText}>
-            {formatCurrency(summarySpent, userDefaultCurrency)} spent of{" "}
-            {formatCurrency(summaryBudget, userDefaultCurrency)}
+            {formatReadableCurrency(summarySpent, userDefaultCurrency)} spent of{" "}
+            {formatReadableCurrency(summaryBudget, userDefaultCurrency)}
           </Text>
           <Text
             style={[
@@ -388,6 +403,11 @@ export default function BudgetsScreen() {
               {monthlyBudget ? "Edit Overall Budget" : "Set Overall Budget"}
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/(stack)/budget-settings")}
+          >
+            <Text style={styles.overallBudgetActionText}>Budget Rules</Text>
+          </TouchableOpacity>
           {monthlyBudget && (
             <TouchableOpacity onPress={handleClearMonthlyBudget}>
               <Text
@@ -411,8 +431,10 @@ export default function BudgetsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => setRefreshing(false)}
+            onRefresh={onRefresh}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
@@ -507,6 +529,21 @@ export default function BudgetsScreen() {
                     {budget.percentage.toFixed(0)}%
                   </Text>
                 </View>
+                <View style={styles.budgetActions}>
+                  <ActionChip
+                    label="Edit"
+                    compact
+                    onPress={() => openEditModal(budget)}
+                    accessibilityLabel={`Edit ${budget.category?.name || "budget"}`}
+                  />
+                  <ActionChip
+                    label="Delete"
+                    compact
+                    variant="danger"
+                    onPress={() => handleDeleteBudget(budget)}
+                    accessibilityLabel={`Delete ${budget.category?.name || "budget"}`}
+                  />
+                </View>
               </Card>
             </TouchableOpacity>
           ))
@@ -514,7 +551,7 @@ export default function BudgetsScreen() {
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <Ionicons
-                name="pie-chart-outline"
+                name="pie-chart"
                 size={32}
                 color={colors.primary}
               />
@@ -534,7 +571,10 @@ export default function BudgetsScreen() {
         {budgetsWithProgress.length > 0 && (
           <View style={styles.hintContainer}>
             <Ionicons name="bulb-outline" size={16} color={colors.textMuted} />
-            <Text style={styles.hint}>Tap to edit, long press to delete.</Text>
+            <Text style={styles.hint}>
+              Use each budget card to edit or delete, and budget rules for
+              monthly settings.
+            </Text>
           </View>
         )}
 
@@ -892,6 +932,12 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: "row",
       justifyContent: "space-between",
       marginTop: spacing.sm,
+    },
+    budgetActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
     },
     budgetRemaining: {
       fontSize: 12,

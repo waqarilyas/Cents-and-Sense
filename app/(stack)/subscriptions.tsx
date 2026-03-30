@@ -24,10 +24,11 @@ import {
   spacing,
   borderRadius,
   formatCurrency,
+  formatReadableCurrency,
   useThemeColors,
   ThemeColors,
 } from "../../lib/theme";
-import { Card, LoadingState } from "../../lib/components";
+import { Card, LoadingState, ActionChip } from "../../lib/components";
 import * as Haptics from "expo-haptics";
 
 // Popular subscription icons
@@ -259,6 +260,8 @@ export default function SubscriptionsScreen() {
             hapticFeedback();
             router.back();
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
@@ -277,6 +280,8 @@ export default function SubscriptionsScreen() {
                 [{ text: "Got it!" }],
               )
             }
+            accessibilityRole="button"
+            accessibilityLabel="Learn about subscriptions"
           >
             <Ionicons
               name="help-circle-outline"
@@ -285,7 +290,12 @@ export default function SubscriptionsScreen() {
             />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={openAddModal}
+          accessibilityRole="button"
+          accessibilityLabel="Add subscription"
+        >
           <Ionicons name="add" size={28} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -299,6 +309,8 @@ export default function SubscriptionsScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
@@ -308,7 +320,7 @@ export default function SubscriptionsScreen() {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Monthly Cost</Text>
               <Text style={styles.summaryValue}>
-                {formatCurrency(monthlyTotal, defaultCurrency)}
+                {formatReadableCurrency(monthlyTotal, defaultCurrency)}
               </Text>
             </View>
             <View style={styles.summaryDivider} />
@@ -357,6 +369,14 @@ export default function SubscriptionsScreen() {
                       {formatCurrency(sub.amount, sub.currency)}
                     </Text>
                   </View>
+                  <View style={styles.subscriptionActions}>
+                    <ActionChip
+                      label="Open"
+                      compact
+                      onPress={() => openEditModal(sub)}
+                      accessibilityLabel={`Edit ${sub.name}`}
+                    />
+                  </View>
                 </Card>
               );
             })}
@@ -370,7 +390,7 @@ export default function SubscriptionsScreen() {
           {subscriptions.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons
-                name="repeat-outline"
+                name="repeat"
                 size={64}
                 color={colors.textMuted}
               />
@@ -454,12 +474,35 @@ export default function SubscriptionsScreen() {
                           false: colors.border,
                           true: colors.primaryLight,
                         }}
+                        ios_backgroundColor={colors.border}
                         thumbColor={
                           sub.isActive ? colors.primary : colors.textMuted
                         }
                       />
                     </View>
                   </TouchableOpacity>
+                  <View style={styles.subscriptionActions}>
+                    <ActionChip
+                      label="Edit"
+                      compact
+                      onPress={() => openEditModal(sub)}
+                      accessibilityLabel={`Edit ${sub.name}`}
+                    />
+                    <ActionChip
+                      label={sub.isActive ? "Pause" : "Resume"}
+                      compact
+                      variant="primary"
+                      onPress={() => handleToggle(sub.id)}
+                      accessibilityLabel={`${sub.isActive ? "Pause" : "Resume"} ${sub.name}`}
+                    />
+                    <ActionChip
+                      label="Delete"
+                      compact
+                      variant="danger"
+                      onPress={() => handleDelete(sub.id, sub.name)}
+                      accessibilityLabel={`Delete ${sub.name}`}
+                    />
+                  </View>
                 </Card>
               );
             })
@@ -736,6 +779,12 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: "700",
       color: colors.expense,
+    },
+    subscriptionActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginTop: spacing.md,
     },
     textInactive: {
       color: colors.textMuted,

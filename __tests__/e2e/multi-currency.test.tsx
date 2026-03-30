@@ -76,8 +76,8 @@ describe('E2E: Multi-Currency Flow', () => {
     const eurAcc = accounts.find((a: any) => a.currency === 'EUR');
     expect(usdAcc).toBeTruthy();
     expect(eurAcc).toBeTruthy();
-    expect(usdAcc.type).toBe('checking');
-    expect(eurAcc.type).toBe('savings');
+    expect(usdAcc!.type).toBe('checking');
+    expect(eurAcc!.type).toBe('savings');
   });
 
   it('transactions in different currencies update correct account balances', async () => {
@@ -122,8 +122,8 @@ describe('E2E: Multi-Currency Flow', () => {
     const usdAcc = accounts.find((a: any) => a.id === 'acc_usd');
     const eurAcc = accounts.find((a: any) => a.id === 'acc_eur');
 
-    expect(usdAcc.balance).toBe(2500); // 2000 + 500
-    expect(eurAcc.balance).toBe(900);  // 1000 - 100
+    expect(usdAcc!.balance).toBe(2500); // 2000 + 500
+    expect(eurAcc!.balance).toBe(900);  // 1000 - 100
 
     // Verify transactions have correct currencies
     const transactions = testDB.getTable('transactions');

@@ -292,13 +292,13 @@ describe("E2E: Goals Lifecycle", () => {
 
     const updatedGoals = testDB.getTable("goals");
     expect(
-      updatedGoals.find((g: any) => g.name === "Emergency Fund").currentAmount,
+      updatedGoals.find((g: any) => g.name === "Emergency Fund")!.currentAmount,
     ).toBe(1000);
     expect(
-      updatedGoals.find((g: any) => g.name === "Vacation").currentAmount,
+      updatedGoals.find((g: any) => g.name === "Vacation")!.currentAmount,
     ).toBe(500);
     expect(
-      updatedGoals.find((g: any) => g.name === "New Laptop").currentAmount,
+      updatedGoals.find((g: any) => g.name === "New Laptop")!.currentAmount,
     ).toBe(1500);
   });
 });

@@ -99,14 +99,14 @@ export async function exportAllData(): Promise<void> {
       }
 
       Alert.alert(
-        "✅ Export Successful",
+        "Export Successful",
         `Your data has been exported to:\n${fileName}\n\nFile saved in app documents folder.`,
         [{ text: "OK" }],
       );
     } catch (shareError) {
       console.log("Share cancelled or failed:", shareError);
       Alert.alert(
-        "✅ Export Successful",
+        "Export Successful",
         `Data exported to:\n${fileUri}\n\nYou can access this file through your file manager.`,
         [{ text: "OK" }],
       );

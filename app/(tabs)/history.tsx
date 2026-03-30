@@ -27,7 +27,7 @@ import {
   formatShortDate,
 } from "../../lib/theme";
 import { useThemeColors, ThemeColors } from "../../lib/theme";
-import { Card, LoadingState } from "../../lib/components";
+import { ActionChip, Card, LoadingState } from "../../lib/components";
 import { getCategoryIcon } from "../../lib/smartCategories";
 
 type FilterType = "all" | "income" | "expense";
@@ -65,6 +65,10 @@ export default function HistoryScreen() {
   const categoryMap = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories],
+  );
+  const accountMap = useMemo(
+    () => new Map(accounts.map((account) => [account.id, account])),
+    [accounts],
   );
 
   const filteredTransactions = useMemo(() => {
@@ -136,6 +140,93 @@ export default function HistoryScreen() {
     [groupedTransactions],
   );
 
+  const renderItem = useCallback(
+    ({ item: transaction }: { item: (typeof filteredTransactions)[number] }) => {
+      const category = categoryMap.get(transaction.categoryId);
+      const account = transaction.accountId
+        ? accountMap.get(transaction.accountId)
+        : undefined;
+
+      return (
+        <Swipeable
+          renderRightActions={(progress, dragX) =>
+            renderRightActions(progress, dragX, transaction.id)
+          }
+          friction={2}
+          rightThreshold={40}
+        >
+          <Card style={styles.transactionCard}>
+            <View style={styles.transactionRow}>
+              <View
+                style={[
+                  styles.transactionIcon,
+                  {
+                    backgroundColor: category?.color
+                      ? `${category.color}15`
+                      : transaction.type === "income"
+                        ? `${colors.income}15`
+                        : `${colors.expense}15`,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={
+                    category ? getCategoryIcon(category.name) : "ellipsis-horizontal"
+                  }
+                  size={20}
+                  color={
+                    category?.color ||
+                    (transaction.type === "income" ? colors.income : colors.expense)
+                  }
+                />
+              </View>
+              <View style={styles.transactionInfo}>
+                <Text style={styles.transactionTitle}>
+                  {transaction.description || category?.name || "Transaction"}
+                </Text>
+                <Text style={styles.transactionSubtitle}>
+                  {category?.name || "Uncategorized"}
+                  {account ? ` • ${account.name}` : ""}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.transactionAmount,
+                  {
+                    color:
+                      transaction.type === "income" ? colors.income : colors.expense,
+                  },
+                ]}
+              >
+                {transaction.type === "income" ? "+" : "-"}
+                {formatCurrency(transaction.amount, transaction.currency)}
+              </Text>
+            </View>
+            <View style={styles.actionRow}>
+              <ActionChip
+                label="Delete"
+                variant="danger"
+                compact
+                icon={<Ionicons name="trash" size={14} color={colors.error} />}
+                onPress={() => {
+                  Alert.alert("Delete Transaction", "Are you sure?", [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: () => handleDeleteTransaction(transaction.id),
+                    },
+                  ]);
+                }}
+              />
+            </View>
+          </Card>
+        </Swipeable>
+      );
+    },
+    [accountMap, categoryMap, colors.error, colors.expense, colors.income, styles],
+  );
+
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>,
@@ -155,7 +246,7 @@ export default function HistoryScreen() {
           ]);
         }}
       >
-        <Ionicons name="trash-outline" size={24} color={colors.textInverse} />
+        <Ionicons name="trash" size={24} color={colors.textInverse} />
       </TouchableOpacity>
     );
   };
@@ -171,12 +262,14 @@ export default function HistoryScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>History</Text>
           <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => router.push("/(stack)/profile")}
+            style={styles.headerButton}
+            onPress={() => router.push("/(stack)/settings")}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
           >
             <Ionicons
-              name="person-circle-outline"
-              size={32}
+              name="settings"
+              size={24}
               color={colors.primary}
             />
           </TouchableOpacity>
@@ -236,6 +329,10 @@ export default function HistoryScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={8}
+          removeClippedSubviews
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -246,87 +343,18 @@ export default function HistoryScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               colors={[colors.primary]}
+              tintColor={colors.primary}
+              progressBackgroundColor={colors.surface}
             />
           }
           renderSectionHeader={({ section: { title } }) => (
             <Text style={styles.dateTitle}>{title}</Text>
           )}
-          renderItem={({ item: transaction }) => {
-            const category = categoryMap.get(transaction.categoryId);
-            const account = accounts.find(
-              (a) => a.id === transaction.accountId,
-            );
-            return (
-              <Swipeable
-                renderRightActions={(progress, dragX) =>
-                  renderRightActions(progress, dragX, transaction.id)
-                }
-                friction={2}
-                rightThreshold={40}
-              >
-                <Card style={styles.transactionCard}>
-                  <View style={styles.transactionRow}>
-                    <View
-                      style={[
-                        styles.transactionIcon,
-                        {
-                          backgroundColor: category?.color
-                            ? `${category.color}15`
-                            : transaction.type === "income"
-                              ? `${colors.income}15`
-                              : `${colors.expense}15`,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={
-                          category
-                            ? getCategoryIcon(category.name)
-                            : "ellipsis-horizontal"
-                        }
-                        size={20}
-                        color={
-                          category?.color ||
-                          (transaction.type === "income"
-                            ? colors.income
-                            : colors.expense)
-                        }
-                      />
-                    </View>
-                    <View style={styles.transactionInfo}>
-                      <Text style={styles.transactionTitle}>
-                        {transaction.description ||
-                          category?.name ||
-                          "Transaction"}
-                      </Text>
-                      <Text style={styles.transactionSubtitle}>
-                        {category?.name || "Uncategorized"}
-                        {account ? ` • ${account.name}` : ""}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.transactionAmount,
-                        {
-                          color:
-                            transaction.type === "income"
-                              ? colors.income
-                              : colors.expense,
-                        },
-                      ]}
-                    >
-                      {transaction.type === "income" ? "+" : "-"}
-                      {formatCurrency(transaction.amount, transaction.currency)}
-                    </Text>
-                  </View>
-                </Card>
-              </Swipeable>
-            );
-          }}
+          renderItem={renderItem}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons
-                name="receipt-outline"
+                name="receipt"
                 size={64}
                 color={colors.textMuted}
               />
@@ -367,8 +395,13 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "700",
       color: colors.textPrimary,
     },
-    profileButton: {
-      padding: spacing.xs,
+    headerButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
     },
     searchContainer: {
       paddingHorizontal: spacing.lg,
@@ -461,6 +494,14 @@ const createStyles = (colors: ThemeColors) =>
     transactionAmount: {
       fontSize: 16,
       fontWeight: "700",
+    },
+    actionRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      marginTop: spacing.md,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
     deleteAction: {
       backgroundColor: colors.expense,

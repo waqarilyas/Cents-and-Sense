@@ -18,8 +18,9 @@ import {
   spacing,
   borderRadius,
   formatCurrency,
+  formatReadableCurrency,
 } from "../../lib/theme";
-import { Card } from "../../lib/components";
+import { BottomSheet, Card } from "../../lib/components";
 import { useAccounts } from "../../lib/contexts/AccountContext";
 import { useGoals } from "../../lib/contexts/GoalContext";
 import { useBudgets } from "../../lib/contexts/BudgetContext";
@@ -31,6 +32,7 @@ import { useCurrency } from "../../lib/contexts/CurrencyContext";
 import { useAuth } from "../../lib/contexts/AuthContext";
 import { useEntitlements } from "../../lib/contexts/EntitlementContext";
 import { useSync } from "../../lib/contexts/SyncContext";
+import { useFeatureFlags } from "../../lib/contexts/FeatureFlagsContext";
 import { billingService } from "../../lib/services/BillingService";
 import { CurrencyDropdown } from "../../lib/components/CurrencyPicker";
 import {
@@ -39,6 +41,15 @@ import {
   generateLargeDebugData,
 } from "../../lib/utils/dataManagement";
 import { useMemo, useState } from "react";
+import {
+  useSettings,
+  SubscriptionProcessingMode,
+} from "../../lib/contexts/SettingsContext";
+import {
+  ACCENT_THEME_OPTIONS,
+  ACCENT_THEME_MAP,
+  AccentThemeId,
+} from "../../lib/accentThemes";
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -49,6 +60,12 @@ interface MenuItem {
   showArrow?: boolean;
   color?: string;
 }
+
+const SUBSCRIPTION_MODE_LABELS: Record<SubscriptionProcessingMode, string> = {
+  auto: "Auto-add to expenses",
+  notify: "Ask before adding",
+  manual: "Manual only",
+};
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -67,6 +84,8 @@ export default function SettingsScreen() {
   const { setDefaultCurrency } = useCurrency();
   const { authState, email, userId, signOut } = useAuth();
   const { isPremium, source, restorePurchases } = useEntitlements();
+  const { flags } = useFeatureFlags();
+  const { settings, updateSetting } = useSettings();
   const {
     syncNow,
     backupNow,
@@ -80,6 +99,19 @@ export default function SettingsScreen() {
     useSync();
 
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
+
+  const openExternalLink = async (
+    url: string,
+    fallbackTitle: string,
+    fallbackMessage: string,
+  ) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(fallbackTitle, fallbackMessage);
+    }
+  };
 
   // Get app version
   const appVersion = Application.nativeApplicationVersion || "1.0.0";
@@ -91,45 +123,265 @@ export default function SettingsScreen() {
     (g) => g.currentAmount < g.targetAmount,
   ).length;
   const activeBudgets = budgets.length;
+  const showExport = flags.exportEnabled;
+  const showCloudSync = flags.authEnabled || flags.syncEnabled;
+  const showPremiumSection =
+    flags.premiumEnabled || flags.paywallEnabled || flags.restorePurchasesEnabled;
+  const requirePremiumForExport = flags.premiumEnabled && !isPremium;
+  const cloudSyncItems: MenuItem[] = showCloudSync
+    ? [
+        {
+          icon: "cloud",
+          label: "Account",
+          subtitle:
+            authState !== "guest"
+              ? `Signed in${email ? ` as ${email}` : ""} • ${isPremium ? `Premium (${source})` : "Free"} • ${isOnline ? "Online" : "Offline"}`
+              : `Guest mode (not syncing) • ${isOnline ? "Online" : "Offline"}`,
+          onPress: () =>
+            authState !== "guest"
+              ? router.push("/(stack)/profile-setup")
+              : router.push("/(stack)/auth"),
+          showArrow: true,
+        },
+        ...(isPremium
+          ? [
+              {
+                icon: "sync" as const,
+                label: "Sync Now",
+                subtitle:
+                  syncStatus === "error" && syncError
+                    ? `Sync error: ${syncError}`
+                    : lastSyncAt && syncStatus !== "error"
+                      ? `Last sync: ${new Date(lastSyncAt).toLocaleString()} • Unsynced: ${unsyncedChanges}`
+                      : `Unsynced changes: ${unsyncedChanges}`,
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await syncNow();
+                    Alert.alert("Sync Complete", "Your data is synced.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Sync Failed",
+                      error instanceof Error ? error.message : "Unable to sync data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+              {
+                icon: "git-merge" as const,
+                label: "Sync Strategy Setup",
+                subtitle: "Review merge/local/cloud strategy and conflict summary",
+                onPress: () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  router.push("/(stack)/sync-setup");
+                },
+                showArrow: true,
+              },
+              {
+                icon: "cloud-upload" as const,
+                label: "Backup to Cloud",
+                subtitle: "Upload latest device data",
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await backupNow();
+                    Alert.alert("Backup Complete", "Cloud backup finished.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Backup Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to back up data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+              {
+                icon: "cloud-download" as const,
+                label: "Restore from Cloud",
+                subtitle: "Pull latest cloud snapshot",
+                onPress: async () => {
+                  if (authState === "guest") {
+                    router.push("/(stack)/auth");
+                    return;
+                  }
+                  try {
+                    await restoreFromCloud();
+                    await Promise.all([
+                      refreshAccounts(),
+                      refreshTransactions(),
+                      refreshBudgets(),
+                      refreshGoals(),
+                      refreshCategories(),
+                      refreshSubscriptions(),
+                      refreshUserProfile(),
+                    ]);
+                    Alert.alert("Restore Complete", "Cloud data restored.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Restore Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to restore data",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : flags.paywallEnabled
+            ? [
+                {
+                  icon: "lock-closed" as const,
+                  label: "Cloud Sync Locked",
+                  subtitle: "Subscribe to Premium to enable sync and cloud backup",
+                  onPress: () => router.push("/(stack)/paywall"),
+                  showArrow: true,
+                },
+              ]
+            : []),
+      ]
+    : [];
+  const premiumItems: MenuItem[] = showPremiumSection
+    ? [
+        ...(flags.paywallEnabled
+          ? [
+              {
+                icon: "diamond" as const,
+                label: isPremium ? "Premium Active" : "Upgrade to Premium",
+                subtitle: isPremium
+                  ? `Analytics, sync, export, and backup unlocked (${source})`
+                  : "Unlock analytics + sync + export + cloud backup",
+                onPress: () => router.push("/(stack)/paywall"),
+                showArrow: true,
+              },
+            ]
+          : []),
+        ...(flags.restorePurchasesEnabled
+          ? [
+              {
+                icon: "refresh" as const,
+                label: "Restore Purchases",
+                subtitle: "Recover purchases on this device",
+                onPress: async () => {
+                  try {
+                    const result = await restorePurchases();
+                    if (result.restoredPremium) {
+                      Alert.alert("Restore Complete", "Premium purchase restored successfully.");
+                    } else {
+                      Alert.alert(
+                        "No Purchases Found",
+                        authState === "guest"
+                          ? "No active premium purchases were found for this guest session. If you purchased on another device, sign in with the same account and try restore again."
+                          : "No active premium purchases were found for this account.",
+                      );
+                    }
+                  } catch (error) {
+                    Alert.alert(
+                      "Restore Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to restore purchases",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : []),
+        ...(flags.premiumEnabled
+          ? [
+              {
+                icon: "card" as const,
+                label: "Manage Subscription",
+                subtitle: "Open store subscription settings",
+                onPress: async () => {
+                  try {
+                    await billingService.openManageSubscriptionPortal();
+                  } catch (error) {
+                    Alert.alert(
+                      "Manage Subscription",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to open store subscription settings.",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : []),
+        ...(authState !== "guest"
+          ? [
+              {
+                icon: "log-out" as const,
+                label: "Sign Out",
+                subtitle: "Stay on this device as guest",
+                onPress: async () => {
+                  try {
+                    await signOut();
+                    Alert.alert("Signed Out", "You are now using guest mode.");
+                  } catch (error) {
+                    Alert.alert(
+                      "Sign Out Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to sign out",
+                    );
+                  }
+                },
+                showArrow: true,
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
       title: "Finance Management",
       items: [
         {
-          icon: "wallet-outline",
+          icon: "wallet",
           label: "Accounts",
-          subtitle: `${accounts.length} accounts • ${formatCurrency(totalBalance, defaultCurrency)}`,
+          subtitle: `${accounts.length} accounts • ${formatReadableCurrency(totalBalance, defaultCurrency)}`,
           onPress: () => router.push("/(stack)/accounts"),
           badge: accounts.length,
           showArrow: true,
-          color: "#4CAF50",
         },
         {
-          icon: "pie-chart-outline",
+          icon: "pie-chart",
           label: "Budgets",
           subtitle: `${activeBudgets} active budgets`,
           onPress: () => router.push("/(stack)/budgets"),
           badge: activeBudgets,
           showArrow: true,
-          color: "#2196F3",
         },
         {
-          icon: "flag-outline",
+          icon: "flag",
           label: "Goals",
           subtitle: `${activeGoals} in progress`,
           onPress: () => router.push("/(stack)/goals"),
           badge: activeGoals,
           showArrow: true,
-          color: "#FF9800",
         },
         {
-          icon: "pricetags-outline",
+          icon: "pricetags",
           label: "Categories",
           subtitle: `${categories.length} categories`,
           onPress: () => router.push("/(stack)/categories"),
           showArrow: true,
-          color: "#9C27B0",
         },
       ],
     },
@@ -137,44 +389,51 @@ export default function SettingsScreen() {
       title: "Preferences",
       items: [
         {
-          icon: "notifications-outline",
-          label: "Notifications",
-          subtitle: "Coming soon",
+          icon: "repeat",
+          label: "Subscription Processing",
+          subtitle:
+            SUBSCRIPTION_MODE_LABELS[settings.subscriptionProcessingMode],
           onPress: () =>
             Alert.alert(
-              "Notifications",
-              "Push notifications will be available in a future update.",
+              "Subscription Processing",
+              "Choose how subscriptions are added when they become due:",
+              [
+                {
+                  text: "Auto-add",
+                  onPress: () =>
+                    updateSetting("subscriptionProcessingMode", "auto"),
+                },
+                {
+                  text: "Ask Me First",
+                  onPress: () =>
+                    updateSetting("subscriptionProcessingMode", "notify"),
+                },
+                {
+                  text: "Manual Only",
+                  onPress: () =>
+                    updateSetting("subscriptionProcessingMode", "manual"),
+                },
+                { text: "Cancel", style: "cancel" },
+              ],
             ),
           showArrow: true,
         },
         {
-          icon: "cash-outline",
+          icon: "cash",
           label: "Default Currency",
           subtitle: `${defaultCurrency} - Tap to change`,
           onPress: () => setShowCurrencyDropdown((prev) => !prev),
           showArrow: true,
         },
         {
-          icon: "moon-outline",
+          icon: "moon",
           label: "Appearance",
           subtitle:
-            theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light",
-          onPress: () =>
-            Alert.alert("Appearance", "Choose your theme", [
-              {
-                text: "System",
-                onPress: () => setTheme("system" as ThemeMode),
-              },
-              {
-                text: "Light",
-                onPress: () => setTheme("light" as ThemeMode),
-              },
-              {
-                text: "Dark",
-                onPress: () => setTheme("dark" as ThemeMode),
-              },
-              { text: "Cancel", style: "cancel" },
-            ]),
+            `${theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light"} • ${ACCENT_THEME_MAP[settings.accentTheme].label}`,
+          onPress: () => {
+            setShowCurrencyDropdown(false);
+            setShowAppearanceSheet(true);
+          },
           showArrow: true,
         },
       ],
@@ -182,80 +441,96 @@ export default function SettingsScreen() {
     {
       title: "Data & Security",
       items: [
-        {
-          icon: "download-outline",
-          label: "Export All Data",
-          subtitle: "Download your data as JSON file",
-          onPress: async () => {
-            if (!isPremium) {
-              Alert.alert(
-                "Premium Required",
-                "Data export is part of Premium. Upgrade to unlock export and cloud backup.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "View Plans", onPress: () => router.push("/(stack)/paywall") },
-                ],
-              );
-              return;
-            }
-            Alert.alert(
-              "Export Data",
-              "This will export all your financial data (accounts, transactions, budgets, goals, etc.) to a JSON file.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Export",
-                  onPress: async () => {
-                    try {
-                      await exportAllData();
-                    } catch (error) {
+        ...(showExport
+          ? [
+              {
+                icon: "download" as const,
+                label: "Export All Data",
+                subtitle: "Download your data as JSON file",
+                onPress: async () => {
+                  if (requirePremiumForExport) {
+                    if (flags.paywallEnabled) {
                       Alert.alert(
-                        "Export Failed",
-                        error instanceof Error
-                          ? error.message
-                          : "An error occurred while exporting data.",
+                        "Premium Required",
+                        "Data export is part of Premium. Upgrade to unlock export and cloud backup.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "View Plans",
+                            onPress: () => router.push("/(stack)/paywall"),
+                          },
+                        ],
+                      );
+                    } else {
+                      Alert.alert(
+                        "Export Unavailable",
+                        "Data export is not available in this release.",
                       );
                     }
-                  },
+                    return;
+                  }
+                  Alert.alert(
+                    "Export Data",
+                    "This will export all your financial data (accounts, transactions, budgets, goals, etc.) to a JSON file.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Export",
+                        onPress: async () => {
+                          try {
+                            await exportAllData();
+                          } catch (error) {
+                            Alert.alert(
+                              "Export Failed",
+                              error instanceof Error
+                                ? error.message
+                                : "An error occurred while exporting data.",
+                            );
+                          }
+                        },
+                      },
+                    ],
+                  );
                 },
-              ],
-            );
-          },
-          showArrow: true,
-          color: "#4CAF50",
-        },
+                showArrow: true,
+              },
+            ]
+          : []),
         {
-          icon: "trash-outline",
+          icon: "trash",
           label: "Delete All Data",
           subtitle: "Permanently delete everything",
           onPress: () =>
             Alert.alert(
-              "⚠️ Delete All Data",
-              "This will PERMANENTLY delete:\n\n• All accounts\n• All transactions\n• All budgets\n• All goals\n• All subscriptions\n• All custom categories\n• All settings\n\nThis action CANNOT be undone!\n\nConsider exporting your data first.",
+              "Delete All Data",
+              `This will permanently delete:\n\nAccounts\nTransactions\nBudgets\nGoals\nSubscriptions\nCustom categories\nSettings\n\nThis action cannot be undone.${showExport ? "\n\nConsider exporting your data first." : ""}`,
               [
                 { text: "Cancel", style: "cancel" },
-                {
-                  text: "Export First",
-                  onPress: async () => {
-                    try {
-                      await exportAllData();
-                      Alert.alert(
-                        "Data Exported",
-                        "Now you can safely delete your data if needed.",
-                      );
-                    } catch (error) {
-                      Alert.alert(
-                        "Export Failed",
-                        "Please try exporting again before deleting data.",
-                      );
-                    }
-                  },
-                },
+                ...(showExport
+                  ? [
+                      {
+                        text: "Export First",
+                        onPress: async () => {
+                          try {
+                            await exportAllData();
+                            Alert.alert(
+                              "Data Exported",
+                              "Now you can safely delete your data if needed.",
+                            );
+                          } catch (error) {
+                            Alert.alert(
+                              "Export Failed",
+                              "Please try exporting again before deleting data.",
+                            );
+                          }
+                        },
+                      },
+                    ]
+                  : []),
                 {
                   text: "Delete Everything",
                   style: "destructive",
                   onPress: () => {
-                    // Double confirmation
                     Alert.alert(
                       "Final Confirmation",
                       "Are you absolutely sure? This will delete ALL your data permanently.",
@@ -267,7 +542,6 @@ export default function SettingsScreen() {
                           onPress: async () => {
                             try {
                               await deleteAllData();
-                              // Refresh all contexts
                               await Promise.all([
                                 refreshAccounts(),
                                 refreshTransactions(),
@@ -278,7 +552,7 @@ export default function SettingsScreen() {
                                 refreshUserProfile(),
                               ]);
                               Alert.alert(
-                                "✅ Data Deleted",
+                                "Data Deleted",
                                 "All your data has been permanently deleted. You can start fresh or close the app.",
                               );
                             } catch (error) {
@@ -303,7 +577,7 @@ export default function SettingsScreen() {
         ...(__DEV__
           ? [
               {
-                icon: "flask-outline" as const,
+                icon: "flask" as const,
                 label: "Generate Large Test Data",
                 subtitle: "Debug: seed thousands of records for sync testing",
                 onPress: () =>
@@ -348,218 +622,17 @@ export default function SettingsScreen() {
           : []),
       ],
     },
-    {
-      title: "Cloud Sync",
-      items: [
-        {
-          icon: "cloud-outline",
-          label: "Account",
-          subtitle:
-            authState !== "guest"
-              ? `Signed in${email ? ` as ${email}` : ""} • ${isPremium ? `Premium (${source})` : "Free"} • ${isOnline ? "Online" : "Offline"}`
-              : `Guest mode (not syncing) • ${isOnline ? "Online" : "Offline"}`,
-          onPress: () =>
-            authState !== "guest"
-              ? Alert.alert("Account", "You are signed in.")
-              : router.push("/(stack)/auth"),
-          showArrow: authState === "guest",
-        },
-        ...(isPremium
-          ? [
-              {
-                icon: "sync-outline" as const,
-                label: "Sync Now",
-                subtitle:
-                  syncStatus === "error" && syncError
-                    ? `Sync error: ${syncError}`
-                    : lastSyncAt && syncStatus !== "error"
-                    ? `Last sync: ${new Date(lastSyncAt).toLocaleString()} • Unsynced: ${unsyncedChanges}`
-                    : `Unsynced changes: ${unsyncedChanges}`,
-                onPress: async () => {
-                  if (authState === "guest") {
-                    router.push("/(stack)/auth");
-                    return;
-                  }
-                  try {
-                    await syncNow();
-                    Alert.alert("Sync Complete", "Your data is synced.");
-                  } catch (error) {
-                    Alert.alert(
-                      "Sync Failed",
-                      error instanceof Error ? error.message : "Unable to sync data",
-                    );
-                  }
-                },
-                showArrow: true,
-              },
-              {
-                icon: "git-merge-outline" as const,
-                label: "Sync Strategy Setup",
-                subtitle: "Review merge/local/cloud strategy and conflict summary",
-                onPress: () => {
-                  if (authState === "guest") {
-                    router.push("/(stack)/auth");
-                    return;
-                  }
-                  router.push("/(stack)/sync-setup");
-                },
-                showArrow: true,
-              },
-              {
-                icon: "cloud-upload-outline" as const,
-                label: "Backup to Cloud",
-                subtitle: "Upload latest device data",
-                onPress: async () => {
-                  if (authState === "guest") {
-                    router.push("/(stack)/auth");
-                    return;
-                  }
-                  try {
-                    await backupNow();
-                    Alert.alert("Backup Complete", "Cloud backup finished.");
-                  } catch (error) {
-                    Alert.alert(
-                      "Backup Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to back up data",
-                    );
-                  }
-                },
-                showArrow: true,
-              },
-              {
-                icon: "cloud-download-outline" as const,
-                label: "Restore from Cloud",
-                subtitle: "Pull latest cloud snapshot",
-                onPress: async () => {
-                  if (authState === "guest") {
-                    router.push("/(stack)/auth");
-                    return;
-                  }
-                  try {
-                    await restoreFromCloud();
-                    await Promise.all([
-                      refreshAccounts(),
-                      refreshTransactions(),
-                      refreshBudgets(),
-                      refreshGoals(),
-                      refreshCategories(),
-                      refreshSubscriptions(),
-                      refreshUserProfile(),
-                    ]);
-                    Alert.alert("Restore Complete", "Cloud data restored.");
-                  } catch (error) {
-                    Alert.alert(
-                      "Restore Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to restore data",
-                    );
-                  }
-                },
-                showArrow: true,
-              },
-            ]
-          : [
-              {
-                icon: "lock-closed-outline" as const,
-                label: "Cloud Sync Locked",
-                subtitle: "Subscribe to Premium to enable sync and cloud backup",
-                onPress: () => router.push("/(stack)/paywall"),
-                showArrow: true,
-              },
-            ]),
-      ],
-    },
-    {
-      title: "Premium",
-      items: [
-        {
-          icon: "diamond-outline",
-          label: isPremium ? "Premium Active" : "Upgrade to Premium",
-          subtitle: isPremium
-            ? `Analytics, sync, export, and backup unlocked (${source})`
-            : "Unlock analytics + sync + export + cloud backup",
-          onPress: () => router.push("/(stack)/paywall"),
-          showArrow: true,
-        },
-        {
-          icon: "refresh-outline",
-          label: "Restore Purchases",
-          subtitle: "Recover purchases on this device",
-          onPress: async () => {
-            try {
-              const result = await restorePurchases();
-              if (result.restoredPremium) {
-                Alert.alert("Restore Complete", "Premium purchase restored successfully.");
-              } else {
-                Alert.alert(
-                  "No Purchases Found",
-                  authState === "guest"
-                    ? "No active premium purchases were found for this guest session. If you purchased on another device, sign in with the same account and try restore again."
-                    : "No active premium purchases were found for this account.",
-                );
-              }
-            } catch (error) {
-              Alert.alert(
-                "Restore Failed",
-                error instanceof Error
-                  ? error.message
-                  : "Unable to restore purchases",
-              );
-            }
-          },
-          showArrow: true,
-        },
-        {
-          icon: "card-outline",
-          label: "Manage Subscription",
-          subtitle: "Open store subscription settings",
-          onPress: async () => {
-            try {
-              await billingService.openManageSubscriptionPortal();
-            } catch (error) {
-              Alert.alert(
-                "Manage Subscription",
-                error instanceof Error
-                  ? error.message
-                  : "Unable to open store subscription settings.",
-              );
-            }
-          },
-          showArrow: true,
-        },
-        ...(authState !== "guest"
-          ? [
-              {
-                icon: "log-out-outline" as const,
-                label: "Sign Out",
-                subtitle: "Stay on this device as guest",
-                onPress: async () => {
-                  try {
-                    await signOut();
-                    Alert.alert("Signed Out", "You are now using guest mode.");
-                  } catch (error) {
-                    Alert.alert(
-                      "Sign Out Failed",
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to sign out",
-                    );
-                  }
-                },
-                showArrow: true,
-              },
-            ]
-          : []),
-      ],
-    },
+    ...(showCloudSync && cloudSyncItems.length
+      ? [{ title: "Cloud Sync", items: cloudSyncItems }]
+      : []),
+    ...(showPremiumSection && premiumItems.length
+      ? [{ title: "Premium", items: premiumItems }]
+      : []),
     {
       title: "Support",
       items: [
         {
-          icon: "book-outline",
+          icon: "book",
           label: "User Guide",
           subtitle: "How to use Cents and Sense",
           onPress: () => router.push("/(stack)/guide"),
@@ -569,49 +642,47 @@ export default function SettingsScreen() {
           icon: "help-circle-outline",
           label: "Help & FAQ",
           subtitle: "Get help on GitHub",
-          onPress: () => {
-            const url =
-              "https://github.com/waqarilyas/budget-tracker-app-development/discussions";
-            Linking.openURL(url).catch(() =>
-              Alert.alert("Error", "Could not open the link."),
-            );
-          },
+          onPress: () =>
+            openExternalLink(
+              "https://github.com/waqarilyas/budget-tracker-app-development/discussions",
+              "Help & FAQ",
+              "Could not open GitHub discussions.",
+            ),
           showArrow: true,
         },
         {
-          icon: "bug-outline",
+          icon: "bug",
           label: "Report a Bug",
           subtitle: "Help us improve",
-          onPress: () => {
-            const url =
-              "https://github.com/waqarilyas/budget-tracker-app-development/issues/new?template=bug_report.md";
-            Linking.openURL(url).catch(() =>
-              Alert.alert("Error", "Could not open the link."),
-            );
-          },
+          onPress: () =>
+            openExternalLink(
+              "https://github.com/waqarilyas/budget-tracker-app-development/issues/new?template=bug_report.md",
+              "Report a Bug",
+              "Could not open the bug report form.",
+            ),
           showArrow: true,
         },
         {
-          icon: "star-outline",
+          icon: "star",
           label: "Feature Request",
           subtitle: "Suggest new features",
-          onPress: () => {
-            const url =
-              "https://github.com/waqarilyas/budget-tracker-app-development/issues/new?template=feature_request.md";
-            Linking.openURL(url).catch(() =>
-              Alert.alert("Error", "Could not open the link."),
-            );
-          },
+          onPress: () =>
+            openExternalLink(
+              "https://github.com/waqarilyas/budget-tracker-app-development/issues/new?template=feature_request.md",
+              "Feature Request",
+              "Could not open the feature request form.",
+            ),
           showArrow: true,
         },
         {
-          icon: "heart-outline",
-          label: "Rate on App Store",
+          icon: "heart",
+          label: "Star on GitHub",
           subtitle: "Support the project",
           onPress: () =>
-            Alert.alert(
-              "Thank You!",
-              "We appreciate your support! The app will be available on app stores soon.",
+            openExternalLink(
+              "https://github.com/waqarilyas/budget-tracker-app-development/stargazers",
+              "Star on GitHub",
+              "Could not open the GitHub page.",
             ),
           showArrow: true,
         },
@@ -621,18 +692,18 @@ export default function SettingsScreen() {
       title: "About",
       items: [
         {
-          icon: "information-circle-outline",
+          icon: "information-circle",
           label: "App Version",
           subtitle: `Version ${appVersion} (Build ${buildNumber})`,
           onPress: () => {
             Alert.alert(
               "Cents and Sense",
-              `Version: ${appVersion}\nBuild: ${buildNumber}\n\nA comprehensive budget tracking app built with React Native and Expo.\n\nMade with ❤️ by the open-source community.`,
+              `Version: ${appVersion}\nBuild: ${buildNumber}\n\nA comprehensive budget tracking app built with React Native and Expo.\n\nBuilt by the open-source community.`,
             );
           },
         },
         {
-          icon: "shield-checkmark-outline",
+          icon: "shield-checkmark",
           label: "Privacy Policy",
           subtitle: "How we protect your data",
           onPress: () => {
@@ -648,7 +719,7 @@ export default function SettingsScreen() {
           showArrow: true,
         },
         {
-          icon: "document-text-outline",
+          icon: "document-text",
           label: "Terms of Service",
           subtitle: "Terms and conditions",
           onPress: () => {
@@ -664,7 +735,7 @@ export default function SettingsScreen() {
           showArrow: true,
         },
         {
-          icon: "code-slash-outline",
+          icon: "code-slash",
           label: "Open Source",
           subtitle: "MIT License - View on GitHub",
           onPress: () => {
@@ -675,10 +746,9 @@ export default function SettingsScreen() {
             );
           },
           showArrow: true,
-          color: "#4CAF50",
         },
         {
-          icon: "people-outline",
+          icon: "people",
           label: "Contributors",
           subtitle: "Meet the team",
           onPress: () => {
@@ -694,13 +764,13 @@ export default function SettingsScreen() {
           showArrow: true,
         },
         {
-          icon: "heart-outline",
+          icon: "heart",
           label: "Acknowledgments",
           subtitle: "Built with amazing tools",
           onPress: () => {
             Alert.alert(
               "Acknowledgments",
-              "Cents and Sense is built with:\n\n• React Native & Expo\n• React Native Paper\n• SQLite\n• Victory Charts\n• Lucide Icons\n\nAnd many other amazing open-source libraries.\n\nThank you to all the developers!",
+              "Cents and Sense is built with:\n\nReact Native and Expo\nReact Native Paper\nSQLite\nVictory Charts\nIonicons\n\nAnd many other open-source libraries.\n\nThank you to all the developers who made it possible.",
             );
           },
           showArrow: true,
@@ -736,26 +806,45 @@ export default function SettingsScreen() {
         <Card style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: "#E8F5E9" }]}>
-                <Ionicons name="wallet" size={20} color="#4CAF50" />
+              <View
+                style={[
+                  styles.statIcon,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <Ionicons name="wallet" size={20} color={colors.primary} />
               </View>
               <Text style={styles.statValue}>
-                ${totalBalance.toLocaleString()}
+                {formatReadableCurrency(totalBalance, defaultCurrency)}
               </Text>
               <Text style={styles.statLabel}>Total Balance</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: "#E3F2FD" }]}>
-                <Ionicons name="swap-vertical" size={20} color="#2196F3" />
+              <View
+                style={[
+                  styles.statIcon,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <Ionicons
+                  name="swap-vertical"
+                  size={20}
+                  color={colors.primary}
+                />
               </View>
               <Text style={styles.statValue}>{transactions.length}</Text>
               <Text style={styles.statLabel}>Transactions</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: "#FFF3E0" }]}>
-                <Ionicons name="flag" size={20} color="#FF9800" />
+              <View
+                style={[
+                  styles.statIcon,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <Ionicons name="flag" size={20} color={colors.primary} />
               </View>
               <Text style={styles.statValue}>{activeGoals}</Text>
               <Text style={styles.statLabel}>Active Goals</Text>
@@ -782,7 +871,9 @@ export default function SettingsScreen() {
                   <View
                     style={[
                       styles.menuIconContainer,
-                      item.color && { backgroundColor: `${item.color}15` },
+                      item.color
+                        ? { backgroundColor: `${item.color}15` }
+                        : { backgroundColor: colors.surfaceSecondary },
                     ]}
                   >
                     <Ionicons
@@ -857,6 +948,106 @@ export default function SettingsScreen() {
           />
         </View>
       )}
+
+      <BottomSheet
+        visible={showAppearanceSheet}
+        onClose={() => setShowAppearanceSheet(false)}
+        title="Appearance"
+      >
+        <Text style={styles.appearanceSectionTitle}>Theme Mode</Text>
+        <View style={styles.themeModeRow}>
+          {(["system", "light", "dark"] as ThemeMode[]).map((option) => {
+            const active = theme === option;
+            return (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.themeModeButton,
+                  active && styles.themeModeButtonActive,
+                ]}
+                onPress={() => setTheme(option)}
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${option} theme`}
+              >
+                <Text
+                  style={[
+                    styles.themeModeText,
+                    active && styles.themeModeTextActive,
+                  ]}
+                >
+                  {option === "system"
+                    ? "System"
+                    : option === "light"
+                      ? "Light"
+                      : "Dark"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={styles.appearanceSectionTitle}>Accent Color</Text>
+        <Text style={styles.appearanceHint}>
+          Accent colors apply across navigation, buttons, chips, highlights, and
+          interactive UI.
+        </Text>
+
+        <View style={styles.accentGrid}>
+          {ACCENT_THEME_OPTIONS.map((option) => {
+            const isSelected = settings.accentTheme === option.id;
+            const preview = option.light;
+
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.accentCard,
+                  isSelected && styles.accentCardSelected,
+                ]}
+                onPress={() =>
+                  updateSetting("accentTheme", option.id as AccentThemeId)
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${option.label} accent theme`}
+              >
+                <View style={styles.accentPreviewRow}>
+                  <View
+                    style={[
+                      styles.accentSwatchLarge,
+                      { backgroundColor: preview.primary },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.accentSwatchSmall,
+                      { backgroundColor: preview.primaryLight },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.accentSwatchSmall,
+                      { backgroundColor: preview.accent },
+                    ]}
+                  />
+                </View>
+                <View style={styles.accentMeta}>
+                  <Text style={styles.accentLabel}>{option.label}</Text>
+                  <Text style={styles.accentDescription}>
+                    {option.description}
+                  </Text>
+                </View>
+                {isSelected && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={18}
+                    color={colors.primary}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -997,5 +1188,89 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
       fontWeight: "600",
       color: "#FFFFFF",
+    },
+    appearanceSectionTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    appearanceHint: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginBottom: spacing.md,
+    },
+    themeModeRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    themeModeButton: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+    },
+    themeModeButtonActive: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primary,
+    },
+    themeModeText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    themeModeTextActive: {
+      color: colors.primary,
+    },
+    accentGrid: {
+      gap: spacing.sm,
+    },
+    accentCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    accentCardSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
+    },
+    accentPreviewRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    accentSwatchLarge: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+    },
+    accentSwatchSmall: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+    },
+    accentMeta: {
+      flex: 1,
+    },
+    accentLabel: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    accentDescription: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
     },
   });

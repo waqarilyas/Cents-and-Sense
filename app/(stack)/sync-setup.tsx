@@ -8,6 +8,7 @@ import { useThemeColors, ThemeColors, spacing, borderRadius } from "../../lib/th
 import { Card } from "../../lib/components";
 import { useSync, SyncSetupStrategy } from "../../lib/contexts/SyncContext";
 import { useEntitlements } from "../../lib/contexts/EntitlementContext";
+import { useFeatureFlags } from "../../lib/contexts/FeatureFlagsContext";
 
 type Strategy = Exclude<SyncSetupStrategy, "skip">;
 
@@ -23,6 +24,7 @@ export default function SyncSetupScreen() {
   const params = useLocalSearchParams<{ pendingPlan?: string }>();
   const { colors } = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const { getSyncReadiness, runSyncSetup } = useSync();
   const { isPremium } = useEntitlements();
 
@@ -30,6 +32,16 @@ export default function SyncSetupScreen() {
   const [applying, setApplying] = useState(false);
   const [readiness, setReadiness] = useState<Awaited<ReturnType<typeof getSyncReadiness>> | null>(null);
   const [selected, setSelected] = useState<Strategy>("merge");
+
+  useEffect(() => {
+    if (!flagsLoading && !flags.syncEnabled) {
+      router.replace("/(tabs)");
+    }
+  }, [flags.syncEnabled, flagsLoading, router]);
+
+  if (flagsLoading || !flags.syncEnabled) {
+    return null;
+  }
 
   const loadReadiness = async () => {
     try {

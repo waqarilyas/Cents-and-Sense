@@ -185,7 +185,7 @@ export default function BudgetSettingsScreen() {
               budget periods will be:
             </Text>
             <Text style={styles.examplePeriod}>
-              • {formatPeriod(getCurrentPeriod(parseInt(periodStartDay) || 1))}
+              {formatPeriod(getCurrentPeriod(parseInt(periodStartDay) || 1))}
             </Text>
           </Card>
         </View>
@@ -243,16 +243,16 @@ export default function BudgetSettingsScreen() {
               <Text style={styles.bold}>With Carryover Enabled:</Text>
             </Text>
             <Text style={styles.exampleItem}>
-              ✓ Budget: $500, Spent: $450 → Carryover: +$50
+              Budget: $500, Spent: $450, Carryover: +$50
             </Text>
             <Text style={styles.exampleItem}>
-              ✓ Next period available: $550
+              Next period available: $550
             </Text>
             <Text style={[styles.exampleItem, { marginTop: spacing.sm }]}>
-              ⚠️ Budget: $500, Spent: $550 → Carryover: -$50
+              Budget: $500, Spent: $550, Carryover: -$50
             </Text>
             <Text style={styles.exampleItem}>
-              ⚠️ Next period available: $450
+              Next period available: $450
             </Text>
           </Card>
         </View>

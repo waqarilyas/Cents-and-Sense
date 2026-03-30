@@ -128,7 +128,7 @@ export default function OnboardingScreen() {
         <Ionicons name="wallet" size={80} color={colors.primary} />
       </View>
 
-      <Text style={styles.title}>Welcome to Budget Tracker</Text>
+      <Text style={styles.title}>Welcome to Cents and Sense</Text>
       <Text style={styles.subtitle}>
         Take control of your finances with smart budgeting and tracking
       </Text>
@@ -256,7 +256,7 @@ export default function OnboardingScreen() {
 
       <Text style={styles.title}>You're all set!</Text>
       <Text style={styles.subtitle}>
-        Welcome to Budget Tracker, {userName}! 🎉
+        Welcome to Cents and Sense, {userName}!
       </Text>
     </View>
   );

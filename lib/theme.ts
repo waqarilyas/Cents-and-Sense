@@ -1,110 +1,135 @@
 // Professional Design System for Budget Tracker App
+import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "react-native";
 import { useSettings } from "./contexts/SettingsContext";
+import {
+  ACCENT_THEME_MAP,
+  DEFAULT_ACCENT_THEME,
+} from "./accentThemes";
 
 export type ThemeMode = "light" | "dark" | "system";
 
-export const lightColors = {
-  // Primary palette
-  primary: "#10B981", // Emerald green - main brand color
-  primaryDark: "#059669",
-  primaryLight: "#D1FAE5",
-
-  // Accent colors
-  accent: "#3B82F6", // Blue for secondary actions
-  accentLight: "#DBEAFE",
-
+export interface ThemeColors {
+  primary: string;
+  primaryDark: string;
+  primaryLight: string;
+  accent: string;
+  accentLight: string;
   // Semantic colors
-  success: "#22C55E",
+  success: string;
+  successLight: string;
+  warning: string;
+  warningLight: string;
+  error: string;
+  errorLight: string;
+
+  // Neutrals
+  background: string;
+  surface: string;
+  surfaceSecondary: string;
+
+  // Text colors
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textInverse: string;
+
+  // Borders
+  border: string;
+  borderLight: string;
+
+  // Income/Expense specific
+  income: string;
+  incomeLight: string;
+  expense: string;
+  expenseLight: string;
+
+  // Overlays and shadows
+  overlay: string;
+  shadow: string;
+}
+
+const lightBaseColors: Omit<
+  ThemeColors,
+  "primary" | "primaryDark" | "primaryLight" | "accent" | "accentLight"
+> = {
+  success: "#15803D",
   successLight: "#DCFCE7",
   warning: "#F59E0B",
   warningLight: "#FEF3C7",
   error: "#EF4444",
   errorLight: "#FEE2E2",
-
-  // Neutrals
   background: "#F8FAFC",
   surface: "#FFFFFF",
   surfaceSecondary: "#F1F5F9",
-
-  // Text colors
   textPrimary: "#1E293B",
   textSecondary: "#64748B",
   textMuted: "#94A3B8",
   textInverse: "#FFFFFF",
-
-  // Borders
   border: "#E2E8F0",
   borderLight: "#F1F5F9",
-
-  // Income/Expense specific
-  income: "#22C55E",
+  income: "#15803D",
   incomeLight: "#DCFCE7",
   expense: "#EF4444",
   expenseLight: "#FEE2E2",
-
-  // Overlays and shadows
   overlay: "rgba(0, 0, 0, 0.5)",
   shadow: "#000000",
 } as const;
 
-export const darkColors = {
-  // Primary palette
-  primary: "#34D399",
-  primaryDark: "#10B981",
-  primaryLight: "#1F2937",
-
-  // Accent colors
-  accent: "#60A5FA",
-  accentLight: "#1E293B",
-
-  // Semantic colors
-  success: "#34D399",
-  successLight: "#064E3B",
+const darkBaseColors: Omit<
+  ThemeColors,
+  "primary" | "primaryDark" | "primaryLight" | "accent" | "accentLight"
+> = {
+  success: "#4ADE80",
+  successLight: "#14532D",
   warning: "#FBBF24",
   warningLight: "#78350F",
   error: "#FB7185",
   errorLight: "#7F1D1D",
-
-  // Neutrals
   background: "#0B1120",
   surface: "#111827",
   surfaceSecondary: "#1F2937",
-
-  // Text colors
   textPrimary: "#F8FAFC",
   textSecondary: "#CBD5E1",
   textMuted: "#94A3B8",
   textInverse: "#FFFFFF",
-
-  // Borders
   border: "#1F2937",
   borderLight: "#334155",
-
-  // Income/Expense specific
-  income: "#34D399",
-  incomeLight: "#064E3B",
+  income: "#4ADE80",
+  incomeLight: "#14532D",
   expense: "#FB7185",
   expenseLight: "#7F1D1D",
-
-  // Overlays and shadows
   overlay: "rgba(0, 0, 0, 0.7)",
   shadow: "#000000",
 } as const;
 
-export type ThemeColors = typeof lightColors | typeof darkColors;
+export const lightColors: ThemeColors = {
+  ...lightBaseColors,
+  ...ACCENT_THEME_MAP[DEFAULT_ACCENT_THEME].light,
+};
+
+export const darkColors: ThemeColors = {
+  ...darkBaseColors,
+  ...ACCENT_THEME_MAP[DEFAULT_ACCENT_THEME].dark,
+};
 
 export function useThemeColors() {
   const { settings, updateSetting } = useSettings();
   const systemScheme = useColorScheme();
   const theme = settings.theme;
+  const accentTheme = settings.accentTheme || DEFAULT_ACCENT_THEME;
   const activeTheme =
     theme === "system" ? (systemScheme === "dark" ? "dark" : "light") : theme;
-  const colors = activeTheme === "dark" ? darkColors : lightColors;
+  const accent = ACCENT_THEME_MAP[accentTheme] || ACCENT_THEME_MAP[DEFAULT_ACCENT_THEME];
+  const colors: ThemeColors =
+    activeTheme === "dark"
+      ? { ...darkBaseColors, ...accent.dark }
+      : { ...lightBaseColors, ...accent.light };
 
   return {
     colors,
     theme,
+    accentTheme,
     activeTheme,
     setTheme: (nextTheme: ThemeMode) => updateSetting("theme", nextTheme),
   };
@@ -180,19 +205,71 @@ export const shadows = {
 
 // Category icons and colors
 export const categoryConfig = {
-  food: { icon: "🍽️", color: "#F97316", name: "Food & Dining" },
-  transport: { icon: "🚗", color: "#8B5CF6", name: "Transportation" },
-  medicine: { icon: "💊", color: "#EC4899", name: "Healthcare" },
-  groceries: { icon: "🛒", color: "#14B8A6", name: "Groceries" },
-  rent: { icon: "🏠", color: "#6366F1", name: "Housing" },
-  gifts: { icon: "🎁", color: "#F43F5E", name: "Gifts" },
-  savings: { icon: "💰", color: "#10B981", name: "Savings" },
-  entertainment: { icon: "🎬", color: "#A855F7", name: "Entertainment" },
-  salary: { icon: "💵", color: "#22C55E", name: "Salary" },
-  utilities: { icon: "💡", color: "#EAB308", name: "Utilities" },
-  shopping: { icon: "🛍️", color: "#3B82F6", name: "Shopping" },
-  investment: { icon: "📈", color: "#059669", name: "Investment" },
-  other: { icon: "📋", color: "#64748B", name: "Other" },
+  food: {
+    icon: "restaurant" as keyof typeof Ionicons.glyphMap,
+    color: "#F97316",
+    name: "Food & Dining",
+  },
+  transport: {
+    icon: "car" as keyof typeof Ionicons.glyphMap,
+    color: "#8B5CF6",
+    name: "Transportation",
+  },
+  medicine: {
+    icon: "medical" as keyof typeof Ionicons.glyphMap,
+    color: "#EC4899",
+    name: "Healthcare",
+  },
+  groceries: {
+    icon: "cart" as keyof typeof Ionicons.glyphMap,
+    color: "#14B8A6",
+    name: "Groceries",
+  },
+  rent: {
+    icon: "home" as keyof typeof Ionicons.glyphMap,
+    color: "#6366F1",
+    name: "Housing",
+  },
+  gifts: {
+    icon: "gift" as keyof typeof Ionicons.glyphMap,
+    color: "#F43F5E",
+    name: "Gifts",
+  },
+  savings: {
+    icon: "wallet" as keyof typeof Ionicons.glyphMap,
+    color: "#10B981",
+    name: "Savings",
+  },
+  entertainment: {
+    icon: "film" as keyof typeof Ionicons.glyphMap,
+    color: "#A855F7",
+    name: "Entertainment",
+  },
+  salary: {
+    icon: "cash" as keyof typeof Ionicons.glyphMap,
+    color: "#22C55E",
+    name: "Salary",
+  },
+  utilities: {
+    icon: "flash" as keyof typeof Ionicons.glyphMap,
+    color: "#EAB308",
+    name: "Utilities",
+  },
+  shopping: {
+    icon: "bag-handle" as keyof typeof Ionicons.glyphMap,
+    color: "#3B82F6",
+    name: "Shopping",
+  },
+  investment: {
+    icon: "trending-up" as keyof typeof Ionicons.glyphMap,
+    color: "#059669",
+    name: "Investment",
+  },
+  other: {
+    icon: "ellipsis-horizontal" as keyof typeof Ionicons.glyphMap,
+    color: "#64748B",
+    name: "Other",
+  },
   // Color palette for custom categories
   colors: [
     "#F97316",
@@ -214,9 +291,9 @@ export const categoryConfig = {
 } as const;
 
 export const accountIcons = {
-  checking: "🏦",
-  savings: "💰",
-  credit_card: "💳",
+  checking: "business",
+  savings: "wallet",
+  credit_card: "card",
 } as const;
 
 // Utility function to format currency
@@ -227,6 +304,16 @@ export const formatCurrency = (
   currencyCode: string = "USD",
 ): string => {
   return formatCurrencyAmount(amount, currencyCode);
+};
+
+export const formatReadableCurrency = (
+  amount: number,
+  currencyCode: string = "USD",
+): string => {
+  return formatCurrencyAmount(amount, currencyCode, {
+    compact: true,
+    compactThreshold: 100000,
+  });
 };
 
 // Get currency symbol

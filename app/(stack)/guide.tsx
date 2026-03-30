@@ -8,6 +8,8 @@ import {
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Alert,
+  Linking,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,7 +59,7 @@ const getAppFeatures = (colors: ThemeColors): FeatureSection[] => [
     title: "Accounts Management",
     description: "Track checking, savings, and credit cards.",
     color: "#8B5CF6",
-    tips: ["Tap an account to edit balance", "Long press to delete"],
+    tips: ["Use the edit action to update balances", "Set a default account"],
   },
   {
     id: "budgets",
@@ -206,11 +208,11 @@ export default function GuideScreen() {
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeIcon}>
-            <Ionicons name="sparkles" size={48} color={colors.primary} />
+            <Ionicons name="wallet" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.welcomeTitle}>Welcome to Budget Tracker</Text>
+          <Text style={styles.welcomeTitle}>Welcome to Cents and Sense</Text>
           <Text style={styles.welcomeSubtitle}>
-            A concise guide to help you get started.
+            A concise guide to help you get started with your money.
           </Text>
         </View>
 
@@ -328,17 +330,18 @@ export default function GuideScreen() {
           ))}
         </View>
 
-        {/* Pro Tips Section */}
+        {/* Included Features Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Premium Features</Text>
+          <Text style={styles.sectionTitle}>Included In This Release</Text>
           <Card style={styles.premiumCard}>
             <View style={styles.premiumBadge}>
-              <Ionicons name="diamond" size={16} color="#FFD700" />
-              <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+              <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
+              <Text style={styles.premiumBadgeText}>READY</Text>
             </View>
-            <Text style={styles.premiumTitle}>Unlock Your Full Potential</Text>
+            <Text style={styles.premiumTitle}>Everything You Need To Start</Text>
             <Text style={styles.premiumDescription}>
-              All premium features are available to you.
+              This version focuses on fast local budgeting with the core tools
+              available from day one.
             </Text>
 
             <View style={styles.premiumFeatures}>
@@ -349,7 +352,7 @@ export default function GuideScreen() {
                   color={colors.income}
                 />
                 <Text style={styles.premiumFeatureText}>
-                  Advanced Analytics & Reports
+                  Analytics and insights
                 </Text>
               </View>
               <View style={styles.premiumFeatureItem}>
@@ -359,7 +362,7 @@ export default function GuideScreen() {
                   color={colors.income}
                 />
                 <Text style={styles.premiumFeatureText}>
-                  Unlimited Accounts & Budgets
+                  Accounts, budgets, and balances
                 </Text>
               </View>
               <View style={styles.premiumFeatureItem}>
@@ -369,7 +372,7 @@ export default function GuideScreen() {
                   color={colors.income}
                 />
                 <Text style={styles.premiumFeatureText}>
-                  Subscription Tracking
+                  Subscription tracking
                 </Text>
               </View>
               <View style={styles.premiumFeatureItem}>
@@ -378,7 +381,7 @@ export default function GuideScreen() {
                   size={20}
                   color={colors.income}
                 />
-                <Text style={styles.premiumFeatureText}>Savings Goals</Text>
+                <Text style={styles.premiumFeatureText}>Savings goals</Text>
               </View>
               <View style={styles.premiumFeatureItem}>
                 <Ionicons
@@ -386,7 +389,7 @@ export default function GuideScreen() {
                   size={20}
                   color={colors.income}
                 />
-                <Text style={styles.premiumFeatureText}>Data Export</Text>
+                <Text style={styles.premiumFeatureText}>Transaction history and categories</Text>
               </View>
             </View>
           </Card>
@@ -403,7 +406,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.primaryLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>•</Text>
+                <Ionicons name="create" size={18} color={colors.primary} />
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>Track Daily</Text>
@@ -419,7 +422,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.warningLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>•</Text>
+                <Ionicons name="pie-chart" size={18} color={colors.warning} />
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>
@@ -437,7 +440,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.incomeLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>•</Text>
+                <Ionicons name="cash" size={18} color={colors.income} />
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>Save 20% Rule</Text>
@@ -453,7 +456,7 @@ export default function GuideScreen() {
                   { backgroundColor: colors.accentLight },
                 ]}
               >
-                <Text style={styles.bestPracticeEmoji}>•</Text>
+                <Ionicons name="stats-chart" size={18} color={colors.accent} />
               </View>
               <View style={styles.bestPracticeContent}>
                 <Text style={styles.bestPracticeTitle}>Review Weekly</Text>
@@ -475,7 +478,19 @@ export default function GuideScreen() {
             </Text>
             <TouchableOpacity
               style={styles.helpButton}
-              onPress={() => hapticFeedback()}
+              onPress={async () => {
+                hapticFeedback();
+                try {
+                  await Linking.openURL(
+                    "https://github.com/waqarilyas/budget-tracker-app-development/discussions",
+                  );
+                } catch (error) {
+                  Alert.alert(
+                    "Contact Support",
+                    "Could not open the support page.",
+                  );
+                }
+              }}
             >
               <Ionicons name="mail" size={18} color="#FFF" />
               <Text style={styles.helpButtonText}>Contact Support</Text>
@@ -742,9 +757,6 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
       justifyContent: "center",
       marginRight: spacing.md,
-    },
-    bestPracticeEmoji: {
-      fontSize: 20,
     },
     bestPracticeContent: {
       flex: 1,

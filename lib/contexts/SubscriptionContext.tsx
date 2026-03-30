@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useMemo,
   ReactNode,
 } from "react";
 import { getDatabase, Subscription } from "../database";
@@ -139,7 +140,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     loadSubscriptions();
   }, [loadSubscriptions]);
 
-  const activeSubscriptions = subscriptions.filter((s) => s.isActive);
+  const activeSubscriptions = useMemo(
+    () => subscriptions.filter((s) => s.isActive),
+    [subscriptions],
+  );
 
   const addSubscription = useCallback(
     async (
@@ -519,20 +523,20 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           await loadSubscriptions();
         }
       } else if (mode === "notify" || mode === "manual") {
-        // Notify/Manual mode: Add to pending list for user approval
-        const newPending: PendingSubscription[] = dueSubscriptions
-          .filter(
-            (sub) =>
-              !pendingSubscriptions.some((p) => p.subscription.id === sub.id),
-          )
-          .map((subscription) => ({
-            subscription,
-            dueDate: subscription.nextDueDate,
-          }));
+        // Notify/Manual mode: add due subscriptions to the pending list,
+        // deduping against the latest state to avoid double-enqueueing when
+        // multiple refresh/effect paths call processDueSubscriptions close together.
+        setPendingSubscriptions((prev) => {
+          const existingIds = new Set(prev.map((p) => p.subscription.id));
+          const newPending: PendingSubscription[] = dueSubscriptions
+            .filter((sub) => !existingIds.has(sub.id))
+            .map((subscription) => ({
+              subscription,
+              dueDate: subscription.nextDueDate,
+            }));
 
-        if (newPending.length > 0) {
-          setPendingSubscriptions((prev) => [...prev, ...newPending]);
-        }
+          return newPending.length > 0 ? [...prev, ...newPending] : prev;
+        });
       }
 
       return processedCount;
@@ -541,7 +545,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       activeSubscriptions,
       processSubscription,
       loadSubscriptions,
-      pendingSubscriptions,
     ],
   );
 
@@ -651,29 +654,51 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     await loadSubscriptions();
   }, [loadSubscriptions]);
 
+  const value = useMemo(
+    () => ({
+      subscriptions,
+      activeSubscriptions,
+      pendingSubscriptions,
+      loading,
+      addSubscription,
+      updateSubscription,
+      deleteSubscription,
+      toggleSubscription,
+      getSubscription,
+      processDueSubscriptions,
+      approvePendingSubscription,
+      skipPendingSubscription,
+      approveAllPending,
+      clearPendingSubscriptions,
+      getUpcomingSubscriptions,
+      getDueSubscriptions,
+      getMonthlyTotal,
+      refreshSubscriptions,
+    }),
+    [
+      subscriptions,
+      activeSubscriptions,
+      pendingSubscriptions,
+      loading,
+      addSubscription,
+      updateSubscription,
+      deleteSubscription,
+      toggleSubscription,
+      getSubscription,
+      processDueSubscriptions,
+      approvePendingSubscription,
+      skipPendingSubscription,
+      approveAllPending,
+      clearPendingSubscriptions,
+      getUpcomingSubscriptions,
+      getDueSubscriptions,
+      getMonthlyTotal,
+      refreshSubscriptions,
+    ],
+  );
+
   return (
-    <SubscriptionContext.Provider
-      value={{
-        subscriptions,
-        activeSubscriptions,
-        pendingSubscriptions,
-        loading,
-        addSubscription,
-        updateSubscription,
-        deleteSubscription,
-        toggleSubscription,
-        getSubscription,
-        processDueSubscriptions,
-        approvePendingSubscription,
-        skipPendingSubscription,
-        approveAllPending,
-        clearPendingSubscriptions,
-        getUpcomingSubscriptions,
-        getDueSubscriptions,
-        getMonthlyTotal,
-        refreshSubscriptions,
-      }}
-    >
+    <SubscriptionContext.Provider value={value}>
       {children}
     </SubscriptionContext.Provider>
   );

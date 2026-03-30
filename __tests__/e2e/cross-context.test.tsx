@@ -108,7 +108,7 @@ describe("E2E: Full User Journey", () => {
     await act(async () => {
       await transaction.addTransaction(
         accountId,
-        freelanceCat.id,
+        freelanceCat!.id,
         2000,
         "Project payment",
         Date.now(),
@@ -120,7 +120,7 @@ describe("E2E: Full User Journey", () => {
     await act(async () => {
       await transaction.addTransaction(
         accountId,
-        diningCat.id,
+        diningCat!.id,
         85,
         "Restaurant",
         Date.now(),
@@ -133,7 +133,7 @@ describe("E2E: Full User Journey", () => {
 
     // ---- STEP 4: SET BUDGET ----
     await act(async () => {
-      await budget.addBudget(diningCat.id, 200, "monthly", "USD");
+      await budget.addBudget(diningCat!.id, 200, "monthly", "USD");
     });
 
     expect(testDB.getTable("budgets").length).toBe(1);
@@ -292,7 +292,7 @@ describe("E2E: Cross-Context Data Integrity", () => {
     const expenseTx = transactions.find((t: any) => t.type === "expense");
 
     await act(async () => {
-      await txState.deleteTransaction(expenseTx.id);
+      await txState.deleteTransaction(expenseTx!.id);
     });
 
     expect(testDB.getTable("accounts")[0].balance).toBe(initialBalance + 1000);
@@ -388,8 +388,8 @@ describe("E2E: Cross-Context Data Integrity", () => {
     const txs = testDB.getTable("transactions");
     const subTx = txs.find((t: any) => t.subscriptionId === "sub_1");
     expect(subTx).toBeTruthy();
-    expect(subTx.amount).toBe(9.99);
-    expect(subTx.categoryId).toBe("cat_ent");
+    expect(subTx!.amount).toBe(9.99);
+    expect(subTx!.categoryId).toBe("cat_ent");
 
     // Balance decreased
     expect(testDB.getTable("accounts")[0].balance).toBeLessThan(balanceBefore);

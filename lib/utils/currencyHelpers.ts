@@ -1,5 +1,8 @@
 import { Account, Transaction, Budget, Goal, Subscription } from "../database";
-import { getCurrency } from "../currencies";
+import {
+  getCurrency,
+  formatCurrencyAmount as formatCurrencyAmountBase,
+} from "../currencies";
 
 /**
  * Group accounts by currency
@@ -107,17 +110,7 @@ export function formatCurrencyAmount(
   amount: number,
   currencyCode: string,
 ): string {
-  const currency = getCurrency(currencyCode);
-  if (!currency) {
-    return `${amount.toFixed(2)} ${currencyCode}`;
-  }
-
-  const formattedAmount = amount.toLocaleString(undefined, {
-    minimumFractionDigits: currency.decimalDigits,
-    maximumFractionDigits: currency.decimalDigits,
-  });
-
-  return `${currency.symbol}${formattedAmount}`;
+  return formatCurrencyAmountBase(amount, currencyCode);
 }
 
 /**

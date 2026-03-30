@@ -113,9 +113,13 @@ export const CurrencyDropdown: React.FC<CurrencyDropdownProps> = ({
         onPress={toggle}
         activeOpacity={0.7}
       >
-        <Text style={styles.selectorFlag}>
-          {selectedCurrency?.flag ?? "🌐"}
-        </Text>
+        {selectedCurrency?.flag ? (
+          <Text style={styles.selectorFlag}>{selectedCurrency.flag}</Text>
+        ) : (
+          <View style={styles.selectorFlagFallback}>
+            <Ionicons name="globe-outline" size={16} color={colors.primary} />
+          </View>
+        )}
         <View style={styles.selectorInfo}>
           <Text style={styles.selectorCode}>{selectedCode}</Text>
           <Text style={styles.selectorName} numberOfLines={1}>
@@ -403,6 +407,13 @@ const createStyles = (colors: ThemeColors) =>
     },
     selectorFlag: {
       fontSize: 22,
+      width: 28,
+      textAlign: "center",
+    },
+    selectorFlagFallback: {
+      width: 28,
+      alignItems: "center",
+      justifyContent: "center",
     },
     selectorInfo: {
       flex: 1,
